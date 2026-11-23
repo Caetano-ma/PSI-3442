@@ -26,9 +26,10 @@ def main():
                               ("00_Comum.sysml", "01_Nivel0.sysml", "02_Nivel1.sysml", "03_NivelN.sysml", "04_Verificacao.sysml"))
 
     # requisito: uso -> (id, definição)
-    ids = dict(re.findall(r"requirement def <(\w+)> (\w+)", comum))
-    id_por_def = {d: i for i, d in ids.items()}
-    requisitos = {uso: (id_por_def[d], d) for uso, d in re.findall(r"requirement (\w+) : (\w+);", n0)}
+    bloco_q1 = comum[comum.index("package RequisitosQ1"):comum.index("package RequisitosQ2")]
+    id_por_def = {d: i for i, d in re.findall(r"requirement def <(\w+)> (\w+)", bloco_q1)}
+    requisitos = {uso: (id_por_def[d], d) for uso, d in re.findall(r"requirement (\w+) : (\w+);", n0)
+                  if d in id_por_def}
 
     # requisito -> função (nível 1)
     funcoes_do_req = defaultdict(list)
@@ -93,7 +94,7 @@ def main():
             pendencias.append(f"{rid}: módulo {mod} satisfaz o requisito no nível n mas não vem de nenhuma função ligada a ele")
 
     SAIDA.mkdir(exist_ok=True)
-    cab = ["Requisito", "Definição", "Função (nível 1)", "Elemento (nível 1)", "Módulo (nível n)",
+    cab = ["Requisito", "Definição", "Função (nível 1)", "Componente (nível 1)", "Módulo (nível n)",
            "Arquivo de código", "Teste", "Evidência"]
     with open(SAIDA / "matriz_q1.csv", "w", newline="", encoding="utf-8") as f:
         csv.writer(f).writerows([cab] + linhas)

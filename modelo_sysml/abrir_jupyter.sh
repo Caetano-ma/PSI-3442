@@ -3,7 +3,7 @@
 set -e
 cd "$(dirname "$0")"
 export PATH="$HOME/miniforge3/envs/sysml/bin:$PATH"
-if [ ! -f Modelo_Q1.ipynb ] || [ -n "$(find . -maxdepth 1 -name '*.sysml' -newer Modelo_Q1.ipynb)" ]; then
+if [ ! -f Modelo.ipynb ] || [ -n "$(find . -maxdepth 1 -name '*.sysml' -newer Modelo.ipynb)" ]; then
     python executar_modelo.py --so-gerar
 fi
-exec jupyter lab Modelo_Q1.ipynb
+exec jupyter lab Modelo.ipynb

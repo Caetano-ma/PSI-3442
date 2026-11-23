@@ -2,7 +2,7 @@
 
 Uso (com o ambiente conda 'sysml'):
     python executar_modelo.py            # gera, executa e exporta vistas/
-    python executar_modelo.py --so-gerar # apenas gera Modelo_Q1.ipynb (para abrir no JupyterLab)
+    python executar_modelo.py --so-gerar # apenas gera Modelo.ipynb (para abrir no JupyterLab)
 """
 import re
 import shutil
@@ -14,36 +14,42 @@ import nbformat
 from nbclient import NotebookClient
 
 PASTA = Path(__file__).resolve().parent
-NOTEBOOK = PASTA / "Modelo_Q1.ipynb"
+NOTEBOOK = PASTA / "Modelo.ipynb"
 VISTAS = PASTA / "vistas"
 
 VISOES = [
     ("01_nivel0_contexto", "Nível 0 — contexto operacional e fronteira do sistema",
      "%viz --view=interconnection Nivel0::ContextoOperacional"),
-    ("02_nivel0_cenario", "Nível 0 — cenário de operação",
-     "%viz --view=action Nivel0::CenarioOperacaoQ1"),
-    ("03_requisitos_q1", "Requisitos da Questão 1",
-     "%viz --view=tree --style=LR Comum::RequisitosQ1"),
-    ("04_nivel1_drone", "Nível 1 — blocos do drone (caixas-pretas)",
-     "%viz --view=interconnection Nivel1::DroneN1"),
-    ("05_nivel1_aplicacao", "Nível 1 — aplicação de missão",
-     "%viz --view=interconnection Nivel1::AplicacaoMissaoN1"),
+    ("02_nivel0_sistema", "Nível 0 — componentes do sistema de missões",
+     "%viz --view=interconnection Nivel0::SistemaMissoesAutonomas"),
+    ("03_nivel0_cenario", "Nível 0 — cenário de operação",
+     "%viz --view=action Nivel0::CenarioOperacao"),
+    ("04_requisitos", "Requisitos das Questões 1 e 2",
+     "%viz --view=tree --style=LR Comum::RequisitosQ1 Comum::RequisitosQ2"),
+    ("05_nivel1_nos_ros2", "Nível 1 — nós ROS 2 e suas portas de tópico (pub = porta, sub = porta conjugada ~)",
+     "%viz --view=tree --style=LR Nivel1::InterfaceOperador Nivel1::GerenciadorTarefas Nivel1::Tarefa1VooFamiliarizacao "
+     "Nivel1::Tarefa2Baloes Nivel1::Registro Nivel1::EstimacaoEstado Nivel1::ControleVoo Nivel1::PercepcaoVisual "
+     "Nivel1::SupervisaoSeguranca Nivel1::NoPonteDJI"),
     ("06_nivel1_funcional", "Nível 1 — decomposição funcional da função global",
-     "%viz --view=action Nivel1::ExecutarMissaoAutonoma"),
-    ("07_nivel1_modos", "Nível 1 — modos de operação",
+     "%viz --view=action Nivel1::ExecutarTarefaAutonoma"),
+    ("07_nivel1_modos", "Nível 1 — modos de operação (executar tarefa 1 / 2)",
      "%viz --view=state Nivel1::ModosOperacao"),
-    ("08_niveln_caixas_pretas", "Nível n — interfaces do SDK exploradas em cada caixa-preta",
-     "%viz --view=tree --style=LR NivelN::UceCaixaPreta NivelN::SdkControladorVoo NivelN::SdkBateria "
+    ("08_niveln_drone_sdk", "Nível n — drone caixa-preta explorado pelo SDK",
+     "%viz --view=tree --style=LR NivelN::DroneN NivelN::SdkControladorVoo NivelN::SdkBateria "
      "NivelN::SdkEnlace NivelN::SdkPercepcao"),
-    ("09_niveln_modulos", "Nível n — módulos implementáveis da aplicação",
-     "%viz --view=tree --style=LR NivelN::AdaptadorDJIN NivelN::LogicaMissaoN NivelN::InterfacePainelN NivelN::RegistroN"),
-    ("10_niveln_contratos", "Nível n — contratos de interface",
-     "%viz --view=tree --style=LR NivelN::ContratoSdkControladorVoo NivelN::ContratoTelemetria NivelN::ContratoComandos"),
-    ("11_niveln_estados", "Nível n — máquina de estados da missão (P06)",
-     "%viz --view=state NivelN::MaquinaEstadosQ1"),
-    ("12_niveln_ciclo", "Nível n — ciclo de controle a 10 Hz",
+    ("09_niveln_modulos_ros2", "Nível n — módulos dos nós ROS 2",
+     "%viz --view=tree --style=LR NivelN::InterfaceOperadorN NivelN::GerenciadorTarefasN NivelN::Tarefa1N "
+     "NivelN::EstimacaoEstadoN NivelN::ControleVooN NivelN::SupervisaoSegurancaN NivelN::RegistroN NivelN::NoPonteDJIN"),
+    ("10_niveln_app_ponte", "Nível n — módulos do app ponte (Android emulado)",
+     "%viz --view=tree --style=LR NivelN::AppPonteDJIN"),
+    ("11_niveln_contratos", "Nível n — contratos de interface",
+     "%viz --view=tree --style=LR NivelN::ContratoSdkControladorVoo NivelN::ContratoSocketPonte "
+     "NivelN::ContratoTopicoCmdVel NivelN::ContratoTopicoTelemetria"),
+    ("12_niveln_estados_tarefa1", "Nível n — máquina de estados da Tarefa 1 (P06)",
+     "%viz --view=state NivelN::MaquinaEstadosTarefa1"),
+    ("13_niveln_ciclo", "Nível n — ciclo de controle a 10 Hz",
      "%viz --view=action NivelN::CicloControle"),
-    ("13_verificacao", "Casos de verificação da Questão 1",
+    ("14_verificacao", "Casos de verificação",
      "%viz --view=tree --style=LR VerificacaoQ1"),
 ]
 
@@ -52,7 +58,7 @@ def montar_notebook():
     nb = nbformat.v4.new_notebook()
     nb.metadata["kernelspec"] = {"name": "sysml", "display_name": "SysML", "language": "sysml"}
     nb.cells.append(nbformat.v4.new_markdown_cell(
-        "# PSI3442 — P2 — Questão 1: modelo SysML 2.0 (níveis 0, 1 e n)\n\n"
+        "# PSI3442 — P2 — Sistema de Missões Autônomas: modelo SysML 2.0 (níveis 0, 1 e n)\n\n"
         "As células de código abaixo são cópias dos arquivos `*.sysml` desta pasta. Edite os arquivos e rode "
         "`python executar_modelo.py --so-gerar` para atualizar o notebook. Execute tudo com *Run → Run All Cells*."))
     for arq in sorted(PASTA.glob("*.sysml")):

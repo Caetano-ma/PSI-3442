@@ -1,398 +1,386 @@
 package Nivel1 {
-    doc /* Nível 1 — decomposição dos elementos do nível 0 (diagramas/nivel_1.png) e decomposição funcional da
-           função global, com alocação das funções aos blocos. Os blocos internos do drone são caixas-pretas:
-           conhecemos suas entradas e saídas, mas não podemos alterá-los. */
+    doc /* Nível 1 — decomposição funcional do Sistema de Missões Autônomas (diagramas/nivel_1.png).
+           Alvo da decomposição: as tarefas e os serviços ROS 2 que elas usam. Android emulado, rádio DJI e drone
+           permanecem componentes caixa-preta de comunicação e execução.
+           Reuso entre as tarefas: gerenciador, estimação, controle, supervisão, registro e ponte DJI são comuns;
+           só a Tarefa 2 usa a percepção visual. */
 
     private import ScalarValues::*;
-    private import ISQ::*;
     private import Comum::*;
     private import Nivel0::*;
 
-    // ------------------------------------------------------------------ itens e portas internos do drone
-    item def InformacaoSensores;
-    item def Trigger;
-    item def SinalPWM;
-    item def FixacaoMecanica;
-
-    port def PortaInfoSensores {
-        out item info : InformacaoSensores;
-        in item trigger : Trigger;
-    }
-    port def PortaPWM { in item pwm : SinalPWM; }
-    port def PortaFixacao { in item fixacao : FixacaoMecanica; }
-    port def PortaPacotes { inout item pacote : PacoteDados; }
-
-    // ------------------------------------------------------------------ dados internos da aplicação
-    attribute def EstadoEstimado {
-        doc /* Estado da aeronave no referencial local da missão (origem em A projetado no piso). */
-        attribute posicao : Ponto3D;
-        attribute vx : SpeedValue;
-        attribute vy : SpeedValue;
-        attribute vz : SpeedValue;
-        attribute valido : Boolean;
+    // ------------------------------------------------------------------ nós ROS 2
+    part def InterfaceOperador {
+        doc /* Recebe "executar tarefa 1", "executar tarefa 2" ou "interromper" e mostra o painel. */
+        port operador : PortaOperador;
+        port painel : PortaPainel;
+        port pubComando : TopicoComandoOperador;
+        port subStatus : ~TopicoTarefaStatus;
+        port subFalhas : ~TopicoFalhas;
     }
 
-    attribute def VereditoTolerancia {
-        attribute dentroHorizontal : Boolean;
-        attribute dentroVertical : Boolean;
-        attribute dentroVelocidade : Boolean;
-        attribute dentro : Boolean;
-    }
-
-    port def PortaEstadoMissao {
-        out item estado : DadosPainel;
-        in item comando : ComandoOperador;
-    }
-
-    // ------------------------------------------------------------------ blocos do drone (caixas-pretas)
-    part def Energia {
-        doc /* Bateria inteligente de voo: armazena e distribui energia. */
-        port bateria : PortaEnergia;
-        port alimentacao : ~PortaEnergia;
-    }
-
-    part def UnidadeComputacaoEmbarcada {
-        doc /* Controlador de voo DJI (firmware fechado): estima a pose, estabiliza e executa comandos do SDK. */
-        port alimentacao : PortaEnergia;
-        port botaoOnOff : PortaAcaoManual;
-        port cartaoMemoria : PortaArmazenamento;
-        port ledReady : PortaSinalVisual;
-        port sensores : ~PortaInfoSensores;
-        port pwm : ~PortaPWM;
-        port pacotes : PortaPacotes;
-    }
-
-    part def Sensoriamento {
-        doc /* IMU, barômetro, ToF inferior, visão inferior e omnidirecional, câmera. */
-        port alimentacao : PortaEnergia;
-        port distancia : PortaSensorial;
-        port pressao : PortaSensorial;
-        port texturaIluminacao : PortaSensorial;
-        port imagem : PortaSensorial;
-        port gps : PortaSensorial;
-        port info : PortaInfoSensores;
-        port fixacao : PortaFixacao;
-    }
-
-    part def Atuadores {
-        doc /* Motores, ESCs e hélices; gimbal de 3 eixos da câmera. */
-        port alimentacao : PortaEnergia;
-        port pwm : PortaPWM;
-        port empuxo : PortaEmpuxo;
-        port fixacao : PortaFixacao;
-    }
-
-    part def Comunicacao {
-        doc /* Transceptor DJI O4 e porta USB-C. */
-        port alimentacao : PortaEnergia;
-        port rf : PortaRF;
-        port usb : PortaUSB;
-        port pacotes : ~PortaPacotes;
-    }
-
-    part def EstruturaFisica {
-        doc /* Corpo, braços dobráveis e fixações. */
-        port fixacao : ~PortaFixacao;
-    }
-
-    part def DroneN1 :> Drone {
-        part energia : Energia;
-        part uce : UnidadeComputacaoEmbarcada;
-        part sensoriamento : Sensoriamento;
-        part atuadores : Atuadores;
-        part comunicacao : Comunicacao;
-        part estrutura : EstruturaFisica;
-
-        // fluxos internos
-        connect energia.alimentacao to uce.alimentacao;
-        connect energia.alimentacao to sensoriamento.alimentacao;
-        connect energia.alimentacao to atuadores.alimentacao;
-        connect energia.alimentacao to comunicacao.alimentacao;
-        connect sensoriamento.info to uce.sensores;
-        connect uce.pwm to atuadores.pwm;
-        connect uce.pacotes to comunicacao.pacotes;
-        connect estrutura.fixacao to atuadores.fixacao;
-        connect estrutura.fixacao to sensoriamento.fixacao;
-
-        // fronteira do nível 0 delegada aos blocos
-        connect bateria to energia.bateria;
-        connect botaoOnOff to uce.botaoOnOff;
-        connect cartaoMemoria to uce.cartaoMemoria;
-        connect uce.ledReady to ledReady;
-        connect distancia to sensoriamento.distancia;
-        connect pressao to sensoriamento.pressao;
-        connect texturaIluminacao to sensoriamento.texturaIluminacao;
-        connect imagem to sensoriamento.imagem;
-        connect gps to sensoriamento.gps;
-        connect conexaoUSB to comunicacao.usb;
-        connect rf to comunicacao.rf;
-        connect atuadores.empuxo to empuxo;
-    }
-
-    // ------------------------------------------------------------------ blocos da aplicação de missão
-    part def AdaptadorDJI {
-        doc /* Única parte que conhece o DJI Mobile SDK v5 (Kotlin). Traduz telemetria e comandos. */
-        port sdk : PortaUSB;
-        port telemetria : PortaTelemetria;
-        port comandos : PortaComandos;
-    }
-
-    part def LogicaMissao {
-        doc /* Independente de plataforma: máquina de estados, cronômetro de 60 s, controle de posição e
-               supervisão de falhas. A mesma lógica roda contra o simulador. */
-        port telemetria : ~PortaTelemetria;
-        port comandos : ~PortaComandos;
+    part def GerenciadorTarefas {
+        doc /* Carrega a configuração, ativa a tarefa pedida, mantém os modos globais e envia decolar/pousar. */
         port config : PortaConfiguracao;
-        port estadoMissao : PortaEstadoMissao;
-        port log : PortaLogs;
+        port subComando : ~TopicoComandoOperador;
+        port subEvento : ~TopicoTarefaEvento;
+        port subFalhas : ~TopicoFalhas;
+        port pubAtiva : TopicoTarefaAtiva;
+        port pubStatus : TopicoTarefaStatus;
+        port pubAcao : TopicoAcaoDJI;
         exhibit state modos : ModosOperacao;
     }
 
-    state def ModosOperacao {
-        doc /* Estados de nível 1, comuns às Questões 1 e 2. Refinados no nível n por NivelN::MaquinaEstadosQ1
-               (missaoAutonoma = decolagem, deslocamento, permanência e retorno). */
-        entry; then ocioso;
-        state ocioso;
-        transition first ocioso accept IniciarMissao then preparacao;
-        state preparacao;
-        transition first preparacao accept PreparacaoConcluida then missaoAutonoma;
-        transition first preparacao accept FalhaDetectada then ocioso;
-        state missaoAutonoma;
-        transition first missaoAutonoma accept Estabilizado then pousoNormal;
-        transition first missaoAutonoma accept FalhaDetectada then terminoSeguro;
-        transition first missaoAutonoma accept InterromperMissao then terminoSeguro;
-        state pousoNormal;
-        transition first pousoNormal accept PousoConfirmado then encerrada;
-        state terminoSeguro { doc /* Pouso no local; nunca retorno por GNSS. */ }
-        transition first terminoSeguro accept PousoConfirmado then encerrada;
-        state encerrada;
+    part def Tarefa1VooFamiliarizacao {
+        doc /* Questão 1: quadrado A-B-C-D a 1,80 m, quatro permanências de 60 s, retorno e pouso. */
+        port subAtiva : ~TopicoTarefaAtiva;
+        port subEstado : ~TopicoEstado;
+        port pubSetpoint : TopicoSetpoint;
+        port pubEvento : TopicoTarefaEvento;
     }
 
-    part def InterfacePainel {
-        port estadoMissao : ~PortaEstadoMissao;
-        port display : PortaPainel;
-        port operador : PortaOperador;
+    part def Tarefa2Baloes {
+        doc /* Questão 2: busca, seleção, aproximação a 0 < d <= 5 cm por 60 s, afastamento, próximo alvo. */
+        port subAtiva : ~TopicoTarefaAtiva;
+        port subEstado : ~TopicoEstado;
+        port subAlvos : ~TopicoAlvos;
+        port pubSetpoint : TopicoSetpoint;
+        port pubEvento : TopicoTarefaEvento;
     }
 
     part def Registro {
-        port entrada : ~PortaLogs;
-        port saida : PortaLogs;
+        doc /* rosbag2 grava todos os tópicos; exportador gera o CSV de evidência. */
+        port logs : PortaLogs;
+        port subStatus : ~TopicoTarefaStatus;
+        port subEvento : ~TopicoTarefaEvento;
+        port subEstado : ~TopicoEstado;
+        port subFalhas : ~TopicoFalhas;
     }
 
-    part def AplicacaoMissaoN1 :> AplicacaoMissao {
-        part adaptador : AdaptadorDJI;
-        part logica : LogicaMissao;
-        part painel : InterfacePainel;
+    part def EstimacaoEstado {
+        port subTelemetria : ~TopicoTelemetria;
+        port pubEstado : TopicoEstado;
+    }
+
+    part def ControleVoo {
+        port subSetpoint : ~TopicoSetpoint;
+        port subEstado : ~TopicoEstado;
+        port pubCmdVel : TopicoCmdVel;
+    }
+
+    part def PercepcaoVisual {
+        doc /* Só na Tarefa 2. */
+        port subCamera : ~TopicoCamera;
+        port pubAlvos : TopicoAlvos;
+    }
+
+    part def SupervisaoSeguranca {
+        port subTelemetria : ~TopicoTelemetria;
+        port subEstado : ~TopicoEstado;
+        port pubFalhas : TopicoFalhas;
+    }
+
+    part def NoPonteDJI {
+        doc /* Converte tópicos ROS 2 em mensagens do socket do app ponte e vice-versa. */
+        port socket : PortaSocket;
+        port subCmdVel : ~TopicoCmdVel;
+        port subAcao : ~TopicoAcaoDJI;
+        port pubTelemetria : TopicoTelemetria;
+        port pubCamera : TopicoCamera;
+    }
+
+    part def AplicacaoROS2N1 :> AplicacaoROS2 {
+        part interfaceOperador : InterfaceOperador;
+        part gerenciador : GerenciadorTarefas;
+        part tarefa1 : Tarefa1VooFamiliarizacao;
+        part tarefa2 : Tarefa2Baloes;
         part registro : Registro;
+        part estimacao : EstimacaoEstado;
+        part controle : ControleVoo;
+        part percepcao : PercepcaoVisual;
+        part supervisao : SupervisaoSeguranca;
+        part noPonte : NoPonteDJI;
 
-        connect sdk to adaptador.sdk;
-        connect adaptador.telemetria to logica.telemetria;
-        connect logica.comandos to adaptador.comandos;
-        connect config to logica.config;
-        connect logica.estadoMissao to painel.estadoMissao;
-        connect comandosOperador to painel.operador;
-        connect painel.display to display;
-        connect logica.log to registro.entrada;
-        connect registro.saida to logs;
+        // fronteira
+        connect comandosOperador to interfaceOperador.operador;
+        connect interfaceOperador.painel to painel;
+        connect config to gerenciador.config;
+        connect registro.logs to logs;
+        connect noPonte.socket to socketPonte;
+
+        // tópicos: publicador -> assinantes
+        connect interfaceOperador.pubComando to gerenciador.subComando;
+        connect gerenciador.pubStatus to interfaceOperador.subStatus;
+        connect gerenciador.pubStatus to registro.subStatus;
+        connect gerenciador.pubAtiva to tarefa1.subAtiva;
+        connect gerenciador.pubAtiva to tarefa2.subAtiva;
+        connect gerenciador.pubAcao to noPonte.subAcao;
+        connect tarefa1.pubSetpoint to controle.subSetpoint;
+        connect tarefa2.pubSetpoint to controle.subSetpoint;
+        connect tarefa1.pubEvento to gerenciador.subEvento;
+        connect tarefa2.pubEvento to gerenciador.subEvento;
+        connect tarefa1.pubEvento to registro.subEvento;
+        connect tarefa2.pubEvento to registro.subEvento;
+        connect estimacao.pubEstado to tarefa1.subEstado;
+        connect estimacao.pubEstado to tarefa2.subEstado;
+        connect estimacao.pubEstado to controle.subEstado;
+        connect estimacao.pubEstado to supervisao.subEstado;
+        connect estimacao.pubEstado to registro.subEstado;
+        connect percepcao.pubAlvos to tarefa2.subAlvos;
+        connect controle.pubCmdVel to noPonte.subCmdVel;
+        connect supervisao.pubFalhas to gerenciador.subFalhas;
+        connect supervisao.pubFalhas to interfaceOperador.subFalhas;
+        connect supervisao.pubFalhas to registro.subFalhas;
+        connect noPonte.pubTelemetria to estimacao.subTelemetria;
+        connect noPonte.pubTelemetria to supervisao.subTelemetria;
+        connect noPonte.pubCamera to percepcao.subCamera;
     }
 
-    part def CelularAndroidN1 :> CelularAndroid {
-        part :>> app : AplicacaoMissaoN1;
+    // ------------------------------------------------------------------ Android emulado
+    part def AppPonteDJI {
+        doc /* App Android (Kotlin) com o DJI Mobile SDK v5: única parte que conhece o SDK. */
+        port socket : PortaSocket;
+        port usb : PortaUSB;
     }
 
-    part def EstacaoSoloN1 :> EstacaoSolo {
-        part :>> celular : CelularAndroidN1;
+    part def AndroidEmuladoN1 :> AndroidEmulado {
+        part appPonte : AppPonteDJI;
+        connect socketPonte to appPonte.socket;
+        connect appPonte.usb to usb;
     }
 
-    part def SistemaVooAutonomoN1 :> SistemaVooAutonomo {
-        part :>> drone : DroneN1;
-        part :>> estacao : EstacaoSoloN1;
+    part def NotebookLinuxN1 :> NotebookLinux {
+        part :>> ros2 : AplicacaoROS2N1;
+        part :>> android : AndroidEmuladoN1;
+    }
+
+    part def SistemaMissoesAutonomasN1 :> SistemaMissoesAutonomas {
+        part :>> notebook : NotebookLinuxN1;
+    }
+
+    // ------------------------------------------------------------------ modos de operação
+    state def ModosOperacao {
+        doc /* Modos globais, comuns às duas tarefas. Cada tarefa é refinada no nível n
+               (Tarefa 1: NivelN::MaquinaEstadosTarefa1). Critério de progressão do enunciado: a Tarefa 2 só é aceita
+               em voo real depois de a Tarefa 1 ter sido concluída em voo real. */
+        attribute tarefa1ConcluidaEmVooReal : Boolean;
+
+        entry; then ocioso;
+        state ocioso;
+        transition first ocioso accept ExecutarTarefa1 then tarefa1;
+        transition first ocioso accept ExecutarTarefa2 if tarefa1ConcluidaEmVooReal then tarefa2;
+
+        state tarefa1;
+        transition first tarefa1 accept TarefaConcluida then ocioso;
+        transition first tarefa1 accept FalhaDetectada then terminoSeguro;
+        transition first tarefa1 accept InterromperTarefa then terminoSeguro;
+
+        state tarefa2;
+        transition first tarefa2 accept TarefaConcluida then ocioso;
+        transition first tarefa2 accept FalhaDetectada then terminoSeguro;
+        transition first tarefa2 accept InterromperTarefa then terminoSeguro;
+
+        state terminoSeguro { doc /* Pouso no local; nunca retorno por GNSS. */ }
+        transition first terminoSeguro accept PousoConfirmado then ocioso;
     }
 
     // ------------------------------------------------------------------ decomposição funcional
-    action def ConfigurarMissao {
-        in arquivo : ConfiguracaoMissao;
-        out config : ConfiguracaoMissao;
-    }
-    action def InteragirComOperador {
+    action def InterpretarComandoOperador {
         in comando : ComandoOperador;
-        in estadoMissao : DadosPainel;
-        out painel : DadosPainel;
-        out comandoMissao : ComandoOperador;
+        in status : StatusTarefa;
+        out pedido : ComandoOperador;
+        out painel : StatusTarefa;
     }
-    action def AdquirirTelemetria {
-        in pacote : PacoteDados;
-        out telemetria : Telemetria;
-    }
-    action def EstimarEstadoEVerificarTolerancias {
-        in telemetria : Telemetria;
-        in config : ConfiguracaoMissao;
-        out estado : EstadoEstimado;
-        out veredito : VereditoTolerancia;
-    }
-    action def PlanejarTrajetoria {
-        in config : ConfiguracaoMissao;
-        in indiceVertice : Integer;
-        out setpoint : Ponto3D;
-    }
-    action def SupervisionarMissao {
-        in estado : EstadoEstimado;
-        in veredito : VereditoTolerancia;
-        in comandoOperador : ComandoOperador;
-        in config : ConfiguracaoMissao;
-        out indiceVertice : Integer;
-        out comandoDiscreto : ComandoDiscreto;
-        out estadoMissao : DadosPainel;
-        out evento : RegistroLog;
-    }
-    action def ControlarPosicao {
-        in estado : EstadoEstimado;
-        in setpoint : Ponto3D;
-        out comando : ComandoVelocidade;
-    }
-    action def EmitirComandosVoo {
-        in velocidade : ComandoVelocidade;
-        in discreto : ComandoDiscreto;
-        out pacote : PacoteDados;
-    }
-    action def Registrar {
-        in evento : RegistroLog;
-        in estado : EstadoEstimado;
+    action def GerenciarTarefas {
+        in arquivo : ConfiguracaoTarefas;
+        in pedido : ComandoOperador;
+        in evento : EventoTarefa;
+        in falha : Falha;
+        out ativa : TarefaAtiva;
+        out status : StatusTarefa;
+        out acao : ComandoDiscreto;
         out registro : RegistroLog;
     }
-    action def RetransmitirRF {
+    action def ConduzirTarefa1 {
+        in ativa : TarefaAtiva;
+        in estado : EstadoEstimado;
+        out setpoint : Setpoint;
+        out evento : EventoTarefa;
+    }
+    action def ConduzirTarefa2 {
+        in ativa : TarefaAtiva;
+        in estado : EstadoEstimado;
+        in alvos : Alvos;
+        out setpoint : Setpoint;
+        out evento : EventoTarefa;
+    }
+    action def EstimarEstado {
+        in telemetria : Telemetria;
+        out estado : EstadoEstimado;
+    }
+    action def PerceberAlvos {
+        in quadro : QuadroCamera;
+        out alvos : Alvos;
+    }
+    action def ControlarVoo {
+        in setpoint : Setpoint;
+        in estado : EstadoEstimado;
+        out cmdVel : ComandoVelocidade;
+    }
+    action def SupervisionarSeguranca {
+        in telemetria : Telemetria;
+        in estado : EstadoEstimado;
+        out falha : Falha;
+    }
+    action def Registrar {
+        in estado : EstadoEstimado;
+        in evento : RegistroLog;
+        in falha : Falha;
+        out registro : RegistroLog;
+    }
+    action def TraduzirRos2Dji {
+        in cmdVel : ComandoVelocidade;
+        in acao : ComandoDiscreto;
+        in socketEntrada : PacoteDados;
+        out socketSaida : PacoteDados;
+        out telemetria : Telemetria;
+        out quadro : QuadroCamera;
+    }
+    action def AcionarSdkDji {
+        in socketEntrada : PacoteDados;
+        out socketSaida : PacoteDados;
+        in usbEntrada : PacoteDados;
+        out usbSaida : PacoteDados;
+    }
+    action def TransmitirRadio {
+        doc /* Caixa-preta (rádio DJI). */
         in subidaEntrada : PacoteDados;
         out subidaSaida : PacoteDados;
         in descidaEntrada : PacoteDados;
         out descidaSaida : PacoteDados;
     }
-    action def EstimarPoseEEstabilizar {
-        doc /* Caixa-preta: executada pelo firmware DJI. */
+    action def VoarAeronave {
+        doc /* Caixa-preta (drone): estabiliza, sente o ambiente, executa comandos e publica telemetria. */
         in comandos : PacoteDados;
-        in info : InformacaoSensores;
-        out pwm : SinalPWM;
+        in grandezas : GrandezaFisica;
         out telemetria : PacoteDados;
-    }
-    action def Sensoriar {
-        doc /* Caixa-preta. */
-        in grandeza : GrandezaFisica;
-        out info : InformacaoSensores;
-    }
-    action def GerarEmpuxo {
-        doc /* Caixa-preta. */
-        in pwm : SinalPWM;
-        in energia : Comum::Energia;
         out empuxo : Empuxo;
     }
-    action def ArmazenarDistribuirEnergia {
-        doc /* Caixa-preta. */
-        in recarga : Comum::Energia;
-        out energia : Comum::Energia;
-    }
 
-    action def ExecutarMissaoAutonoma {
-        doc /* Função global do sistema, decomposta em funções de nível 1. */
-        in arquivoConfig : ConfiguracaoMissao;
+    action def ExecutarTarefaAutonoma {
+        doc /* Função global: ao receber "executar tarefa N", realizar a tarefa N de forma autônoma. */
+        in arquivoConfig : ConfiguracaoTarefas;
         in comandoOperador : ComandoOperador;
         in grandezas : GrandezaFisica;
-        out painel : DadosPainel;
+        out painel : StatusTarefa;
         out registros : RegistroLog;
         out empuxo : Empuxo;
 
-        action configurar : ConfigurarMissao;
-        action interagir : InteragirComOperador;
-        action adquirirTelemetria : AdquirirTelemetria;
-        action estimar : EstimarEstadoEVerificarTolerancias;
-        action planejar : PlanejarTrajetoria;
-        action supervisionar : SupervisionarMissao;
-        action controlar : ControlarPosicao;
-        action emitirComandos : EmitirComandosVoo;
+        action interpretarComando : InterpretarComandoOperador;
+        action gerenciarTarefas : GerenciarTarefas;
+        action executarTarefa1 : ConduzirTarefa1;
+        action executarTarefa2 : ConduzirTarefa2;
+        action estimarEstado : EstimarEstado;
+        action perceberAlvos : PerceberAlvos;
+        action controlarVoo : ControlarVoo;
+        action supervisionar : SupervisionarSeguranca;
         action registrar : Registrar;
-        action retransmitir : RetransmitirRF;
-        action estabilizar : EstimarPoseEEstabilizar;
-        action sensoriar : Sensoriar;
-        action gerarEmpuxo : GerarEmpuxo;
-        action distribuirEnergia : ArmazenarDistribuirEnergia;
+        action traduzirParaDji : TraduzirRos2Dji;
+        action acionarSdk : AcionarSdkDji;
+        action transmitirRadio : TransmitirRadio;
+        action voar : VoarAeronave;
 
-        bind configurar.arquivo = arquivoConfig;
-        bind interagir.comando = comandoOperador;
-        bind sensoriar.grandeza = grandezas;
-        flow from configurar.config to estimar.config;
-        flow from configurar.config to planejar.config;
-        flow from configurar.config to supervisionar.config;
-        flow from interagir.comandoMissao to supervisionar.comandoOperador;
-        flow from supervisionar.estadoMissao to interagir.estadoMissao;
-        bind painel = interagir.painel;
-        flow from adquirirTelemetria.telemetria to estimar.telemetria;
-        flow from estimar.estado to supervisionar.estado;
-        flow from estimar.veredito to supervisionar.veredito;
-        flow from estimar.estado to controlar.estado;
-        flow from estimar.estado to registrar.estado;
-        flow from supervisionar.indiceVertice to planejar.indiceVertice;
-        flow from planejar.setpoint to controlar.setpoint;
-        flow from controlar.comando to emitirComandos.velocidade;
-        flow from supervisionar.comandoDiscreto to emitirComandos.discreto;
-        flow from supervisionar.evento to registrar.evento;
+        bind interpretarComando.comando = comandoOperador;
+        bind painel = interpretarComando.painel;
+        bind gerenciarTarefas.arquivo = arquivoConfig;
+        bind voar.grandezas = grandezas;
+        bind empuxo = voar.empuxo;
         bind registros = registrar.registro;
-        flow from emitirComandos.pacote to retransmitir.subidaEntrada;
-        flow from retransmitir.subidaSaida to estabilizar.comandos;
-        flow from estabilizar.telemetria to retransmitir.descidaEntrada;
-        flow from retransmitir.descidaSaida to adquirirTelemetria.pacote;
-        flow from sensoriar.info to estabilizar.info;
-        flow from estabilizar.pwm to gerarEmpuxo.pwm;
-        flow from distribuirEnergia.energia to gerarEmpuxo.energia;
-        bind empuxo = gerarEmpuxo.empuxo;
+
+        flow from interpretarComando.pedido to gerenciarTarefas.pedido;
+        flow from gerenciarTarefas.status to interpretarComando.status;
+        flow from gerenciarTarefas.ativa to executarTarefa1.ativa;
+        flow from gerenciarTarefas.ativa to executarTarefa2.ativa;
+        flow from gerenciarTarefas.acao to traduzirParaDji.acao;
+        flow from gerenciarTarefas.registro to registrar.evento;
+        flow from executarTarefa1.evento to gerenciarTarefas.evento;
+        flow from executarTarefa2.evento to gerenciarTarefas.evento;
+        flow from executarTarefa1.setpoint to controlarVoo.setpoint;
+        flow from executarTarefa2.setpoint to controlarVoo.setpoint;
+        flow from estimarEstado.estado to executarTarefa1.estado;
+        flow from estimarEstado.estado to executarTarefa2.estado;
+        flow from estimarEstado.estado to controlarVoo.estado;
+        flow from estimarEstado.estado to supervisionar.estado;
+        flow from estimarEstado.estado to registrar.estado;
+        flow from perceberAlvos.alvos to executarTarefa2.alvos;
+        flow from controlarVoo.cmdVel to traduzirParaDji.cmdVel;
+        flow from supervisionar.falha to gerenciarTarefas.falha;
+        flow from supervisionar.falha to registrar.falha;
+        flow from traduzirParaDji.socketSaida to acionarSdk.socketEntrada;
+        flow from acionarSdk.socketSaida to traduzirParaDji.socketEntrada;
+        flow from acionarSdk.usbSaida to transmitirRadio.subidaEntrada;
+        flow from transmitirRadio.descidaSaida to acionarSdk.usbEntrada;
+        flow from transmitirRadio.subidaSaida to voar.comandos;
+        flow from voar.telemetria to transmitirRadio.descidaEntrada;
+        flow from traduzirParaDji.telemetria to estimarEstado.telemetria;
+        flow from traduzirParaDji.telemetria to supervisionar.telemetria;
+        flow from traduzirParaDji.quadro to perceberAlvos.quadro;
     }
 
-    // ------------------------------------------------------------------ instâncias e alocação função -> bloco
-    part sistema : SistemaVooAutonomoN1;
-    action funcaoGlobal : ExecutarMissaoAutonoma;
+    // ------------------------------------------------------------------ instâncias e alocação função -> componente
+    part sistema : SistemaMissoesAutonomasN1;
+    action funcaoGlobal : ExecutarTarefaAutonoma;
 
-    allocate funcaoGlobal.configurar to sistema.estacao.celular.app.logica;
-    allocate funcaoGlobal.estimar to sistema.estacao.celular.app.logica;
-    allocate funcaoGlobal.planejar to sistema.estacao.celular.app.logica;
-    allocate funcaoGlobal.supervisionar to sistema.estacao.celular.app.logica;
-    allocate funcaoGlobal.controlar to sistema.estacao.celular.app.logica;
-    allocate funcaoGlobal.interagir to sistema.estacao.celular.app.painel;
-    allocate funcaoGlobal.registrar to sistema.estacao.celular.app.registro;
-    allocate funcaoGlobal.adquirirTelemetria to sistema.estacao.celular.app.adaptador;
-    allocate funcaoGlobal.emitirComandos to sistema.estacao.celular.app.adaptador;
-    allocate funcaoGlobal.retransmitir to sistema.estacao.controleRemoto;
-    allocate funcaoGlobal.retransmitir to sistema.drone.comunicacao;
-    allocate funcaoGlobal.estabilizar to sistema.drone.uce;
-    allocate funcaoGlobal.sensoriar to sistema.drone.sensoriamento;
-    allocate funcaoGlobal.gerarEmpuxo to sistema.drone.atuadores;
-    allocate funcaoGlobal.distribuirEnergia to sistema.drone.energia;
-
-    // ------------------------------------------------------------------ requisitos refinados para os blocos
-    satisfy Nivel0::p01 by sistema.estacao.celular.app.logica;
-    satisfy Nivel0::p02 by sistema.estacao.celular.app.logica;
-    satisfy Nivel0::p03 by sistema.estacao.celular.app.logica;
-    satisfy Nivel0::p04 by sistema.estacao.celular.app.logica;
-    satisfy Nivel0::p05 by sistema.estacao.celular.app.logica;
-    satisfy Nivel0::p06 by sistema.estacao.celular.app.registro;
-    satisfy Nivel0::r07 by sistema.estacao.celular.app.logica;
-    satisfy Nivel0::r07 by sistema.estacao.celular.app.adaptador;
+    allocate funcaoGlobal.interpretarComando to sistema.notebook.ros2.interfaceOperador;
+    allocate funcaoGlobal.gerenciarTarefas to sistema.notebook.ros2.gerenciador;
+    allocate funcaoGlobal.executarTarefa1 to sistema.notebook.ros2.tarefa1;
+    allocate funcaoGlobal.executarTarefa2 to sistema.notebook.ros2.tarefa2;
+    allocate funcaoGlobal.estimarEstado to sistema.notebook.ros2.estimacao;
+    allocate funcaoGlobal.perceberAlvos to sistema.notebook.ros2.percepcao;
+    allocate funcaoGlobal.controlarVoo to sistema.notebook.ros2.controle;
+    allocate funcaoGlobal.supervisionar to sistema.notebook.ros2.supervisao;
+    allocate funcaoGlobal.registrar to sistema.notebook.ros2.registro;
+    allocate funcaoGlobal.traduzirParaDji to sistema.notebook.ros2.noPonte;
+    allocate funcaoGlobal.acionarSdk to sistema.notebook.android.appPonte;
+    allocate funcaoGlobal.transmitirRadio to sistema.radio;
+    allocate funcaoGlobal.voar to sistema.drone;
 
     // ------------------------------------------------------------------ requisito -> função (matriz de rastreabilidade)
-    satisfy Nivel0::p01 by funcaoGlobal.estimar;
-    satisfy Nivel0::p01 by funcaoGlobal.controlar;
-    satisfy Nivel0::p01 by funcaoGlobal.emitirComandos;
-    satisfy Nivel0::p02 by funcaoGlobal.planejar;
-    satisfy Nivel0::p02 by funcaoGlobal.estimar;
-    satisfy Nivel0::p02 by funcaoGlobal.controlar;
-    satisfy Nivel0::p03 by funcaoGlobal.estimar;
-    satisfy Nivel0::p03 by funcaoGlobal.supervisionar;
-    satisfy Nivel0::p04 by funcaoGlobal.controlar;
-    satisfy Nivel0::p04 by funcaoGlobal.supervisionar;
-    satisfy Nivel0::p04 by funcaoGlobal.emitirComandos;
-    satisfy Nivel0::p05 by funcaoGlobal.configurar;
-    satisfy Nivel0::p05 by funcaoGlobal.estimar;
-    satisfy Nivel0::p05 by funcaoGlobal.supervisionar;
-    satisfy Nivel0::p06 by funcaoGlobal.supervisionar;
+    satisfy Nivel0::p01 by funcaoGlobal.estimarEstado;
+    satisfy Nivel0::p01 by funcaoGlobal.controlarVoo;
+    satisfy Nivel0::p01 by funcaoGlobal.acionarSdk;
+    satisfy Nivel0::p02 by funcaoGlobal.executarTarefa1;
+    satisfy Nivel0::p02 by funcaoGlobal.estimarEstado;
+    satisfy Nivel0::p02 by funcaoGlobal.controlarVoo;
+    satisfy Nivel0::p03 by funcaoGlobal.executarTarefa1;
+    satisfy Nivel0::p03 by funcaoGlobal.estimarEstado;
+    satisfy Nivel0::p04 by funcaoGlobal.executarTarefa1;
+    satisfy Nivel0::p04 by funcaoGlobal.controlarVoo;
+    satisfy Nivel0::p04 by funcaoGlobal.gerenciarTarefas;
+    satisfy Nivel0::p04 by funcaoGlobal.acionarSdk;
+    satisfy Nivel0::p05 by funcaoGlobal.gerenciarTarefas;
+    satisfy Nivel0::p05 by funcaoGlobal.estimarEstado;
+    satisfy Nivel0::p05 by funcaoGlobal.executarTarefa1;
     satisfy Nivel0::p06 by funcaoGlobal.registrar;
-    satisfy Nivel0::p06 by funcaoGlobal.interagir;
+    satisfy Nivel0::p06 by funcaoGlobal.gerenciarTarefas;
+    satisfy Nivel0::p06 by funcaoGlobal.interpretarComando;
+    satisfy Nivel0::p06 by funcaoGlobal.executarTarefa1;
     satisfy Nivel0::r07 by funcaoGlobal.supervisionar;
-    satisfy Nivel0::r07 by funcaoGlobal.adquirirTelemetria;
-    satisfy Nivel0::r07 by funcaoGlobal.emitirComandos;
+    satisfy Nivel0::r07 by funcaoGlobal.gerenciarTarefas;
+    satisfy Nivel0::r07 by funcaoGlobal.acionarSdk;
+    satisfy Nivel0::r01 by funcaoGlobal.gerenciarTarefas;
+    satisfy Nivel0::r02 by funcaoGlobal.perceberAlvos;
+    satisfy Nivel0::r03 by funcaoGlobal.executarTarefa2;
+    satisfy Nivel0::r03 by funcaoGlobal.interpretarComando;
+    satisfy Nivel0::r04 by funcaoGlobal.executarTarefa2;
+    satisfy Nivel0::r04 by funcaoGlobal.perceberAlvos;
+    satisfy Nivel0::r04 by funcaoGlobal.controlarVoo;
+    satisfy Nivel0::r05 by funcaoGlobal.perceberAlvos;
+    satisfy Nivel0::r05 by funcaoGlobal.estimarEstado;
+    satisfy Nivel0::r06 by funcaoGlobal.executarTarefa2;
+    satisfy Nivel0::r06 by funcaoGlobal.supervisionar;
+    satisfy Nivel0::r08 by funcaoGlobal.interpretarComando;
+    satisfy Nivel0::r08 by funcaoGlobal.registrar;
+    satisfy Nivel0::r09 by funcaoGlobal.gerenciarTarefas;
+    satisfy Nivel0::r09 by funcaoGlobal.registrar;
 }

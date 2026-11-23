@@ -1,27 +1,25 @@
 package NivelN {
-    doc /* Nível n — implementação da Questão 1.
-           (A) Drone: os blocos do nível 1 são produtos DJI fechados. Não são decompostos internamente; são
-               "explorados" pela interface do DJI Mobile SDK v5: o que podemos ler, o que podemos comandar e quais
-               limites conhecemos. Nomes de chaves/APIs do SDK e valores numéricos marcados "verificar" devem ser
-               confirmados na documentação oficial e na versão do SDK efetivamente usada.
-           (B) App de Missão: decomposta até módulos implementáveis e verificáveis, com ciclo de controle,
-               máquina de estados, contratos de interface e tratamento de falhas.
+    doc /* Nível n — implementação. Detalha a Tarefa 1 (Questão 1), os serviços comuns às duas tarefas e a ponte DJI.
+           A Tarefa 2 e a percepção visual ficam no nível 1 e serão detalhadas quando a Questão 2 for implementada.
 
-           Justificativa da profundidade adotada:
-           - Drone: a decomposição para no bloco do nível 1, porque abaixo dele nada é observável nem alterável;
-             o que importa para a missão é o contrato do SDK de cada bloco (entradas, saídas, limites).
-           - Aplicação: a decomposição para quando cada folha (i) corresponde a um único arquivo/classe Kotlin,
-             (ii) tem entradas e saídas tipadas com unidades e referencial definidos e (iii) pode ser verificada
-             isoladamente por um teste unitário ou por um ensaio em voo listado em 04_Verificacao.sysml. */
+           Componentes caixa-preta (drone e rádio): não são decompostos; o drone é "explorado" pela interface do
+           DJI Mobile SDK v5 (o que se lê, o que se comanda e os limites conhecidos). Nomes de chaves/APIs e valores
+           marcados "verificar" devem ser confirmados na documentação oficial e na versão do SDK usada.
+
+           Linguagens: nós ROS 2 em Python (rclpy), pacote ros2_ws/src/psi3442_tarefas, mensagens próprias em
+           ros2_ws/src/psi3442_interfaces/msg; app ponte em Kotlin, android_ponte/.
+
+           Justificativa da profundidade adotada: a decomposição para quando cada folha (i) corresponde a um único
+           arquivo/classe, (ii) tem entradas e saídas tipadas com unidades e referencial definidos e (iii) pode ser
+           verificada isoladamente por teste unitário ou ensaio listado em 04_Verificacao.sysml. Drone e rádio param
+           no próprio componente, porque abaixo dele nada é observável nem alterável. */
 
     private import ScalarValues::*;
     private import ISQ::*;
     private import SI::*;
     private import Comum::*;
-    private import Nivel1::EstadoEstimado;
-    private import Nivel1::VereditoTolerancia;
 
-    // =========================================================================================== (A) caixas-pretas
+    // =========================================================================================== caixas-pretas
     enum def AcaoPerdaSinal {
         enum pairar;
         enum pousar;
@@ -29,13 +27,13 @@ package NivelN {
     }
 
     port def SdkControladorVoo {
-        doc /* Recursos do controlador de voo expostos pelo SDK (chaves FlightControllerKey e VirtualStickManager — verificar nomes). */
+        doc /* Recursos do controlador de voo expostos pelo SDK (FlightControllerKey e VirtualStickManager — verificar nomes). */
         out attribute velocidadeNorte : SpeedValue;     // KeyAircraftVelocity
         out attribute velocidadeLeste : SpeedValue;     // KeyAircraftVelocity
         out attribute velocidadeBaixo : SpeedValue;     // KeyAircraftVelocity
         out attribute altitude : LengthValue;           // KeyAltitude (relativa à decolagem)
         out attribute alturaToF : LengthValue;          // KeyUltrasonicHeight (sensor inferior)
-        out attribute guinada : Real;                   // KeyAircraftAttitude (graus)
+        out attribute guinada : Real;                   // KeyAircraftAttitude (graus, bússola + IMU)
         out attribute emVoo : Boolean;                  // KeyIsFlying
         out attribute motoresLigados : Boolean;         // KeyAreMotorsOn
         out attribute modoVoo : String;                 // KeyFlightMode
@@ -61,257 +59,276 @@ package NivelN {
     }
 
     port def SdkCamera {
-        doc /* Usado apenas na Questão 2. */
-        out item video : Imagem;                        // fluxo de vídeo da câmera principal
+        doc /* Usado pela Tarefa 2. */
+        out item video : QuadroCamera;                  // fluxo de vídeo da câmera principal
         in attribute anguloGimbal : Real;               // GimbalKey: rotação do gimbal
     }
 
-    part def UceCaixaPreta :> Nivel1::UnidadeComputacaoEmbarcada {
-        doc /* Estabilização, estimativa de pose e execução de decolagem/pouso automáticos ficam no firmware DJI.
-               Exploramos: leitura de velocidade/altura/estado, decolagem e pouso automáticos, controle virtual em
-               velocidade e configuração da ação em perda de sinal. */
-        port sdk : SdkControladorVoo;
+    part def DroneN :> Nivel0::Drone {
+        doc /* Exploração da caixa-preta: estabilização, estimativa de pose, decolagem e pouso automáticos ficam no
+               firmware DJI; usamos leitura de velocidade/altura/guinada/estado, decolagem e pouso automáticos,
+               controle virtual em velocidade e a ação em perda de sinal. O SDK não fornece posição local em
+               ambiente interno: a trajetória é estimada pela integração das velocidades (ver EstimadorEstado). */
+        port sdkVoo : SdkControladorVoo;
+        port sdkBateria : SdkBateria;
+        port sdkEnlace : SdkEnlace;
+        port sdkPercepcao : SdkPercepcao;
+        port sdkCamera : SdkCamera;
         attribute precisaoPairadoHorizontal : LengthValue = 0.3 [m];   // especificação DJI com posicionamento visual — verificar
         attribute precisaoPairadoVertical : LengthValue = 0.1 [m];     // idem — verificar
         attribute taxaControleVirtualMin : Real = 5.0;                   // Hz — verificar
         attribute taxaControleVirtualMax : Real = 25.0;                  // Hz — verificar
-    }
-
-    part def SensoriamentoCaixaPreta :> Nivel1::Sensoriamento {
-        doc /* O posicionamento visual exige piso texturizado e iluminação adequada: condição do ambiente a garantir
-               no ensaio (fita/tapete com textura sob a trajetória). */
-        port sdk : SdkPercepcao;
+        attribute comprimentoComHelices : LengthValue = 0.298 [m];      // verificar no manual
+        attribute larguraComHelices : LengthValue = 0.373 [m];          // verificar no manual
+        attribute alturaTotal : LengthValue = 0.101 [m];                // verificar no manual
         attribute exigePisoTexturizado : Boolean = true;
     }
 
-    part def EnergiaCaixaPreta :> Nivel1::Energia {
-        port sdk : SdkBateria;
-    }
-
-    part def ComunicacaoCaixaPreta :> Nivel1::Comunicacao {
-        port sdk : SdkEnlace;
-    }
-
-    part def AtuadoresCaixaPreta :> Nivel1::Atuadores {
-        doc /* Sem acesso direto aos motores: só são comandados através da UCE. Gimbal acessível pelo SDK (Questão 2). */
-        port sdk : SdkCamera;
-    }
-
-    part def EstruturaCaixaPreta :> Nivel1::EstruturaFisica {
-        doc /* Envelope externo com hélices (necessário para a Questão 2 e para o ponto de referência de P01). */
-        attribute comprimentoComHelices : LengthValue = 0.298 [m];   // verificar no manual
-        attribute larguraComHelices : LengthValue = 0.373 [m];       // verificar no manual
-        attribute alturaTotal : LengthValue = 0.101 [m];             // verificar no manual
-    }
-
-    part def DroneN :> Nivel1::DroneN1 {
-        part :>> uce : UceCaixaPreta;
-        part :>> sensoriamento : SensoriamentoCaixaPreta;
-        part :>> energia : EnergiaCaixaPreta;
-        part :>> comunicacao : ComunicacaoCaixaPreta;
-        part :>> atuadores : AtuadoresCaixaPreta;
-        part :>> estrutura : EstruturaCaixaPreta;
+    part def RadioDjiN :> Nivel0::RadioDJI {
+        doc /* Rádio-enlace obrigatório para o Mobile SDK. Fica ligado e conectado ao notebook por USB, repassado ao
+               Android emulado; os sticks não são usados. */
     }
 
     // =========================================================================================== contratos de interface
     interface def ContratoSdkControladorVoo {
-        doc /* Aplicação <-> controlador de voo, pelo caminho USB -> controle remoto -> enlace O4.
+        doc /* App ponte <-> controlador de voo, pelo caminho USB -> rádio -> enlace O4.
                Pré: aeronave conectada; controle virtual habilitado antes de enviar velocidades.
                Comandos de velocidade no referencial do solo (norte, leste, baixo), m/s.
-               Latência do caminho não é especificada pela DJI: medir em ensaio (instante do comando x resposta na
-               telemetria) e registrar. Perda de enlace: a própria aeronave executa acaoPerdaSinal = pousar. */
-        end aplicacao : ~SdkControladorVoo;
+               Latência não especificada pela DJI: medir em ensaio e registrar. Perda de enlace: a própria aeronave
+               executa acaoPerdaSinal = pousar. */
+        end appPonte : ~SdkControladorVoo;
         end aeronave : SdkControladorVoo;
     }
 
-    interface def ContratoTelemetria {
-        doc /* Adaptador -> lógica. Amostras em unidades SI, velocidades no referencial do solo (norte, leste, baixo),
-               instante do relógio monotônico do Android. Pós: amostras em ordem crescente de instante. */
-        end produtor : PortaTelemetria;
-        end consumidor : ~PortaTelemetria;
-        attribute taxa : Real = 10.0;                        // Hz
+    interface def ContratoSocketPonte {
+        doc /* Nó ponte (Linux) <-> app ponte (Android emulado), TCP via adb forward. Mensagens JSON delimitadas por
+               linha, com campo "tipo" (telemetria, cmd_vel, acao, heartbeat, erro). Telemetria a 10 Hz; cmd_vel a
+               20 Hz; heartbeat a 1 Hz nos dois sentidos. Pós: sem mensagem do nó ponte por prazoWatchdog o app envia
+               velocidade zero; sem heartbeat por prazoPerdaPonte o app comanda pouso automático (perdaPonte). */
+        end ros : PortaSocket;
+        end android : PortaSocket;
+        attribute porta : Integer = 5760;
+        attribute prazoWatchdog : DurationValue = 0.2 [s];
+        attribute prazoPerdaPonte : DurationValue = 2 [s];
+    }
+
+    interface def ContratoTopicoCmdVel {
+        doc /* /dji/cmd_vel: velocidades no ReferencialLocal (m/s), saturadas pelo controle; QoS best effort,
+               profundidade 1 (só o comando mais recente importa). */
+        end publicador : TopicoCmdVel;
+        end assinante : ~TopicoCmdVel;
+        attribute vMaxHorizontal : SpeedValue = 0.3 [m/s];
+        attribute vMaxVertical : SpeedValue = 0.3 [m/s];
+        attribute taxa : Real = 10.0;   // Hz
+    }
+
+    interface def ContratoTopicoTelemetria {
+        doc /* /dji/telemetria: unidades SI, referencial do solo, instante do relógio do Linux na recepção e instante
+               do Android na leitura (permite medir latência). QoS best effort, profundidade 1. */
+        end publicador : TopicoTelemetria;
+        end assinante : ~TopicoTelemetria;
+        attribute taxa : Real = 10.0;   // Hz
         attribute idadeMaxima : DurationValue = 0.3 [s];
     }
 
-    interface def ContratoComandos {
-        doc /* Lógica -> adaptador. Velocidades no ReferencialLocal (x, y, z para cima), m/s; o adaptador converte
-               para norte/leste/baixo com psi0. Pré: módulo |v| dentro dos limites abaixo (saturado pela lógica).
-               Pós: o adaptador reenvia o último comando à taxa do emissor; sem comando novo dentro do prazo do
-               watchdog, envia velocidade zero. Comandos discretos rejeitados pelo SDK geram FalhaDetectada(comandoRejeitado). */
-        end emissor : ~PortaComandos;
-        end receptor : PortaComandos;
-        attribute vMaxHorizontal : SpeedValue = 0.3 [m/s];
-        attribute vMaxVertical : SpeedValue = 0.3 [m/s];
-        attribute prazoWatchdog : DurationValue = 0.2 [s];
-    }
-
-    // =========================================================================================== (B) módulos da aplicação
+    // =========================================================================================== módulos de software
     part def ModuloSoftware {
         attribute arquivoCodigo : String;
     }
 
-    // ---------------------------------------------------------------- adaptador DJI (Kotlin)
+    // ---------------------------------------------------------------- app ponte (Kotlin, Android emulado)
     part def GerenciadorConexaoSdk :> ModuloSoftware {
-        doc /* Registra o app no SDK, detecta a aeronave conectada e publica o estado do enlace. */
-        attribute :>> arquivoCodigo = "app/adapter/ConexaoSdk.kt";
+        doc /* Registra o app no SDK (chave de app, ativação online na primeira vez) e detecta a aeronave conectada. */
+        attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/ConexaoSdk.kt";
     }
-
     part def LeitorTelemetria :> ModuloSoftware {
-        doc /* Assina as chaves do SDK e monta amostras Telemetria com instante do relógio monotônico do Android. */
-        attribute :>> arquivoCodigo = "app/adapter/LeitorTelemetria.kt";
-        attribute taxaAmostragem : Real = 10.0;   // Hz
+        doc /* Assina as chaves do SDK e monta amostras Telemetria a 10 Hz. */
+        attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/LeitorTelemetria.kt";
     }
-
     part def EmissorComandos :> ModuloSoftware {
-        doc /* Envia decolagem/pouso e o último ComandoVelocidade a taxa fixa, convertendo do ReferencialLocal para
-               norte/leste/baixo. Watchdog: sem atualização da lógica dentro do prazo, envia velocidade zero. */
-        attribute :>> arquivoCodigo = "app/adapter/EmissorComandos.kt";
-        attribute taxaEnvio : Real = 20.0;        // Hz
-        attribute prazoWatchdog : DurationValue = 0.2 [s];
+        doc /* Converte cmd_vel do ReferencialLocal para norte/leste/baixo com psi0 e envia ao controle virtual a 20 Hz;
+               executa decolagem e pouso; watchdog de 0,2 s envia velocidade zero; perda da ponte dispara pouso. */
+        attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/EmissorComandos.kt";
     }
-
     part def ConfiguradorSeguranca :> ModuloSoftware {
-        doc /* Antes da decolagem: ação em perda de sinal = pousar; desabilita retorno automático por GNSS;
-               define limite de altura. Confirma por leitura das chaves. */
-        attribute :>> arquivoCodigo = "app/adapter/ConfiguradorSeguranca.kt";
+        doc /* Antes da decolagem: ação em perda de sinal = pousar; desabilita retorno por GNSS; limite de altura.
+               Confirma por leitura das chaves. */
+        attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/ConfiguradorSeguranca.kt";
         attribute acaoPerdaSinal : AcaoPerdaSinal = AcaoPerdaSinal::pousar;
     }
+    part def ServidorSocket :> ModuloSoftware {
+        doc /* Servidor TCP do ContratoSocketPonte (JSON por linha, heartbeat). */
+        attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/ServidorSocket.kt";
+    }
 
-    part def AdaptadorDJIN :> Nivel1::AdaptadorDJI {
-        port fc : ~SdkControladorVoo;
-        port bateria : ~SdkBateria;
-        port enlace : ~SdkEnlace;
-        port percepcao : ~SdkPercepcao;
+    part def AppPonteDJIN :> Nivel1::AppPonteDJI {
+        port sdkVoo : ~SdkControladorVoo;
+        port sdkBateria : ~SdkBateria;
+        port sdkEnlace : ~SdkEnlace;
+        port sdkPercepcao : ~SdkPercepcao;
         part gerenciadorConexao : GerenciadorConexaoSdk;
         part leitorTelemetria : LeitorTelemetria;
         part emissorComandos : EmissorComandos;
         part configuradorSeguranca : ConfiguradorSeguranca;
+        part servidorSocket : ServidorSocket;
     }
 
-    // ---------------------------------------------------------------- lógica de missão
+    // ---------------------------------------------------------------- nós ROS 2 (Python)
+    part def ClienteSocketPonte :> ModuloSoftware {
+        doc /* Cliente TCP do ContratoSocketPonte; reconecta automaticamente; publica perdaPonte em /falhas. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/cliente_socket_ponte.py";
+    }
+    part def ConversorMensagens :> ModuloSoftware {
+        doc /* JSON <-> mensagens psi3442_interfaces; publica /dji/telemetria; assina /dji/cmd_vel e /dji/acao. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_ponte_dji.py";
+    }
+    part def ParserComandos :> ModuloSoftware {
+        doc /* Aceita só "executar tarefa 1", "executar tarefa 2" e "interromper"; publica /operador/comando. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_interface_operador.py";
+    }
+    part def PainelTerminal :> ModuloSoftware {
+        doc /* Mostra tarefa, estado, vértice, cronômetro, x/y/z, velocidades, bateria e falhas (assina /tarefa/status, /falhas). */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/painel.py";
+    }
     part def CarregadorConfig :> ModuloSoftware {
-        doc /* Lê e valida o JSON (unidades SI, tolerâncias presentes, vértices coerentes com aresta e altura). */
-        attribute :>> arquivoCodigo = "app/missao/CarregadorConfig.kt";
+        doc /* Lê e valida o YAML (unidades SI, tolerâncias presentes, vértices coerentes com aresta e altura). */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/carregador_config.py";
     }
-
-    part def EstimadorEstado :> ModuloSoftware {
-        doc /* Algoritmo: x, y por integração trapezoidal das velocidades norte/leste do posicionamento visual da DJI,
-               a partir de A, convertidas ao ReferencialLocal com psi0. z: altura ToF inferior (reserva: altitude
-               relativa). Estado inválido se a amostra estiver mais velha que idadeMaxAmostra ou se o posicionamento
-               visual estiver inativo. A deriva da integração é o principal risco: validar com medição externa. */
-        attribute :>> arquivoCodigo = "app/missao/EstimadorEstado.kt";
-        attribute idadeMaxAmostra : DurationValue = 0.3 [s];
+    part def SeletorTarefa :> ModuloSoftware {
+        doc /* Executa ModosOperacao: ativa a tarefa pedida, recusa a Tarefa 2 antes da Tarefa 1 concluída em voo
+               real, envia decolar/pousar por /dji/acao, repassa interrupções. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_gerenciador_tarefas.py";
     }
-
+    part def PlanejadorTrajetoria :> ModuloSoftware {
+        doc /* Setpoints [A, B, C, D, A] (abcd) ou [A, D, C, B, A] (adcb); fornece o setpoint do índice atual. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/planejador_trajetoria.py";
+    }
     part def VerificadorTolerancia :> ModuloSoftware {
         doc /* dentro = |erro horizontal| <= tolHorizontal e |erro vertical| <= tolVertical e |v| <= vPairadoMax. */
-        attribute :>> arquivoCodigo = "app/missao/VerificadorTolerancia.kt";
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/verificador_tolerancia.py";
     }
-
-    part def PlanejadorTrajetoria :> ModuloSoftware {
-        doc /* Sequência de setpoints [A, B, C, D, A] (abcd) ou [A, D, C, B, A] (adcb); fornece o setpoint do índice atual. */
-        attribute :>> arquivoCodigo = "app/missao/PlanejadorTrajetoria.kt";
+    part def CronometroPermanencia :> ModuloSoftware {
+        doc /* Relógio monotônico (tempo real). Conta enquanto o veredito é "dentro"; zera quando sai; emite
+               PermanenciaConcluida aos 60 s contínuos; registra início, interrupções e duração de cada tentativa. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/cronometro_permanencia.py";
+        attribute duracaoAlvo : DurationValue = 60 [s];
     }
-
+    part def SupervisorTarefa1 :> ModuloSoftware {
+        doc /* Executa a máquina de estados da Tarefa 1 e publica /setpoint e /tarefa/evento. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_tarefa1.py";
+        exhibit state maquina : MaquinaEstadosTarefa1;
+    }
+    part def EstimadorEstado :> ModuloSoftware {
+        doc /* Algoritmo: x, y por integração trapezoidal das velocidades norte/leste (posicionamento visual da DJI),
+               a partir de A, convertidas ao ReferencialLocal com psi0; z pela altura ToF (reserva: altitude relativa).
+               Estado inválido se a amostra estiver velha ou o posicionamento visual inativo. A deriva da integração
+               é o principal risco: validar com medição externa. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_estimacao_estado.py";
+        attribute idadeMaxAmostra : DurationValue = 0.3 [s];
+    }
     part def ControladorPosicao :> ModuloSoftware {
         doc /* Algoritmo: por eixo, v = saturacao(kp * erro, vMax). Pouso: descida em rampa até alturaInicioPouso,
-               depois pouso automático da DJI; a velocidade de toque é lida da telemetria e registrada. */
-        attribute :>> arquivoCodigo = "app/missao/ControladorPosicao.kt";
+               depois pouso automático da DJI; velocidade de toque lida da telemetria e registrada. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_controle_voo.py";
         attribute kp : Real = 0.8;                                  // 1/s — ajustar em ensaio
         attribute vMaxHorizontal : SpeedValue = 0.3 [m/s];
         attribute vMaxVertical : SpeedValue = 0.3 [m/s];
         attribute alturaInicioPouso : LengthValue = 0.3 [m];
     }
-
-    part def CronometroPermanencia :> ModuloSoftware {
-        doc /* Relógio monotônico (tempo real). Conta enquanto o veredito é "dentro"; zera quando sai; emite
-               PermanenciaConcluida aos 60 s contínuos. Registra início, interrupções e duração de cada tentativa. */
-        attribute :>> arquivoCodigo = "app/missao/CronometroPermanencia.kt";
-        attribute duracaoAlvo : DurationValue = 60 [s];
-    }
-
     part def MonitorFalhas :> ModuloSoftware {
-        doc /* Tratamento de erros (tipo de falha -> detecção -> reação):
-               perdaEnlace                  -> conectado = false             -> aeronave pousa sozinha (failsafe); app registra
-               telemetriaAtrasada           -> amostra > prazoTelemetria      -> watchdog zera velocidade; persistindo, pousoSeguro
-               bateriaBaixa                 -> carga < bateriaMinima          -> pousoSeguro
-               estimativaInvalida           -> estimador marca inválido       -> velocidade zero (paira); persistindo, pousoSeguro
-               posicionamentoVisualInativo  -> chave do SDK = false           -> pousoSeguro
-               desvioExcessivo              -> erro > desvioMaximo            -> pousoSeguro
-               tempoMissaoExcedido          -> tempo > tempoMaxMissao         -> pousoSeguro
-               comandoRejeitado             -> callback de erro do SDK        -> antes do voo: volta a ocioso; em voo: pousoSeguro
-               Em todos os casos: evento registrado com tipo, instante e estado. */
-        attribute :>> arquivoCodigo = "app/missao/MonitorFalhas.kt";
+        doc /* Tratamento de erros (tipo -> detecção -> reação):
+               perdaEnlace                 -> conectado = false             -> aeronave pousa sozinha (failsafe); registra
+               perdaPonte                  -> sem heartbeat > 2 s           -> app ponte comanda pouso; registra
+               telemetriaAtrasada          -> amostra > prazoTelemetria      -> velocidade zero; persistindo, término seguro
+               bateriaBaixa                -> carga < bateriaMinima          -> término seguro
+               estimativaInvalida          -> estimador marca inválido       -> velocidade zero; persistindo, término seguro
+               posicionamentoVisualInativo -> chave do SDK = false           -> término seguro
+               desvioExcessivo             -> erro > desvioMaximo            -> término seguro
+               tempoTarefaExcedido         -> tempo > tempoMaxTarefa         -> término seguro
+               comandoRejeitado            -> erro devolvido pelo SDK        -> antes do voo: volta a ocioso; em voo: término seguro
+               Término seguro = pouso no local. Todos os eventos vão para /falhas e para o registro. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_supervisao.py";
         attribute prazoTelemetria : DurationValue = 0.5 [s];
         attribute desvioMaximo : LengthValue = 0.6 [m];
     }
-
-    part def SupervisorMissao :> ModuloSoftware {
-        attribute :>> arquivoCodigo = "app/missao/SupervisorMissao.kt";
-        exhibit state maquina : MaquinaEstadosQ1;
+    part def GravadorRosbag :> ModuloSoftware {
+        doc /* ros2 bag record de todos os tópicos, um bag por tarefa. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/launch/registro.launch.py";
+    }
+    part def ExportadorCsv :> ModuloSoftware {
+        doc /* Converte o bag em CSV com colunas instante_s, tarefa, estado, vertice, x_m, y_m, z_m, vx_mps, vy_mps,
+               vz_mps, dentro, permanencia_s, cmd_vx_mps, cmd_vy_mps, cmd_vz_mps, bateria_pct, evento, tipo_falha. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/ferramentas/exportar_csv.py";
     }
 
-    part def LogicaMissaoN :> Nivel1::LogicaMissao {
+    part def InterfaceOperadorN :> Nivel1::InterfaceOperador {
+        part parserComandos : ParserComandos;
+        part painelTerminal : PainelTerminal;
+    }
+    part def GerenciadorTarefasN :> Nivel1::GerenciadorTarefas {
         part carregadorConfig : CarregadorConfig;
-        part estimador : EstimadorEstado;
-        part verificador : VerificadorTolerancia;
+        part seletorTarefa : SeletorTarefa;
+    }
+    part def Tarefa1N :> Nivel1::Tarefa1VooFamiliarizacao {
         part planejador : PlanejadorTrajetoria;
-        part controlador : ControladorPosicao;
+        part verificador : VerificadorTolerancia;
         part cronometro : CronometroPermanencia;
+        part supervisorTarefa1 : SupervisorTarefa1;
+    }
+    part def EstimacaoEstadoN :> Nivel1::EstimacaoEstado {
+        part estimador : EstimadorEstado;
+    }
+    part def ControleVooN :> Nivel1::ControleVoo {
+        part controlador : ControladorPosicao;
+    }
+    part def SupervisaoSegurancaN :> Nivel1::SupervisaoSeguranca {
         part monitorFalhas : MonitorFalhas;
-        part supervisor : SupervisorMissao;
     }
-
-    // ---------------------------------------------------------------- painel e registro
-    part def TelaMissao :> ModuloSoftware {
-        doc /* Botões Iniciar e Interromper; mostra estado, vértice, cronômetro, x/y/z, velocidades, bateria e falhas. */
-        attribute :>> arquivoCodigo = "app/ui/TelaMissao.kt";
-    }
-
-    part def RegistradorCsv :> ModuloSoftware {
-        doc /* Estrutura de dados: um arquivo por missão; uma linha por ciclo (10 Hz) e uma por evento, com colunas
-               instante_s, estado, vertice, x_m, y_m, z_m, vx_mps, vy_mps, vz_mps, dentro, permanencia_s,
-               cmd_vx_mps, cmd_vy_mps, cmd_vz_mps, bateria_pct, evento, tipo_falha. */
-        attribute :>> arquivoCodigo = "app/registro/RegistradorCsv.kt";
-    }
-
-    part def InterfacePainelN :> Nivel1::InterfacePainel {
-        part tela : TelaMissao;
-    }
-
     part def RegistroN :> Nivel1::Registro {
-        part registradorCsv : RegistradorCsv;
+        part gravadorBag : GravadorRosbag;
+        part exportadorCsv : ExportadorCsv;
+    }
+    part def NoPonteDJIN :> Nivel1::NoPonteDJI {
+        part clienteSocket : ClienteSocketPonte;
+        part conversorMensagens : ConversorMensagens;
     }
 
-    part def AplicacaoMissaoN :> Nivel1::AplicacaoMissaoN1 {
-        part :>> adaptador : AdaptadorDJIN;
-        part :>> logica : LogicaMissaoN;
-        part :>> painel : InterfacePainelN;
+    part def AplicacaoROS2N :> Nivel1::AplicacaoROS2N1 {
+        part :>> interfaceOperador : InterfaceOperadorN;
+        part :>> gerenciador : GerenciadorTarefasN;
+        part :>> tarefa1 : Tarefa1N;
+        part :>> estimacao : EstimacaoEstadoN;
+        part :>> controle : ControleVooN;
+        part :>> supervisao : SupervisaoSegurancaN;
         part :>> registro : RegistroN;
-        interface contratoTelemetria : ContratoTelemetria connect adaptador.telemetria to logica.telemetria;
-        interface contratoComandos : ContratoComandos connect logica.comandos to adaptador.comandos;
+        part :>> noPonte : NoPonteDJIN;
+        interface contratoCmdVel : ContratoTopicoCmdVel connect controle.pubCmdVel to noPonte.subCmdVel;
+        interface contratoTelemetria : ContratoTopicoTelemetria connect noPonte.pubTelemetria to estimacao.subTelemetria;
     }
 
-    part def CelularAndroidN :> Nivel1::CelularAndroidN1 {
-        part :>> app : AplicacaoMissaoN;
+    part def AndroidEmuladoN :> Nivel1::AndroidEmuladoN1 {
+        part :>> appPonte : AppPonteDJIN;
     }
 
-    part def EstacaoSoloN :> Nivel1::EstacaoSoloN1 {
-        part :>> celular : CelularAndroidN;
+    part def NotebookLinuxN :> Nivel1::NotebookLinuxN1 {
+        part :>> ros2 : AplicacaoROS2N;
+        part :>> android : AndroidEmuladoN;
+        interface contratoSocket : ContratoSocketPonte connect ros2.noPonte.socket to android.appPonte.socket;
     }
 
-    part def SistemaVooAutonomoN :> Nivel1::SistemaVooAutonomoN1 {
-        doc /* As conexões abaixo são lógicas (SDK); fisicamente passam por USB, controle remoto e enlace O4. */
+    part def SistemaMissoesN :> Nivel1::SistemaMissoesAutonomasN1 {
+        doc /* As conexões abaixo são lógicas (SDK); fisicamente passam por USB, rádio e enlace O4. */
+        part :>> notebook : NotebookLinuxN;
+        part :>> radio : RadioDjiN;
         part :>> drone : DroneN;
-        part :>> estacao : EstacaoSoloN;
-        interface contratoSdk : ContratoSdkControladorVoo connect estacao.celular.app.adaptador.fc to drone.uce.sdk;
-        connect estacao.celular.app.adaptador.bateria to drone.energia.sdk;
-        connect estacao.celular.app.adaptador.enlace to drone.comunicacao.sdk;
-        connect estacao.celular.app.adaptador.percepcao to drone.sensoriamento.sdk;
+        interface contratoSdk : ContratoSdkControladorVoo connect notebook.android.appPonte.sdkVoo to drone.sdkVoo;
+        connect notebook.android.appPonte.sdkBateria to drone.sdkBateria;
+        connect notebook.android.appPonte.sdkEnlace to drone.sdkEnlace;
+        connect notebook.android.appPonte.sdkPercepcao to drone.sdkPercepcao;
     }
 
-    // =========================================================================================== configuração proposta
-    item configQ1 : ConfiguracaoMissao {
+    // =========================================================================================== configuração proposta (Tarefa 1)
+    item configTarefa1 : ConfiguracaoTarefa1 {
         doc /* Valores de P05 são PROPOSTA a justificar e submeter na entrega intermediária (27/11/2026). */
         attribute verticeA : Ponto3D { :>> x = 0 [m];    :>> y = 0 [m];    :>> z = 1.80 [m]; }
         attribute verticeB : Ponto3D { :>> x = 1.50 [m]; :>> y = 0 [m];    :>> z = 1.80 [m]; }
@@ -328,15 +345,15 @@ package NivelN {
         :>> vToqueMax = 0.40 [m/s];
         :>> vDeslocamentoMax = 0.30 [m/s];
         :>> bateriaMinimaPercentual = 30.0;
-        :>> tempoMaxMissao = 600 [s];
+        :>> tempoMaxTarefa = 600 [s];
         :>> tempoEstabilizacao = 2 [s];
     }
 
     // =========================================================================================== ações folha e ciclo
     action def LerAmostra { out tel : Telemetria; }
     action def AtualizarEstimativa { in tel : Telemetria; out estado : EstadoEstimado; }
-    action def ObterSetpoint { out setpoint : Ponto3D; }
-    action def AvaliarTolerancia { in estado : EstadoEstimado; in setpoint : Ponto3D; out veredito : VereditoTolerancia; }
+    action def ObterSetpoint { out setpoint : Setpoint; }
+    action def AvaliarTolerancia { in estado : EstadoEstimado; in setpoint : Setpoint; out veredito : VereditoTolerancia; }
     action def AtualizarCronometro { in veredito : VereditoTolerancia; out concluido : Boolean; }
     action def DetectarFalhas { in tel : Telemetria; in estado : EstadoEstimado; out falha : Boolean; }
     action def AvancarMaquinaEstados {
@@ -345,12 +362,14 @@ package NivelN {
         in falha : Boolean;
         out discreto : ComandoDiscreto;
     }
-    action def CalcularVelocidade { in estado : EstadoEstimado; in setpoint : Ponto3D; out comando : ComandoVelocidade; }
+    action def CalcularVelocidade { in estado : EstadoEstimado; in setpoint : Setpoint; out comando : ComandoVelocidade; }
     action def EnviarComandos { in comando : ComandoVelocidade; in discreto : ComandoDiscreto; }
-    action def GravarLinha { in tel : Telemetria; in estado : EstadoEstimado; in veredito : VereditoTolerancia; }
+    action def GravarRegistro { in tel : Telemetria; in estado : EstadoEstimado; in veredito : VereditoTolerancia; }
 
     action def CicloControle {
-        doc /* Executado a cada 100 ms (10 Hz), em tempo real. O índice do vértice atual é lido do estado do supervisor. */
+        doc /* Cadeia executada a cada amostra de telemetria (10 Hz), em tempo real, distribuída entre nós ROS 2:
+               telemetria -> estado -> veredito/cronômetro/falhas -> máquina de estados -> cmd_vel -> app ponte.
+               A latência total da cadeia é medida pelos instantes registrados em cada mensagem. */
         action ler : LerAmostra;
         action estimar : AtualizarEstimativa;
         action setpoint : ObterSetpoint;
@@ -360,7 +379,7 @@ package NivelN {
         action avancar : AvancarMaquinaEstados;
         action calcular : CalcularVelocidade;
         action enviar : EnviarComandos;
-        action gravar : GravarLinha;
+        action gravar : GravarRegistro;
 
         first start then ler;
         first ler then estimar;
@@ -392,22 +411,22 @@ package NivelN {
         flow from calcular.comando to enviar.comando;
     }
 
-    // =========================================================================================== máquina de estados (P06)
-    state def MaquinaEstadosQ1 {
-        doc /* Refina Nivel1::ModosOperacao para a Questão 1 (missaoAutonoma = emVoo).
+    // =========================================================================================== máquina de estados da Tarefa 1 (P06)
+    state def MaquinaEstadosTarefa1 {
+        doc /* Refina o modo Nivel1::ModosOperacao::tarefa1.
                Estados exigidos por P06: decolagem, deslocamento, permanência, retorno, pouso e falha.
                As condições de disparo de cada evento estão nas definições dos sinais (Comum). */
         attribute indiceVertice : Integer;     // 0=A, 1=B, 2=C, 3=D
         attribute ultimoIndice : Integer = 3;
 
-        entry; then ocioso;
+        entry; then aguardando;
 
-        state ocioso;
-        transition iniciar first ocioso accept IniciarMissao then preparando;
+        state aguardando;
+        transition ativada first aguardando accept ExecutarTarefa1 then preparando;
 
-        state preparando { entry action verificarConexaoBateriaEConfigurarSeguranca; }
+        state preparando { entry action verificarPonteConexaoBateriaESeguranca; }
         transition preparado first preparando accept PreparacaoConcluida then emVoo;
-        transition desistir first preparando accept FalhaDetectada then ocioso;
+        transition desistir first preparando accept FalhaDetectada then aguardando;
 
         state emVoo {
             entry; then decolando;
@@ -439,67 +458,82 @@ package NivelN {
         }
         transition iniciarPouso first emVoo accept Estabilizado then pousando;
         transition falhaEmVoo first emVoo accept FalhaDetectada then pousoSeguro;
-        transition interrompido first emVoo accept InterromperMissao then pousoSeguro;
+        transition interrompida first emVoo accept InterromperTarefa then pousoSeguro;
 
         state pousando {
             entry action descerEmRampa;
             do action monitorarToque;
         }
-        transition pousou first pousando accept PousoConfirmado then concluido;
+        transition pousou first pousando accept PousoConfirmado then concluida;
 
         state pousoSeguro {
             doc /* Falha ou interrupção: pouso no local (nunca retorno por GNSS). */
             entry action pousarNoLocal;
         }
-        transition pousouEmFalha first pousoSeguro accept PousoConfirmado then abortado;
+        transition pousouEmFalha first pousoSeguro accept PousoConfirmado then abortada;
 
-        state concluido { entry action fecharRegistro; }
-        state abortado { entry action fecharRegistroComFalha; }
+        state concluida { entry action publicarTarefaConcluidaEFecharRegistro; }
+        state abortada { entry action publicarAbortoEFecharRegistro; }
     }
 
     // =========================================================================================== instâncias e rastreabilidade
-    part sistemaN : SistemaVooAutonomoN;
+    part sistemaN : SistemaMissoesN;
     action ciclo : CicloControle;
 
-    allocate ciclo.ler to sistemaN.estacao.celular.app.adaptador.leitorTelemetria;
-    allocate ciclo.estimar to sistemaN.estacao.celular.app.logica.estimador;
-    allocate ciclo.setpoint to sistemaN.estacao.celular.app.logica.planejador;
-    allocate ciclo.avaliar to sistemaN.estacao.celular.app.logica.verificador;
-    allocate ciclo.cronometrar to sistemaN.estacao.celular.app.logica.cronometro;
-    allocate ciclo.detectar to sistemaN.estacao.celular.app.logica.monitorFalhas;
-    allocate ciclo.avancar to sistemaN.estacao.celular.app.logica.supervisor;
-    allocate ciclo.calcular to sistemaN.estacao.celular.app.logica.controlador;
-    allocate ciclo.enviar to sistemaN.estacao.celular.app.adaptador.emissorComandos;
-    allocate ciclo.gravar to sistemaN.estacao.celular.app.registro.registradorCsv;
+    allocate ciclo.ler to sistemaN.notebook.ros2.noPonte.conversorMensagens;
+    allocate ciclo.estimar to sistemaN.notebook.ros2.estimacao.estimador;
+    allocate ciclo.setpoint to sistemaN.notebook.ros2.tarefa1.planejador;
+    allocate ciclo.avaliar to sistemaN.notebook.ros2.tarefa1.verificador;
+    allocate ciclo.cronometrar to sistemaN.notebook.ros2.tarefa1.cronometro;
+    allocate ciclo.detectar to sistemaN.notebook.ros2.supervisao.monitorFalhas;
+    allocate ciclo.avancar to sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
+    allocate ciclo.calcular to sistemaN.notebook.ros2.controle.controlador;
+    allocate ciclo.enviar to sistemaN.notebook.ros2.noPonte.clienteSocket;
+    allocate ciclo.enviar to sistemaN.notebook.android.appPonte.emissorComandos;
+    allocate ciclo.gravar to sistemaN.notebook.ros2.registro.gravadorBag;
 
     // refinamento nível 1 -> nível n
-    allocate Nivel1::funcaoGlobal.configurar to sistemaN.estacao.celular.app.logica.carregadorConfig;
-    allocate Nivel1::funcaoGlobal.estimar to sistemaN.estacao.celular.app.logica.estimador;
-    allocate Nivel1::funcaoGlobal.estimar to sistemaN.estacao.celular.app.logica.verificador;
-    allocate Nivel1::funcaoGlobal.planejar to sistemaN.estacao.celular.app.logica.planejador;
-    allocate Nivel1::funcaoGlobal.supervisionar to sistemaN.estacao.celular.app.logica.supervisor;
-    allocate Nivel1::funcaoGlobal.supervisionar to sistemaN.estacao.celular.app.logica.cronometro;
-    allocate Nivel1::funcaoGlobal.supervisionar to sistemaN.estacao.celular.app.logica.monitorFalhas;
-    allocate Nivel1::funcaoGlobal.controlar to sistemaN.estacao.celular.app.logica.controlador;
-    allocate Nivel1::funcaoGlobal.interagir to sistemaN.estacao.celular.app.painel.tela;
-    allocate Nivel1::funcaoGlobal.registrar to sistemaN.estacao.celular.app.registro.registradorCsv;
-    allocate Nivel1::funcaoGlobal.adquirirTelemetria to sistemaN.estacao.celular.app.adaptador.leitorTelemetria;
-    allocate Nivel1::funcaoGlobal.emitirComandos to sistemaN.estacao.celular.app.adaptador.emissorComandos;
-    allocate Nivel1::funcaoGlobal.emitirComandos to sistemaN.estacao.celular.app.adaptador.configuradorSeguranca;
+    allocate Nivel1::funcaoGlobal.interpretarComando to sistemaN.notebook.ros2.interfaceOperador.parserComandos;
+    allocate Nivel1::funcaoGlobal.interpretarComando to sistemaN.notebook.ros2.interfaceOperador.painelTerminal;
+    allocate Nivel1::funcaoGlobal.gerenciarTarefas to sistemaN.notebook.ros2.gerenciador.carregadorConfig;
+    allocate Nivel1::funcaoGlobal.gerenciarTarefas to sistemaN.notebook.ros2.gerenciador.seletorTarefa;
+    allocate Nivel1::funcaoGlobal.executarTarefa1 to sistemaN.notebook.ros2.tarefa1.planejador;
+    allocate Nivel1::funcaoGlobal.executarTarefa1 to sistemaN.notebook.ros2.tarefa1.verificador;
+    allocate Nivel1::funcaoGlobal.executarTarefa1 to sistemaN.notebook.ros2.tarefa1.cronometro;
+    allocate Nivel1::funcaoGlobal.executarTarefa1 to sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
+    allocate Nivel1::funcaoGlobal.estimarEstado to sistemaN.notebook.ros2.estimacao.estimador;
+    allocate Nivel1::funcaoGlobal.controlarVoo to sistemaN.notebook.ros2.controle.controlador;
+    allocate Nivel1::funcaoGlobal.supervisionar to sistemaN.notebook.ros2.supervisao.monitorFalhas;
+    allocate Nivel1::funcaoGlobal.registrar to sistemaN.notebook.ros2.registro.gravadorBag;
+    allocate Nivel1::funcaoGlobal.registrar to sistemaN.notebook.ros2.registro.exportadorCsv;
+    allocate Nivel1::funcaoGlobal.traduzirParaDji to sistemaN.notebook.ros2.noPonte.clienteSocket;
+    allocate Nivel1::funcaoGlobal.traduzirParaDji to sistemaN.notebook.ros2.noPonte.conversorMensagens;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.gerenciadorConexao;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.leitorTelemetria;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.emissorComandos;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.configuradorSeguranca;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.servidorSocket;
 
-    // requisito -> módulo
-    satisfy Nivel0::p01 by sistemaN.estacao.celular.app.logica.controlador;
-    satisfy Nivel0::p01 by sistemaN.estacao.celular.app.logica.estimador;
-    satisfy Nivel0::p02 by sistemaN.estacao.celular.app.logica.planejador;
-    satisfy Nivel0::p02 by sistemaN.estacao.celular.app.logica.controlador;
-    satisfy Nivel0::p03 by sistemaN.estacao.celular.app.logica.cronometro;
-    satisfy Nivel0::p03 by sistemaN.estacao.celular.app.logica.supervisor;
-    satisfy Nivel0::p04 by sistemaN.estacao.celular.app.logica.controlador;
-    satisfy Nivel0::p04 by sistemaN.estacao.celular.app.logica.supervisor;
-    satisfy Nivel0::p05 by sistemaN.estacao.celular.app.logica.verificador;
-    satisfy Nivel0::p05 by sistemaN.estacao.celular.app.logica.cronometro;
-    satisfy Nivel0::p06 by sistemaN.estacao.celular.app.registro.registradorCsv;
-    satisfy Nivel0::p06 by sistemaN.estacao.celular.app.logica.supervisor;
-    satisfy Nivel0::r07 by sistemaN.estacao.celular.app.logica.monitorFalhas;
-    satisfy Nivel0::r07 by sistemaN.estacao.celular.app.adaptador.configuradorSeguranca;
+    // requisito -> módulo (Questão 1)
+    satisfy Nivel0::p01 by sistemaN.notebook.ros2.estimacao.estimador;
+    satisfy Nivel0::p01 by sistemaN.notebook.ros2.controle.controlador;
+    satisfy Nivel0::p01 by sistemaN.notebook.android.appPonte.emissorComandos;
+    satisfy Nivel0::p02 by sistemaN.notebook.ros2.tarefa1.planejador;
+    satisfy Nivel0::p02 by sistemaN.notebook.ros2.estimacao.estimador;
+    satisfy Nivel0::p02 by sistemaN.notebook.ros2.controle.controlador;
+    satisfy Nivel0::p03 by sistemaN.notebook.ros2.tarefa1.verificador;
+    satisfy Nivel0::p03 by sistemaN.notebook.ros2.tarefa1.cronometro;
+    satisfy Nivel0::p03 by sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
+    satisfy Nivel0::p04 by sistemaN.notebook.ros2.controle.controlador;
+    satisfy Nivel0::p04 by sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
+    satisfy Nivel0::p04 by sistemaN.notebook.android.appPonte.emissorComandos;
+    satisfy Nivel0::p05 by sistemaN.notebook.ros2.gerenciador.carregadorConfig;
+    satisfy Nivel0::p05 by sistemaN.notebook.ros2.tarefa1.verificador;
+    satisfy Nivel0::p05 by sistemaN.notebook.ros2.tarefa1.cronometro;
+    satisfy Nivel0::p06 by sistemaN.notebook.ros2.registro.gravadorBag;
+    satisfy Nivel0::p06 by sistemaN.notebook.ros2.registro.exportadorCsv;
+    satisfy Nivel0::p06 by sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
+    satisfy Nivel0::r07 by sistemaN.notebook.ros2.supervisao.monitorFalhas;
+    satisfy Nivel0::r07 by sistemaN.notebook.android.appPonte.configuradorSeguranca;
+    satisfy Nivel0::r07 by sistemaN.notebook.android.appPonte.emissorComandos;
 }

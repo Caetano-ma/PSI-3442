@@ -83,19 +83,19 @@ def nivel_0():
     # sistema de interesse
     c.box(430, 170, 1090, 600, "#93C47D")
     c.text(760, 180, "Sistema de Missões Autônomas", fs=20, ha="center", va="top", color="#1E3D14", weight="bold")
-    c.text(760, 210, "Missão 1: voo de familiarização  ·  Missão 2: balões", fs=12, ha="center", va="top", color="#1E3D14")
+    c.text(760, 210, "Tarefa 1: voo de familiarização  ·  Tarefa 2: balões", fs=12, ha="center", va="top", color="#1E3D14")
 
     # notebook
     c.box(450, 245, 760, 580, "#FFF2CC")
     c.text(605, 252, "Notebook Linux", fs=14, ha="center", va="top", weight="bold", color="#5D4600")
-    c.bloco(470, 285, 740, 400, "#FFE599", "ROS 2", "lógica das missões\n(gerenciador, missões, estimação,\ncontrole, supervisão, registro)",
+    c.bloco(470, 285, 740, 400, "#FFE599", "ROS 2", "lógica das tarefas\n(gerenciador, tarefas, estimação,\ncontrole, supervisão, registro)",
             fs=15, fs_sub=10)
     c.bloco(470, 450, 740, 560, "#F9CB9C", "Android emulado", "app ponte DJI\n(DJI Mobile SDK v5)", fs=14, fs_sub=10.5)
     c.arrow([(605, 400), (605, 450)], color=COM, both=True)
     c.text(615, 425, "TCP (adb)", fs=10, color=COM, va="center")
 
     # controle remoto e drone
-    c.bloco(785, 455, 880, 555, "#EA9999", "Controle\nRemoto", "(RC-N2)", fs=11.5, fs_sub=9.5)
+    c.bloco(785, 455, 880, 555, "#EA9999", "Rádio\nDJI", "RC-N2 só\ncomo enlace,\nsem pilotagem", fs=11.5, fs_sub=8)
     c.arrow([(740, 505), (785, 505)], color=COM, both=True)
     c.text(762, 500, "USB", fs=10, color=COM, ha="center")
     c.box(940, 270, 1070, 570, CAIXA_PRETA, ec="#111111", z=2)
@@ -106,13 +106,13 @@ def nivel_0():
 
     # entradas e saídas de informação (esquerda)
     c.arrow([(30, 300), (430, 300)], color=INFO)
-    c.text(30, 296, "Comandos do Operador (iniciar / interromper)", fs=13)
+    c.text(30, 296, "Comandos: executar tarefa 1 / 2, interromper", fs=13)
     c.arrow([(430, 345), (30, 345)], color=INFO)
     c.text(40, 341, "Painel de Acompanhamento", fs=14)
     c.arrow([(430, 390), (30, 390)], color=INFO)
     c.text(40, 386, "Logs Exportáveis (rosbag / CSV)", fs=14)
     c.arrow([(30, 435), (430, 435)], color=INFO)
-    c.text(30, 431, "Arquivo de Configuração das Missões", fs=14)
+    c.text(30, 431, "Arquivo de Configuração das Tarefas", fs=14)
     c.arrow([(30, 520), (450, 520)], color=EN)
     c.text(30, 516, "Alimentação do Notebook", fs=14, color=EN)
 
@@ -120,7 +120,7 @@ def nivel_0():
     c.box(1095, 240, 1460, 405, "none", ec=INFO, ls="--", lw=1.1, fill=False)
     c.text(1105, 246, "Ambiente físico — sala de aula", fs=10, va="top", color=INFO, style="italic")
     for y, nome in [(290, "Distância (ToF / visão)"), (325, "Pressão (barômetro)"),
-                    (360, "Textura do Piso / Iluminação"), (395, "Imagem (balões — Missão 2)")]:
+                    (360, "Textura do Piso / Iluminação"), (395, "Imagem (balões — Tarefa 2)")]:
         c.arrow([(1450, y), (1070, y)], color=INFO)
         c.text(1105, y - 4, nome, fs=13)
     c.arrow([(1450, 445), (1070, 445)], color=LIGHT, ls="--")
@@ -131,13 +131,13 @@ def nivel_0():
     c.text(1105, 546, "LED ON e Ready", fs=13, color=VIS)
 
     # energia e ação manual (abaixo)
-    for x, nome, cor, alvo in [(832, "Bateria\ndo RC", EN, 555), (970, "Bateria\nde voo", EN, 570),
+    for x, nome, cor, alvo in [(832, "Bateria\ndo rádio", EN, 555), (970, "Bateria\nde voo", EN, 570),
                                (1045, "Botão\nON/OFF", VIS, 570)]:
         c.arrow([(x, 640), (x, alvo)], color=cor)
         c.text(x, 646, nome, fs=12, ha="center", va="top", color=cor)
 
-    c.text(30, 640, "Drone, controle remoto e Android emulado são componentes de comunicação e execução:\n"
-                    "tratados apenas pelas entradas e saídas. O alvo da decomposição são as missões.",
+    c.text(30, 640, "Drone, rádio DJI e Android emulado são componentes de comunicação e execução, tratados só pelas\n"
+                    "entradas e saídas. O alvo da decomposição são as tarefas. Ninguém pilota: o operador só comanda tarefas.",
            fs=11, va="top", style="italic")
     legenda(c, 40, 720)
     c.save("nivel_0.png")
@@ -145,14 +145,14 @@ def nivel_0():
 
 # ------------------------------------------------------------------ Nível 1
 NOS_SUPERIORES = [
-    ("Interface do\nOperador", "painel; selecionar missão,\niniciar / interromper", "#D9EAD3",
-     ["pub /operador/comando", "sub /missao/status", "sub /falhas"]),
-    ("Gerenciador\nde Missões", "configuração, seleção da\nmissão, estados globais", "#FFD966",
-     ["pub /missao/ativa", "pub /dji/acao", "sub /operador/comando", "sub /missao/evento", "sub /falhas"]),
-    ("Missão 1", "voo de familiarização\nA→B→C→D→A, 4 × 60 s", "#FCE5CD",
-     ["pub /setpoint", "pub /missao/evento", "sub /estado", "sub /missao/ativa"]),
-    ("Missão 2", "balões: busca, aproximação\n0 < d ≤ 5 cm por 60 s", "#FCE5CD",
-     ["pub /setpoint", "pub /missao/evento", "sub /estado", "sub /alvos", "sub /missao/ativa"]),
+    ("Interface do\nOperador", "executar tarefa 1 / 2,\ninterromper; painel", "#D9EAD3",
+     ["pub /operador/comando", "sub /tarefa/status", "sub /falhas"]),
+    ("Gerenciador\nde Tarefas", "configuração, ativa a tarefa\npedida, estados globais", "#FFD966",
+     ["pub /tarefa/ativa", "pub /tarefa/status", "pub /dji/acao", "sub /operador/comando", "sub /tarefa/evento", "sub /falhas"]),
+    ("Tarefa 1", "voo de familiarização\nA→B→C→D→A, 4 × 60 s", "#FCE5CD",
+     ["pub /setpoint", "pub /tarefa/evento", "sub /estado", "sub /tarefa/ativa"]),
+    ("Tarefa 2", "balões: busca, aproximação\n0 < d ≤ 5 cm por 60 s", "#FCE5CD",
+     ["pub /setpoint", "pub /tarefa/evento", "sub /estado", "sub /alvos", "sub /tarefa/ativa"]),
     ("Registro", "rosbag2 + CSV", "#D9D9D9",
      ["sub (todos os", "tópicos)"]),
 ]
@@ -213,7 +213,7 @@ def nivel_1():
             fs=12.5, fs_sub=9)
     c.arrow([(cx_ponte, base[1]), (cx_ponte, 690)], color=COM, both=True)
     c.text(cx_ponte - 8, 676, "TCP (adb forward)", fs=9, color=COM, ha="right", va="center")
-    c.bloco(1130, 830, 1330, 890, "#EA9999", "Controle Remoto", "(RC-N2)", fs=12, fs_sub=9)
+    c.bloco(1130, 830, 1330, 890, "#EA9999", "Rádio DJI (RC-N2)", "só enlace — sem pilotagem", fs=12, fs_sub=9)
     c.arrow([(1230, 780), (1230, 830)], color=COM, both=True)
     c.text(1240, 815, "USB (passthrough)", fs=9, color=COM, va="center")
     c.box(1060, 930, 1370, 1125, CAIXA_PRETA, ec="#111111", z=2)
@@ -226,25 +226,25 @@ def nivel_1():
     # entradas e saídas do operador, configuração e logs
     x0_if, _ = centros["Interface do\nOperador"]
     c.arrow([(30, 230), (x0_if, 230)], color=INFO)
-    c.text(30, 226, "Comandos do Operador", fs=14)
+    c.text(30, 226, "Comandos: executar tarefa 1 / 2", fs=13)
     c.arrow([(x0_if, 262), (30, 262)], color=INFO)
     c.text(40, 258, "Painel de Acompanhamento", fs=14)
-    _, cx_ger = centros["Gerenciador\nde Missões"]
+    _, cx_ger = centros["Gerenciador\nde Tarefas"]
     c.arrow([(cx_ger, 72), (cx_ger, topo[0])], color=INFO)
-    c.text(cx_ger, 66, "Arquivo de Configuração das Missões (YAML)", fs=14, ha="center")
+    c.text(cx_ger, 66, "Arquivo de Configuração das Tarefas (YAML)", fs=14, ha="center")
     _, cx_reg = centros["Registro"]
     c.arrow([(cx_reg, topo[0]), (cx_reg, 72)], color=INFO)
     c.text(cx_reg, 66, "Logs Exportáveis (rosbag / CSV)", fs=14, ha="center")
     c.arrow([(30, 740), (350, 740)], color=EN)
     c.text(30, 736, "Alimentação do Notebook", fs=14, color=EN)
     c.arrow([(30, 860), (1130, 860)], color=EN)
-    c.text(30, 856, "Bateria do RC", fs=14, color=EN)
+    c.text(30, 856, "Bateria do rádio (RC)", fs=14, color=EN)
 
     # entradas e saídas físicas do drone
     c.box(1395, 925, 1705, 1030, "none", ec=INFO, ls="--", lw=1.1, fill=False)
     c.text(1400, 921, "Ambiente físico — sala de aula", fs=10, va="bottom", color=INFO, style="italic")
     for y, nome in [(950, "Distância (ToF / visão)"), (975, "Pressão (barômetro)"),
-                    (1000, "Textura do Piso / Iluminação"), (1025, "Imagem (balões — Missão 2)")]:
+                    (1000, "Textura do Piso / Iluminação"), (1025, "Imagem (balões — Tarefa 2)")]:
         c.arrow([(1700, y), (1370, y)], color=INFO)
         c.text(1405, y - 3, nome, fs=11)
     c.arrow([(1700, 1055), (1370, 1055)], color=LIGHT, ls="--")
@@ -257,10 +257,11 @@ def nivel_1():
         c.arrow([(x, 1190), (x, 1125)], color=cor)
         c.text(x, 1196, nome, fs=12, ha="center", va="top", color=cor)
 
-    c.text(370, 930, "Alvo da decomposição: as missões e os serviços ROS 2 que elas usam.\n"
-                     "Missão 1 e Missão 2 reutilizam gerenciador, estimação, controle,\n"
-                     "supervisão, registro e a ponte DJI; só a Missão 2 usa a percepção.\n\n"
-                     "Android emulado, controle remoto e drone: componentes de\n"
+    c.text(370, 930, "Alvo da decomposição: as tarefas e os serviços ROS 2 que elas usam.\n"
+                     "Tarefa 1 e Tarefa 2 reutilizam gerenciador, estimação, controle,\n"
+                     "supervisão, registro e a ponte DJI; só a Tarefa 2 usa a percepção.\n"
+                     "O operador só comanda \"executar tarefa N\" ou \"interromper\".\n\n"
+                     "Android emulado, rádio DJI e drone: componentes de\n"
                      "comunicação e execução, tratados só pelas entradas e saídas.",
            fs=11.5, va="top", style="italic", linespacing=1.4)
     legenda(c, 40, 1215)

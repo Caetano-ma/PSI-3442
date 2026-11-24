@@ -95,7 +95,7 @@ def nivel_0():
     c.text(615, 436, "TCP (adb)", fs=10, color=COM, va="center")
 
     # controle remoto e drone
-    c.bloco(785, 455, 880, 555, "#EA9999", "Rádio\nDJI", "RC-N2 só\ncomo enlace,\nsem pilotagem", fs=11.5, fs_sub=8)
+    c.bloco(785, 455, 880, 555, "#EA9999", "Rádio\nDJI", "RC-N2/N3 só\ncomo enlace,\nsem pilotagem", fs=11.5, fs_sub=8)
     c.arrow([(740, 505), (785, 505)], color=COM, both=True)
     c.text(762, 500, "USB", fs=10, color=COM, ha="center")
     c.box(940, 270, 1070, 570, CAIXA_PRETA, ec="#111111", z=2)
@@ -215,7 +215,7 @@ def nivel_1():
             fs=12.5, fs_sub=9)
     c.arrow([(cx_ponte, base[1]), (cx_ponte, 690)], color=COM, both=True)
     c.text(cx_ponte - 8, 676, "TCP (adb forward)", fs=9, color=COM, ha="right", va="center")
-    c.bloco(1130, 830, 1330, 890, "#EA9999", "Rádio DJI (RC-N2)", "só enlace — sem pilotagem", fs=12, fs_sub=9)
+    c.bloco(1130, 830, 1330, 890, "#EA9999", "Rádio DJI (RC-N2/N3)", "só enlace — sem pilotagem", fs=12, fs_sub=9)
     c.arrow([(1230, 780), (1230, 830)], color=COM, both=True)
     c.text(1240, 815, "USB (passthrough)", fs=9, color=COM, va="center")
     c.box(1060, 930, 1370, 1125, CAIXA_PRETA, ec="#111111", z=2)

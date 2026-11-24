@@ -29,7 +29,7 @@ package Nivel0 {
     }
 
     part def AmbienteFisico {
-        doc /* Sala de aula: piso (textura), paredes, teto, mobiliário, iluminação, ar e balões (Tarefa 2). */
+        doc /* Sala de aula: piso (textura), paredes, teto, mobiliário, iluminação, ar e balões estáticos (Tarefa 2). */
         port distancia : ~PortaSensorial;
         port pressao : ~PortaSensorial;
         port texturaIluminacao : ~PortaSensorial;
@@ -104,8 +104,9 @@ package Nivel0 {
     }
 
     part def RadioDJI {
-        doc /* Controle remoto compatível com o Mobile SDK (RC-N2 — verificar), usado só como rádio-enlace:
-               nenhum comando de pilotagem sai dele. */
+        doc /* Controle remoto compatível com o Mobile SDK v5 para o Mini 4 Pro: DJI RC N2 ou RC N3 (SDK >= 5.13.0;
+               DJI RC 2 não suportado). Indispensável: não há conexão direta celular-aeronave documentada para este
+               modelo. Usado só como rádio-enlace: nenhum comando de pilotagem sai dele. */
         port usb : PortaUSB;
         port rf : PortaRF;
         port bateria : PortaEnergia;

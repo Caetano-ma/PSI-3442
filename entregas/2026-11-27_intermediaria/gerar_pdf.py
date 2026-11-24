@@ -1,4 +1,5 @@
-"""Gera relatorio.pdf a partir de relatorio.md (ambiente conda 'sysml': markdown + weasyprint)."""
+"""Gera relatorio.pdf a partir de relatorio.md e o ZIP da entrega (ambiente conda 'sysml': markdown + weasyprint)."""
+import zipfile
 from pathlib import Path
 
 import markdown
@@ -27,12 +28,29 @@ a { color: #1C4587; text-decoration: none; }
 """
 
 
+RAIZ = PASTA.parent.parent
+CONTEUDO_ZIP = ["modelo_sysml/*.sysml", "modelo_sysml/Modelo.ipynb", "modelo_sysml/*.py", "modelo_sysml/*.sh",
+                "modelo_sysml/vistas/*", "modelo_sysml/rastreabilidade/*", "diagramas/*", "ensaios/*"]
+
+
+def montar_zip():
+    destino = PASTA / "PSI3442_P2_entrega_intermediaria.zip"
+    with zipfile.ZipFile(destino, "w", zipfile.ZIP_DEFLATED) as z:
+        z.write(PASTA / "relatorio.pdf", "relatorio.pdf")
+        for padrao in CONTEUDO_ZIP:
+            for arq in sorted(RAIZ.glob(padrao)):
+                if arq.is_file():
+                    z.write(arq, arq.relative_to(RAIZ))
+    print(f"Gerado: {destino}")
+
+
 def main():
     md = (PASTA / "relatorio.md").read_text(encoding="utf-8")
     corpo = markdown.markdown(md, extensions=["tables", "sane_lists"])
     html = f"<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><style>{CSS}</style></head><body>{corpo}</body></html>"
     HTML(string=html, base_url=str(PASTA)).write_pdf(PASTA / "relatorio.pdf")
     print(f"Gerado: {PASTA / 'relatorio.pdf'}")
+    montar_zip()
 
 
 if __name__ == "__main__":

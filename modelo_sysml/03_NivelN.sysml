@@ -85,7 +85,7 @@ package NivelN {
     }
 
     part def RadioDjiN :> Nivel0::RadioDJI {
-        doc /* Rádio-enlace obrigatório para o Mobile SDK. Fica ligado e conectado ao notebook por USB, repassado ao
+        doc /* Rádio-enlace obrigatório para o Mobile SDK (RC-N2 ou RC-N3). Fica ligado e conectado ao notebook por USB, repassado ao
                Android emulado; os sticks não são usados. */
     }
 

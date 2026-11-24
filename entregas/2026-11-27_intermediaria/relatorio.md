@@ -5,9 +5,7 @@ Arquitetura, modelo SysML 2.0, requisitos, interfaces, hipóteses, critérios de
 
 | Integrante | Número USP |
 |---|---|
-| [NOME COMPLETO 1] | [Nº USP] |
-| [NOME COMPLETO 2] | [Nº USP] |
-| [NOME COMPLETO 3] | [Nº USP] |
+| Caetano Maciel Anibali | 13681130 |
 
 Entrega: 27/11/2026 · Repositório: <https://github.com/Caetano-ma/PSI-3442> · Versão do modelo: commit indicado na capa do pacote enviado.
 
@@ -29,10 +27,10 @@ Componentes (método sistêmico: o alvo da decomposição são as tarefas; drone
 |---|---|
 | Notebook Linux (Ubuntu 24.04 / Mint 22) com **ROS 2 Jazzy** | Toda a lógica das tarefas em nós ROS 2 (Python, rclpy). |
 | **Android emulado** no mesmo notebook | Executa o *app ponte* (Kotlin) com o **DJI Mobile SDK v5**; fala com o ROS 2 por TCP. |
-| **Rádio DJI (RC-N2)** | Enlace exigido pelo SDK (caminho da seção 6 do enunciado); **não é usado para pilotar**. |
+| **Rádio DJI (RC-N2 ou RC-N3)** | Enlace exigido pelo SDK (caminho da seção 6 do enunciado); **não é usado para pilotar**. |
 | **DJI Mini 4 Pro** | Caixa-preta: estabilização, sensores, atuadores e energia ficam no firmware DJI. |
 
-Caminho de comunicação: nós ROS 2 ↔ TCP (adb forward) ↔ app ponte (Android emulado) ↔ USB ↔ rádio RC-N2 ↔ enlace
+Caminho de comunicação: nós ROS 2 ↔ TCP (adb forward) ↔ app ponte (Android emulado) ↔ USB ↔ rádio RC-N2/RC-N3 ↔ enlace
 O4 ↔ aeronave. Nenhum código é instalado no controlador de voo.
 
 ## 2. Modelo SysML 2.0
@@ -177,6 +175,11 @@ o app envia velocidade zero; sem heartbeat por 2 s, o app comanda pouso automát
 
 ### 5.3 SDK (caixa-preta) — recursos explorados (nomes a confirmar na versão do SDK)
 
+Compatibilidade (notas de versão do DJI Mobile SDK v5): o Mini 4 Pro é suportado a partir da versão 5.13.0 (atual:
+5.20.1), somente com os controles DJI RC N2 e DJI RC N3; o DJI RC 2 não consta, e a conexão direta celular ↔ aeronave
+sem controle não é documentada para este modelo. O controle é, portanto, indispensável como rádio, mesmo sem
+pilotagem.
+
 Leitura: velocidade norte/leste/baixo, altitude relativa, altura ToF, guinada, em voo, motores ligados, modo de voo,
 bateria, conexão, posicionamento visual ativo, distâncias de obstáculos (Tarefa 2), vídeo (Tarefa 2). Comando:
 decolagem e pouso automáticos, controle virtual em velocidade (referencial do solo), ação em perda de sinal = pousar.
@@ -191,18 +194,18 @@ decolagem e pouso automáticos, controle virtual em velocidade (referencial do s
 | H4 | Aeronave sobre A com o nariz para B; ψ₀ registrado na preparação | Marca no piso; verificação no painel |
 | H5 | A deriva da posição estimada em ~6 min fica dentro das tolerâncias | Medida no T02 contra referência externa (principal risco) |
 | H6 | Guinada usada só relativamente a ψ₀ (bússola pode sofrer interferência) | Conferir variação com aeronave parada |
-| H7 | O SDK v5 suporta o Mini 4 Pro com o RC-N2 e expõe os recursos da seção 5.3 | Confirmar na documentação e no ciclo 1 |
-| H8 | O Android emulado executa o SDK (bibliotecas ARM) e recebe o rádio por USB | Ciclo 1; alternativa: celular Android físico com o mesmo socket |
+| H7 | O kit do drone inclui um controle compatível com o SDK (RC-N2 ou RC-N3); a equipe não possui um próprio. Sem ele o Mini 4 Pro não é comandável pelo SDK | Confirmar com os docentes até 28/11; nomes dos recursos da seção 5.3 conferidos no ciclo 1 |
+| H8 | O Android emulado executa o SDK (bibliotecas ARM) e recebe o rádio por USB | Ciclo 1; alternativa: o celular Android da equipe executa o app ponte, com o mesmo socket |
 | H9 | Latência total da cadeia ≤ 300 ms, compatível com controle a 10 Hz e ∣v∣ ≤ 0,3 m/s | Medida pelos instantes registrados nas mensagens |
 | H10 | Bateria ≥ 30 % basta: Tarefa 1 dura ≈ 6 min | Checagem na preparação; falha bateriaBaixa |
-| H11 | Tarefa 2: balões presos por fio, com movimento lento; cores-alvo e não alvo no YAML | A confirmar com os docentes |
+| H11 | Tarefa 2: balões estáticos durante a tarefa (a forma de fixação não interfere na solução); cores-alvo e não alvo no YAML | Pequenas oscilações tratadas como perturbação: o controle mantém a posição relativa à bexiga (R04) |
 
 ## 7. Plano de implementação (modelo espiral)
 
 | Ciclo | Período | Entregas | Risco tratado |
 |---|---|---|---|
 | C0 | até 27/11 | Este documento: modelo SysML, requisitos, interfaces, critérios | Escopo e aceitação |
-| C1 | 27–29/11 | Prova de viabilidade da ponte: Android emulado + SDK + rádio por USB conectando ao Mini 4 Pro e lendo telemetria; socket por `adb forward` | H7, H8 (decisão sobre a alternativa com celular físico até 29/11) |
+| C1 | 27–29/11 | Obter o controle RC-N2/RC-N3 do kit; prova de viabilidade da ponte: Android emulado + SDK (≥ 5.13.0) + rádio por USB conectando ao Mini 4 Pro e lendo telemetria; socket por `adb forward` | H7, H8 (decisão sobre a alternativa com celular físico até 29/11) |
 | C2 | 27–30/11 (em paralelo) | Workspace ROS 2, mensagens, nós da Tarefa 1, simulador cinemático simples (tempo real 1:1), testes T05, T07, T08 e T10 | Lógica e falhas sem risco ao equipamento |
 | C3 | 30/11–01/12 | App ponte completo, testes em solo com motores desligados, T09, medida de latência | H9, segurança |
 | C4 | 01–02/12 | Voos T01–T04, ajuste de kp, demonstração da Tarefa 1 em voo real | H1–H5, P01–P06 |
@@ -266,6 +269,7 @@ e tópicos. A responsabilidade pela consistência, pelo código e pela validaç�
 
 ## Referências
 
+- DJI — Mobile SDK v5, notas de versão (produtos e controles suportados): <https://developer.dji.com/doc/mobile-sdk-tutorial/en/index.html>; repositório: <https://github.com/dji-sdk/Mobile-SDK-Android-V5>.
 - Enunciado: Zuffo, M. K. Segunda Prova — PSI3442 — Projeto de Sistemas Embarcados, v2.5, 15/11/2026.
 - DJI — Compatibilidade de produtos e SDKs; DJI — Documentação do Mobile SDK (links do enunciado, consultados em 15/11/2026).
 - OMG / Systems Modeling — SysML v2 Release 2026-09.1 e Pilot Implementation 0.63.1: <https://github.com/Systems-Modeling/SysML-v2-Release>.

@@ -1,0 +1,21 @@
+# Mesma configuração com permanência de 5 s: só para ensaios no simulador (T10 rápido). Não usar em voo.
+tarefa1:
+  altura_alvo_m: 1.80
+  aresta_m: 1.50
+  vertices:
+    A: [0.00, 0.00, 1.80]
+    B: [1.50, 0.00, 1.80]
+    C: [1.50, 1.50, 1.80]
+    D: [0.00, 1.50, 1.80]
+  sentido: abcd
+  tempo_permanencia_s: 5.0
+  tol_horizontal_m: 0.30
+  tol_vertical_m: 0.10
+  v_pairado_max_mps: 0.15
+  v_toque_max_mps: 0.50
+  v_deslocamento_max_mps: 0.30
+  tempo_estabilizacao_s: 2.0
+  altura_inicio_pouso_m: 0.30
+  altura_min_decolagem_m: 0.50
+  tempo_max_preparacao_s: 10.0
+  tempo_max_decolagem_s: 20.0

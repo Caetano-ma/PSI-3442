@@ -1,0 +1,49 @@
+# Configuração das tarefas (R01, P05). Unidades SI. Referencial local: origem no ponto de decolagem no piso,
+# x de A para B (nariz na decolagem), y de A para D, z para cima.
+# Valores de P05 aprovados na entrega intermediária (27/11/2026): não ampliar depois dos ensaios.
+tarefa1:
+  altura_alvo_m: 1.80
+  aresta_m: 1.50
+  vertices:                     # A, B, C, D
+    A: [0.00, 0.00, 1.80]
+    B: [1.50, 0.00, 1.80]
+    C: [1.50, 1.50, 1.80]
+    D: [0.00, 1.50, 1.80]
+  sentido: abcd                 # abcd (A-B-C-D-A, anti-horário visto de cima) ou adcb
+  tempo_permanencia_s: 60.0
+  tol_horizontal_m: 0.30
+  tol_vertical_m: 0.10
+  v_pairado_max_mps: 0.15
+  v_toque_max_mps: 0.50
+  v_deslocamento_max_mps: 0.30
+  tempo_estabilizacao_s: 2.0
+  altura_inicio_pouso_m: 0.30
+  altura_min_decolagem_m: 0.50  # DecolagemConcluida exige z acima disto (evita disparo no início da subida)
+  tempo_max_preparacao_s: 10.0
+  tempo_max_decolagem_s: 20.0
+
+seguranca:
+  bateria_minima_pct: 30.0      # para iniciar a tarefa (H10)
+  bateria_critica_pct: 15.0     # em voo: abaixo disto, término seguro
+  tempo_max_tarefa_s: 600.0     # contado a partir da partida dos motores
+  desvio_maximo_m: 0.60         # distância à trajetória (arestas do quadrado + subida em A)
+  prazo_telemetria_s: 0.50      # supervisão: amostra mais velha que isto = telemetriaAtrasada
+  prazo_perda_ponte_s: 2.0      # sem telemetria por mais que isto = perdaPonte
+  persistencia_falha_s: 1.0     # telemetria atrasada ou estimativa inválida por mais que isto = término seguro
+
+estimacao:
+  idade_max_amostra_s: 0.30
+  altura_tof_max_m: 10.0        # acima disto (ou NaN) usa a altitude relativa (verificar alcance do ToF)
+
+controle:
+  kp: 0.8                       # 1/s — ajustar em ensaio (C4)
+  v_max_horizontal_mps: 0.30
+  v_max_vertical_mps: 0.30
+  idade_max_setpoint_s: 0.50
+  idade_max_estado_s: 0.30
+
+ponte:
+  host: 127.0.0.1               # adb forward tcp:5760 tcp:5760
+  porta: 5760
+  taxa_cmd_vel_hz: 20.0
+  taxa_heartbeat_hz: 1.0

@@ -1,0 +1,2 @@
+# scripts executados no Linux/Docker: sempre LF, mesmo em checkout no Windows
+*.sh text eol=lf

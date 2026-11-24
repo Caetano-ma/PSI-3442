@@ -44,6 +44,8 @@ demonstração em voo real **04/12/2026**. Equipe: Caetano Maciel Anibali (13681
 | `ensaios/roteiro_voo_tarefa1.md` | Procedimentos dos ensaios em voo T01–T04 |
 | `entregas/2026-11-27_intermediaria/` | `relatorio.md` → `gerar_pdf.py` → `relatorio.pdf` + ZIP do Moodle |
 | `ambiente/instalar_ambiente.sh` | Recria o ambiente conda `sysml` (kernel SysML v2 0.63.1, JupyterLab, weasyprint) |
+| `ros2_ws/` | Workspace ROS 2 (ciclo C2): `psi3442_interfaces` (10 mensagens) e `psi3442_tarefas` (nós, simulador, launch, CSV, testes). Ver `ros2_ws/README.md`, inclusive os **ajustes em relação ao modelo** ainda não refletidos no SysML |
+| `ros2_ws/docker/ensaio_t10.sh` | Compila e faz o ensaio T10 integrado (launch + simulador + bag + CSV) na imagem `ros:jazzy-ros-base` |
 | `contexto_claude/memoria/` | Memórias do Claude da máquina anterior (ver `contexto_claude/LEIA-ME.md`) |
 
 ```bash
@@ -52,7 +54,15 @@ PY=~/miniforge3/envs/sysml/bin/python
 cd modelo_sysml && $PY executar_modelo.py && python3 gerar_matriz.py  # depois de editar o modelo
 $PY diagramas/gerar_diagramas.py                                      # depois de editar os diagramas
 $PY entregas/2026-11-27_intermediaria/gerar_pdf.py                    # regenera PDF e ZIP
+cd ros2_ws/src/psi3442_tarefas && python3 -m pytest -q test           # 76 testes da lógica, sem ROS 2
+docker run --rm -v "$(pwd):/repo:ro" ros:jazzy-ros-base bash /repo/ros2_ws/docker/ensaio_t10.sh   # da raiz
 ```
+
+Máquinas: a anterior era Linux com ROS 2 Jazzy em `/opt/ros/jazzy`. A atual (desde 24/11) é Windows 11 sem ROS 2.
+Nela, a lógica é testada com Python 3.12 + pytest, e a compilação e os nós rodam no Docker Desktop (imagem
+`ros:jazzy-ros-base`). O WSL tem Ubuntu 26.04, onde não há pacotes do Jazzy. Não há `gh`: o push usa o
+gerenciador de credenciais do Git para Windows.
+A lógica fica em classes sem ROS (testáveis em qualquer lugar); o nó rclpy fica no `main()` do mesmo arquivo.
 
 Pegadinhas do SysML v2 Pilot já encontradas: `interface` é palavra reservada; `flow` não liga o parâmetro da própria
 ação (usar `bind`); item dentro de item é `item`, não `attribute`; não nomear partes como o `subject` dos requisitos
@@ -75,11 +85,12 @@ ação (usar `bind`); item dentro de item é `item`, não `attribute`; não nome
 2. Enviar a entrega intermediária (PDF + ZIP) no Moodle; acrescentar outros integrantes se houver.
 3. Ciclo C1 (até 29/11): prova de viabilidade da ponte — Android emulado + MSDK (bibliotecas ARM) + controle por USB
    passthrough + ativação da chave do SDK; decidir pela alternativa com celular físico se falhar.
-4. Ciclo C2: workspace ROS 2 (`ros2_ws/src/psi3442_interfaces`, `psi3442_tarefas`), nós da Tarefa 1, simulador
-   cinemático simples, testes T05, T07, T08, T10. Nada de código existe ainda; ROS 2 Jazzy instalado em `/opt/ros/jazzy`
-   na máquina anterior (sem Android SDK/adb/emulador).
+4. Ciclo C2 — **feito em 24/11**: workspace, nós da Tarefa 1, simulador cinemático, testes T05, T07, T08 e T10
+   (76 testes; T10 também no ROS real via Docker). Falta: refletir no modelo SysML e na matriz os ajustes listados
+   em `ros2_ws/README.md` (exige o ambiente conda `sysml`) e a decisão do usuário sobre `bateria_critica_pct` (15 %).
 5. Ciclo C3: app ponte Kotlin (ConexaoSdk, LeitorTelemetria, EmissorComandos, ConfiguradorSeguranca, ServidorSocket),
-   testes em solo, T09, latência.
+   testes em solo, T09, latência. Seguir o protocolo do cabeçalho de `no_ponte_dji.py`; o simulador é a referência
+   de comportamento (conversão com psi0, watchdog de 0,2 s, pouso após 2 s sem heartbeat, resposta `erro`).
 6. Ciclo C4: voos T01–T04, ajuste do controlador, demonstração da Tarefa 1.
 7. Ciclo C5: nível n e implementação da Tarefa 2 (percepção, mapeamento, aproximação), vídeo ≤ 2 min 30 s, README,
    relatório final com 2 páginas de justificativa técnico-econômica e registro do uso de IA.

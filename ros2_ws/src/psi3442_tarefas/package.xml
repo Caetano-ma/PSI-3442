@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>psi3442_tarefas</name>
+  <version>0.1.0</version>
+  <description>Nós ROS 2 do Sistema de Missões Autônomas com DJI Mini 4 Pro (PSI3442 P2 2026): Tarefa 1 e serviços comuns.</description>
+  <maintainer email="281951699+Caetano-ma@users.noreply.github.com">Caetano-ma</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>psi3442_interfaces</depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>ros2bag</exec_depend>
+  <exec_depend>rosbag2_py</exec_depend>
+  <exec_depend>rosbag2_storage_default_plugins</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

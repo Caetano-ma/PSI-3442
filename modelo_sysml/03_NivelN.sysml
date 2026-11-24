@@ -175,7 +175,8 @@ package NivelN {
 
     // ---------------------------------------------------------------- nós ROS 2 (Python)
     part def ClienteSocketPonte :> ModuloSoftware {
-        doc /* Cliente TCP do ContratoSocketPonte; reconecta automaticamente; publica perdaPonte em /falhas. */
+        doc /* Cliente TCP do ContratoSocketPonte; reconecta automaticamente. A perda da ponte aparece como
+               ausência de /dji/telemetria e é tratada pela supervisão (telemetriaAtrasada). */
         attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/cliente_socket_ponte.py";
     }
     part def ConversorMensagens :> ModuloSoftware {
@@ -342,7 +343,7 @@ package NivelN {
         :>> tolHorizontal = 0.30 [m];
         :>> tolVertical = 0.10 [m];
         :>> vPairadoMax = 0.15 [m/s];
-        :>> vToqueMax = 0.40 [m/s];
+        :>> vToqueMax = 0.50 [m/s];
         :>> vDeslocamentoMax = 0.30 [m/s];
         :>> bateriaMinimaPercentual = 30.0;
         :>> tempoMaxTarefa = 600 [s];

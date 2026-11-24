@@ -45,6 +45,7 @@ demonstração em voo real **04/12/2026**. Equipe: Caetano Maciel Anibali (13681
 | `entregas/2026-11-27_intermediaria/` | `relatorio.md` → `gerar_pdf.py` → `relatorio.pdf` + ZIP do Moodle |
 | `ambiente/instalar_ambiente.sh` | Recria o ambiente conda `sysml` (kernel SysML v2 0.63.1, JupyterLab, weasyprint) |
 | `ros2_ws/` | Workspace ROS 2 (ciclo C2): `psi3442_interfaces` (10 mensagens) e `psi3442_tarefas` (nós, simulador, launch, CSV, testes). Ver `ros2_ws/README.md`, inclusive os **ajustes em relação ao modelo** ainda não refletidos no SysML |
+| `ros2_ws/src/psi3442_gazebo/` + `ros2_ws/docker/simular_gazebo.ps1` | Tarefa 1 no Gazebo Harmonic (imagem `psi3442-gazebo`, `Dockerfile.gazebo`), janela via WSLg; drone caixa-preta com VelocityControl; app ponte simulado com o mesmo protocolo TCP |
 | `ros2_ws/docker/ensaio_t10.sh` | Compila e faz o ensaio T10 integrado (launch + simulador + bag + CSV) na imagem `ros:jazzy-ros-base` |
 | `contexto_claude/memoria/` | Memórias do Claude da máquina anterior (ver `contexto_claude/LEIA-ME.md`) |
 

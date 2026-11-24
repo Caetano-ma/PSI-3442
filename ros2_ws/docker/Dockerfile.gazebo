@@ -1,0 +1,6 @@
+# ROS 2 Jazzy + Gazebo Harmonic (par oficial do Jazzy) para simular a Tarefa 1.
+# Construir (da raiz do repositório):  docker build -t psi3442-gazebo -f ros2_ws/docker/Dockerfile.gazebo ros2_ws/docker
+FROM ros:jazzy-ros-base
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ros-jazzy-ros-gz python3-pytest mesa-utils libgl1-mesa-dri \
+    && rm -rf /var/lib/apt/lists/*

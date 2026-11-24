@@ -9,6 +9,7 @@ do mesmo arquivo.
 |---|---|
 | `psi3442_interfaces` | 10 mensagens (`msg/`), unidades SI |
 | `psi3442_tarefas` | nós, simulador, configuração (`config/`), launch, exportador de CSV e testes |
+| `psi3442_gazebo` | simulação da Tarefa 1 no Gazebo Harmonic: mundo, app ponte simulado e launch |
 
 ## Nós e módulos
 
@@ -79,6 +80,45 @@ O script abaixo também faz o ensaio integrado T10 com o simulador e exporta bag
 ```bash
 docker run --rm -v "$(pwd):/repo:ro" ros:jazzy-ros-base bash /repo/ros2_ws/docker/ensaio_t10.sh
 ```
+
+## Simulação no Gazebo (Tarefa 1)
+
+O pacote `psi3442_gazebo` simula a Tarefa 1 no Gazebo Harmonic, a versão que acompanha o Jazzy.
+A aplicação ROS 2 roda inteira e sem mudança; só o lado do drone é substituído:
+
+- **Mundo** (`worlds/sala_tarefa1.sdf`):
+  - sala com piso, fitas sob o quadrado e as marcas A (vermelho), B (verde), C (azul) e D (amarelo);
+  - régua vertical em A, com 1,70 m, 1,80 m e 1,90 m;
+  - um cilindro translúcido em cada vértice com a tolerância de P05 (raio de 0,30 m, ±0,10 m em torno de 1,80 m).
+- **Aeronave**: o modelo `mini4pro` tem as dimensões aproximadas do Mini 4 Pro e é tratado como **caixa-preta**,
+  como no resto da arquitetura. Não há hélices nem firmware simulados. O sistema `VelocityControl` do Gazebo
+  executa a velocidade pedida, e a gravidade do corpo fica desligada, como se o firmware sustentasse a aeronave.
+- **App ponte simulado** (`app_ponte_gazebo`):
+  - usa o mesmo protocolo TCP do app Kotlin, com os mesmos watchdogs, decolagem e pouso automáticos e resposta
+    de 1ª ordem do simulador cinemático;
+  - executa o movimento no Gazebo e mede a telemetria na odometria do Gazebo (tempo de simulação);
+  - o nariz aponta para o leste (guinada 90°), o que exercita a conversão com ψ₀.
+
+No Windows, com o Docker Desktop, a janela aparece pelo WSLg:
+
+```powershell
+.\ros2_ws\docker\simular_gazebo.ps1 rapido                      # constrói a imagem na 1ª vez (~4 min)
+docker exec -it psi3442_gazebo bash /repo/ros2_ws/docker/operador.sh          # digite: executar tarefa 1
+docker exec -it psi3442_gazebo bash /repo/ros2_ws/docker/operador.sh painel   # painel (opcional)
+```
+
+Opções: `rapido` (5 s por vértice), `comando_automatico:=true` (envia "executar tarefa 1" após 15 s),
+`gui:=false` (sem janela), `app_args:="--vies-norte 0.01"` (deriva, para estudar H5).
+Ctrl+C encerra e exporta o CSV para `simulacoes\`. No Linux com Jazzy e `ros-jazzy-ros-gz`, basta
+`ros2 launch psi3442_gazebo tarefa1_gazebo.launch.py`.
+
+Resultado verificado em 24/11, com 5 s por vértice:
+
+- a missão foi do comando ao pouso, com toque a 0,39 m/s;
+- o modelo terminou no Gazebo a 1 cm de A;
+- o fator de tempo real foi 0,999.
+
+A renderização é por software (`LIBGL_ALWAYS_SOFTWARE=1`), suficiente para esta sala.
 
 ## Protocolo da ponte (ContratoSocketPonte)
 

@@ -45,6 +45,7 @@ class ParametrosSimulacao:
     rejeitar: tuple = ()
     acao_perda_sinal: str = 'pousar'
     sem_posicionamento_visual_em_s: float = math.inf   # instante (desde a decolagem) em que o PV desliga
+    altura_toque_m: float = 0.0              # altura em que se considera o toque no piso
     falhas: dict = field(default_factory=dict)
 
 
@@ -105,6 +106,14 @@ class DroneCinematico:
 
     # ------------------------------------------------------------------ dinâmica
     def passo(self, dt, agora):
+        """Etapas separadas para que outro "mundo" (Gazebo) substitua só o movimento e a medição."""
+        self._atualizar_alvo(agora)
+        self._responder(dt)
+        self._mover(dt)
+        self._verificar_toque(agora)
+
+    def _atualizar_alvo(self, agora):
+        """Comportamento do app ponte e do firmware: watchdog, perda da ponte, decolagem e pouso automáticos."""
         p = self.p
         if self.em_voo and self.manobra is None:
             if self.controle_virtual and (self.t_cmd is None or agora - self.t_cmd > p.prazo_watchdog_s):
@@ -120,18 +129,24 @@ class DroneCinematico:
         elif self.manobra == 'pouso':
             self.alvo = (0.0, 0.0, p.v_pouso_mps)
 
-        fator = min(1.0, dt / p.tau_s)
+    def _responder(self, dt):
+        """Resposta de 1ª ordem da velocidade (estabilização da DJI, caixa-preta)."""
+        fator = min(1.0, dt / self.p.tau_s)
         self.v_norte += (self.alvo[0] - self.v_norte) * fator
         self.v_leste += (self.alvo[1] - self.v_leste) * fator
         self.v_baixo += (self.alvo[2] - self.v_baixo) * fator
+
+    def _mover(self, dt):
         if self.motores:
             self.norte += self.v_norte * dt
             self.leste += self.v_leste * dt
             self.altura -= self.v_baixo * dt
-            self.bateria = max(0.0, self.bateria - p.consumo_pct_por_s * dt)
+            self.bateria = max(0.0, self.bateria - self.p.consumo_pct_por_s * dt)
+
+    def _verificar_toque(self, agora):
         if self.altura > 0.02 and self.motores:
             self.em_voo = True
-        if self.altura <= 0.0:
+        if self.altura <= self.p.altura_toque_m:
             if self.em_voo:
                 self.v_toque_mps = abs(self.v_baixo)
                 self.em_voo = self.motores = False
@@ -141,16 +156,24 @@ class DroneCinematico:
             if not self.motores:
                 self.v_norte = self.v_leste = self.v_baixo = 0.0
 
+    def velocidades_medidas(self):
+        """(norte, leste, baixo) que o sensor "vê"; aqui, a própria velocidade simulada."""
+        return self.v_norte, self.v_leste, self.v_baixo
+
+    def instante_medida(self, agora):
+        return agora
+
     def telemetria(self, agora):
         p = self.p
         ruido = (lambda: self.rng.gauss(0.0, p.ruido_velocidade_mps)) if p.ruido_velocidade_mps > 0 else (lambda: 0.0)
         no_ar = self.motores
         pv = not (self.t_decolagem is not None and agora - self.t_decolagem >= p.sem_posicionamento_visual_em_s)
+        v_norte, v_leste, v_baixo = self.velocidades_medidas()
         return Telemetria(
-            instante_android_s=agora,
-            v_norte_mps=self.v_norte + ((p.vies_norte_mps + ruido()) if no_ar else 0.0),
-            v_leste_mps=self.v_leste + ((p.vies_leste_mps + ruido()) if no_ar else 0.0),
-            v_baixo_mps=self.v_baixo + (ruido() if no_ar else 0.0),
+            instante_android_s=self.instante_medida(agora),
+            v_norte_mps=v_norte + ((p.vies_norte_mps + ruido()) if no_ar else 0.0),
+            v_leste_mps=v_leste + ((p.vies_leste_mps + ruido()) if no_ar else 0.0),
+            v_baixo_mps=v_baixo + (ruido() if no_ar else 0.0),
             altitude_m=self.altura,
             altura_tof_m=self.altura,
             guinada_graus=self.guinada,

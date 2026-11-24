@@ -33,6 +33,9 @@ def generate_launch_description():
                               description='arquivo YAML das tarefas'),
         DeclareLaunchArgument('simulador', default_value='false',
                               description='true: sobe o simulador cinemático no lugar do app ponte'),
+        DeclareLaunchArgument('simulacao', default_value=simulador,
+                              description='true: conclusões não contam como voo real (padrão: igual a simulador; '
+                                          'o launch do Gazebo passa true)'),
         DeclareLaunchArgument('registro', default_value='true', description='grava rosbag2 de todos os tópicos'),
         DeclareLaunchArgument('pasta_bags', default_value=os.path.expanduser('~/psi3442_bags')),
         DeclareLaunchArgument('simulador_args', default_value='',
@@ -40,7 +43,7 @@ def generate_launch_description():
 
         Node(package='psi3442_tarefas', executable='simulador_ponte', name='simulador_ponte', output='screen',
              arguments=[LaunchConfiguration('simulador_args')], condition=IfCondition(simulador)),
-        no('gerenciador_tarefas', [{'simulacao': ParameterValue(simulador, value_type=bool)}]),
+        no('gerenciador_tarefas', [{'simulacao': ParameterValue(LaunchConfiguration('simulacao'), value_type=bool)}]),
         no('tarefa1'),
         no('estimacao_estado'),
         no('controle_voo'),

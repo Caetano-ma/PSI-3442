@@ -24,10 +24,10 @@ def ida_e_volta(mensagem):
 
 
 class SistemaSimulado:
-    def __init__(self, cfg=None, parametros=None, simulacao=True):
+    def __init__(self, cfg=None, parametros=None, simulacao=True, drone=None):
         self.cfg = cfg or carregador_config.carregar(CONFIG)
         c = self.cfg
-        self.drone = DroneCinematico(parametros or ParametrosSimulacao())
+        self.drone = drone or DroneCinematico(parametros or ParametrosSimulacao())
         self.seletor = SeletorTarefa(simulacao=simulacao, arquivo_progresso=None,
                                      prazo_telemetria_s=c.seguranca.prazo_telemetria_s)
         self.tarefa1 = MaquinaTarefa1(c.tarefa1, c.seguranca.bateria_minima_pct)

@@ -91,10 +91,18 @@ def main(args=None):
                 print(f'comando inválido: {opcoes.comando!r}. {AJUDA}')
                 return
             import time
-            # espera a descoberta do assinante antes de publicar (o comando é sob demanda)
-            limite = time.monotonic() + 5.0
-            while no.pub.get_subscription_count() == 0 and time.monotonic() < limite:
+            # espera o gerenciador estar descoberto E casado com o publicador antes de publicar (o comando é
+            # sob demanda). Não basta "algum assinante": o gravador do rosbag também assina o tópico e costuma
+            # ser descoberto antes, e o comando se perdia.
+            limite = time.monotonic() + 10.0
+            while time.monotonic() < limite:
+                assinantes = no.get_subscriptions_info_by_topic('/operador/comando')
+                if (any(a.node_name == 'gerenciador_tarefas' for a in assinantes)
+                        and no.pub.get_subscription_count() >= len(assinantes)):
+                    break
                 time.sleep(0.1)
+            else:
+                print('aviso: gerenciador_tarefas não encontrado em 10 s; enviando mesmo assim', flush=True)
             no.enviar(acao)
             time.sleep(1.0)
             return

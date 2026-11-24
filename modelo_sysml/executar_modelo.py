@@ -29,6 +29,7 @@ VISOES = [
     ("05_nivel1_nos_ros2", "Nível 1 — nós ROS 2 e suas portas de tópico (pub = porta, sub = porta conjugada ~)",
      "%viz --view=tree --style=LR Nivel1::InterfaceOperador Nivel1::GerenciadorTarefas Nivel1::Tarefa1VooFamiliarizacao "
      "Nivel1::Tarefa2Baloes Nivel1::Registro Nivel1::EstimacaoEstado Nivel1::ControleVoo Nivel1::PercepcaoVisual "
+     "Nivel1::MapeamentoLocal "
      "Nivel1::SupervisaoSeguranca Nivel1::NoPonteDJI"),
     ("06_nivel1_funcional", "Nível 1 — decomposição funcional da função global",
      "%viz --view=action Nivel1::ExecutarTarefaAutonoma"),

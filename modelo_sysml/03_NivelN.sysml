@@ -1,6 +1,6 @@
 package NivelN {
     doc /* Nível n — implementação. Detalha a Tarefa 1 (Questão 1), os serviços comuns às duas tarefas e a ponte DJI.
-           A Tarefa 2 e a percepção visual ficam no nível 1 e serão detalhadas quando a Questão 2 for implementada.
+           A Tarefa 2, a percepção visual e o mapeamento local ficam no nível 1 e serão detalhadas quando a Questão 2 for implementada.
 
            Componentes caixa-preta (drone e rádio): não são decompostos; o drone é "explorado" pela interface do
            DJI Mobile SDK v5 (o que se lê, o que se comanda e os limites conhecidos). Nomes de chaves/APIs e valores

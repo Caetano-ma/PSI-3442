@@ -3,7 +3,7 @@ package Nivel1 {
            Alvo da decomposição: as tarefas e os serviços ROS 2 que elas usam. Android emulado, rádio DJI e drone
            permanecem componentes caixa-preta de comunicação e execução.
            Reuso entre as tarefas: gerenciador, estimação, controle, supervisão, registro e ponte DJI são comuns;
-           só a Tarefa 2 usa a percepção visual. */
+           só a Tarefa 2 usa a percepção visual e o mapeamento local. */
 
     private import ScalarValues::*;
     private import Comum::*;
@@ -44,8 +44,20 @@ package Nivel1 {
         port subAtiva : ~TopicoTarefaAtiva;
         port subEstado : ~TopicoEstado;
         port subAlvos : ~TopicoAlvos;
+        port subMapa : ~TopicoMapa;
         port pubSetpoint : TopicoSetpoint;
         port pubEvento : TopicoTarefaEvento;
+    }
+
+    part def MapeamentoLocal {
+        doc /* Só na Tarefa 2. Mapa grosseiro para localizar os balões no espaço relativo: projeta as detecções
+               (direção e distância vindas da percepção) a partir da pose estimada para obter a posição de cada balão
+               no ReferencialLocal, e marca numa grade 2D de baixa resolução os obstáculos vistos pelos sensores da
+               aeronave. A incerteza cresce com a deriva da estimação de estado; o mapa é relativo à decolagem. */
+        port subEstado : ~TopicoEstado;
+        port subAlvos : ~TopicoAlvos;
+        port subObstaculos : ~TopicoObstaculos;
+        port pubMapa : TopicoMapa;
     }
 
     part def Registro {
@@ -87,6 +99,7 @@ package Nivel1 {
         port subAcao : ~TopicoAcaoDJI;
         port pubTelemetria : TopicoTelemetria;
         port pubCamera : TopicoCamera;
+        port pubObstaculos : TopicoObstaculos;
     }
 
     part def AplicacaoROS2N1 :> AplicacaoROS2 {
@@ -98,6 +111,7 @@ package Nivel1 {
         part estimacao : EstimacaoEstado;
         part controle : ControleVoo;
         part percepcao : PercepcaoVisual;
+        part mapeamento : MapeamentoLocal;
         part supervisao : SupervisaoSeguranca;
         part noPonte : NoPonteDJI;
 
@@ -127,6 +141,10 @@ package Nivel1 {
         connect estimacao.pubEstado to supervisao.subEstado;
         connect estimacao.pubEstado to registro.subEstado;
         connect percepcao.pubAlvos to tarefa2.subAlvos;
+        connect percepcao.pubAlvos to mapeamento.subAlvos;
+        connect estimacao.pubEstado to mapeamento.subEstado;
+        connect noPonte.pubObstaculos to mapeamento.subObstaculos;
+        connect mapeamento.pubMapa to tarefa2.subMapa;
         connect controle.pubCmdVel to noPonte.subCmdVel;
         connect supervisao.pubFalhas to gerenciador.subFalhas;
         connect supervisao.pubFalhas to interfaceOperador.subFalhas;
@@ -211,6 +229,7 @@ package Nivel1 {
         in ativa : TarefaAtiva;
         in estado : EstadoEstimado;
         in alvos : Alvos;
+        in mapa : MapaLocal;
         out setpoint : Setpoint;
         out evento : EventoTarefa;
     }
@@ -221,6 +240,12 @@ package Nivel1 {
     action def PerceberAlvos {
         in quadro : QuadroCamera;
         out alvos : Alvos;
+    }
+    action def MapearArredores {
+        in estado : EstadoEstimado;
+        in alvos : Alvos;
+        in obstaculos : Obstaculos;
+        out mapa : MapaLocal;
     }
     action def ControlarVoo {
         in setpoint : Setpoint;
@@ -245,6 +270,7 @@ package Nivel1 {
         out socketSaida : PacoteDados;
         out telemetria : Telemetria;
         out quadro : QuadroCamera;
+        out obstaculos : Obstaculos;
     }
     action def AcionarSdkDji {
         in socketEntrada : PacoteDados;
@@ -282,6 +308,7 @@ package Nivel1 {
         action executarTarefa2 : ConduzirTarefa2;
         action estimarEstado : EstimarEstado;
         action perceberAlvos : PerceberAlvos;
+        action mapear : MapearArredores;
         action controlarVoo : ControlarVoo;
         action supervisionar : SupervisionarSeguranca;
         action registrar : Registrar;
@@ -313,6 +340,10 @@ package Nivel1 {
         flow from estimarEstado.estado to supervisionar.estado;
         flow from estimarEstado.estado to registrar.estado;
         flow from perceberAlvos.alvos to executarTarefa2.alvos;
+        flow from perceberAlvos.alvos to mapear.alvos;
+        flow from estimarEstado.estado to mapear.estado;
+        flow from traduzirParaDji.obstaculos to mapear.obstaculos;
+        flow from mapear.mapa to executarTarefa2.mapa;
         flow from controlarVoo.cmdVel to traduzirParaDji.cmdVel;
         flow from supervisionar.falha to gerenciarTarefas.falha;
         flow from supervisionar.falha to registrar.falha;
@@ -337,6 +368,7 @@ package Nivel1 {
     allocate funcaoGlobal.executarTarefa2 to sistema.notebook.ros2.tarefa2;
     allocate funcaoGlobal.estimarEstado to sistema.notebook.ros2.estimacao;
     allocate funcaoGlobal.perceberAlvos to sistema.notebook.ros2.percepcao;
+    allocate funcaoGlobal.mapear to sistema.notebook.ros2.mapeamento;
     allocate funcaoGlobal.controlarVoo to sistema.notebook.ros2.controle;
     allocate funcaoGlobal.supervisionar to sistema.notebook.ros2.supervisao;
     allocate funcaoGlobal.registrar to sistema.notebook.ros2.registro;
@@ -379,6 +411,9 @@ package Nivel1 {
     satisfy Nivel0::r05 by funcaoGlobal.estimarEstado;
     satisfy Nivel0::r06 by funcaoGlobal.executarTarefa2;
     satisfy Nivel0::r06 by funcaoGlobal.supervisionar;
+    satisfy Nivel0::r06 by funcaoGlobal.mapear;
+    satisfy Nivel0::r03 by funcaoGlobal.mapear;
+    satisfy Nivel0::r04 by funcaoGlobal.mapear;
     satisfy Nivel0::r08 by funcaoGlobal.interpretarComando;
     satisfy Nivel0::r08 by funcaoGlobal.registrar;
     satisfy Nivel0::r09 by funcaoGlobal.gerenciarTarefas;

@@ -122,6 +122,17 @@ package Comum {
     item def EventoTarefa { doc /* Início, permanência concluída, conclusão ou aborto de tarefa. */ }
     item def Falha { attribute tipo : TipoFalha; }
     item def Alvos { doc /* Questão 2: balões detectados, cor, posição na imagem e distância estimada. */ }
+    item def Obstaculos {
+        doc /* Distâncias aos obstáculos por setor em torno da aeronave, lidas pelo app ponte (PerceptionManager do SDK —
+               verificar disponibilidade no Mini 4 Pro) e republicadas em /dji/obstaculos. */
+        attribute distancias : LengthValue[*];
+    }
+    item def MapaLocal {
+        doc /* Mapa grosseiro no ReferencialLocal (tópico /mapa): grade 2D de ocupação de baixa resolução e lista de
+               balões com cor, posição estimada e incerteza. Serve para localizar os balões no espaço relativo à
+               decolagem, não para navegação precisa. */
+        attribute resolucao : LengthValue;
+    }
     item def QuadroCamera :> Imagem { doc /* Quadro de vídeo da câmera principal (tópico /dji/camera). */ }
     item def RegistroLog { doc /* Registro: bag do rosbag2 e CSV exportado. */ }
     item def PacoteDados { doc /* Mensagem serializada trafegando por TCP, USB ou RF. */ }
@@ -200,6 +211,8 @@ package Comum {
     port def TopicoSetpoint { attribute nome : String = "/setpoint"; out item msg : Setpoint; }
     port def TopicoEstado { attribute nome : String = "/estado"; out item msg : EstadoEstimado; }
     port def TopicoAlvos { attribute nome : String = "/alvos"; out item msg : Alvos; }
+    port def TopicoObstaculos { attribute nome : String = "/dji/obstaculos"; out item msg : Obstaculos; }
+    port def TopicoMapa { attribute nome : String = "/mapa"; out item msg : MapaLocal; }
     port def TopicoCmdVel { attribute nome : String = "/dji/cmd_vel"; out item msg : ComandoVelocidade; }
     port def TopicoTelemetria { attribute nome : String = "/dji/telemetria"; out item msg : Telemetria; }
     port def TopicoCamera { attribute nome : String = "/dji/camera"; out item msg : QuadroCamera; }

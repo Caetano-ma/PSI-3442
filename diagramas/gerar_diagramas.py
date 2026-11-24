@@ -88,11 +88,11 @@ def nivel_0():
     # notebook
     c.box(450, 245, 760, 580, "#FFF2CC")
     c.text(605, 252, "Notebook Linux", fs=14, ha="center", va="top", weight="bold", color="#5D4600")
-    c.bloco(470, 285, 740, 400, "#FFE599", "ROS 2", "lógica das tarefas\n(gerenciador, tarefas, estimação,\ncontrole, supervisão, registro)",
+    c.bloco(470, 280, 740, 422, "#FFE599", "ROS 2", "lógica das tarefas\n(gerenciador, tarefas, estimação,\nmapeamento, controle, supervisão,\nregistro)",
             fs=15, fs_sub=10)
     c.bloco(470, 450, 740, 560, "#F9CB9C", "Android emulado", "app ponte DJI\n(DJI Mobile SDK v5)", fs=14, fs_sub=10.5)
-    c.arrow([(605, 400), (605, 450)], color=COM, both=True)
-    c.text(615, 425, "TCP (adb)", fs=10, color=COM, va="center")
+    c.arrow([(605, 422), (605, 450)], color=COM, both=True)
+    c.text(615, 436, "TCP (adb)", fs=10, color=COM, va="center")
 
     # controle remoto e drone
     c.bloco(785, 455, 880, 555, "#EA9999", "Rádio\nDJI", "RC-N2 só\ncomo enlace,\nsem pilotagem", fs=11.5, fs_sub=8)
@@ -147,12 +147,14 @@ def nivel_0():
 NOS_SUPERIORES = [
     ("Interface do\nOperador", "executar tarefa 1 / 2,\ninterromper; painel", "#D9EAD3",
      ["pub /operador/comando", "sub /tarefa/status", "sub /falhas"]),
-    ("Gerenciador\nde Tarefas", "configuração, ativa a tarefa\npedida, estados globais", "#FFD966",
+    ("Gerenciador\nde Tarefas", "configuração, ativa\na tarefa pedida", "#FFD966",
      ["pub /tarefa/ativa", "pub /tarefa/status", "pub /dji/acao", "sub /operador/comando", "sub /tarefa/evento", "sub /falhas"]),
     ("Tarefa 1", "voo de familiarização\nA→B→C→D→A, 4 × 60 s", "#FCE5CD",
      ["pub /setpoint", "pub /tarefa/evento", "sub /estado", "sub /tarefa/ativa"]),
-    ("Tarefa 2", "balões: busca, aproximação\n0 < d ≤ 5 cm por 60 s", "#FCE5CD",
-     ["pub /setpoint", "pub /tarefa/evento", "sub /estado", "sub /alvos", "sub /tarefa/ativa"]),
+    ("Tarefa 2", "balões: aproximação\n0 < d ≤ 5 cm por 60 s", "#FCE5CD",
+     ["pub /setpoint", "pub /tarefa/evento", "sub /estado", "sub /alvos", "sub /mapa", "sub /tarefa/ativa"]),
+    ("Supervisão e\nSegurança", "falhas, watchdog,\ntérmino seguro", "#EA9999",
+     ["pub /falhas", "sub /dji/telemetria", "sub /estado"]),
     ("Registro", "rosbag2 + CSV", "#D9D9D9",
      ["sub (todos os", "tópicos)"]),
 ]
@@ -163,10 +165,10 @@ NOS_INFERIORES = [
      ["pub /dji/cmd_vel", "sub /setpoint", "sub /estado"]),
     ("Percepção\nVisual", "detectar balões e\nestimar distância", "#CFE2F3",
      ["pub /alvos", "sub /dji/camera"]),
-    ("Supervisão e\nSegurança", "falhas, watchdog,\ntérmino seguro", "#EA9999",
-     ["pub /falhas", "sub /dji/telemetria", "sub /estado"]),
+    ("Mapeamento\nLocal", "mapa grosseiro:\nobstáculos e balões", "#D9D2E9",
+     ["pub /mapa", "sub /estado", "sub /alvos", "sub /dji/obstaculos"]),
     ("Nó Ponte\nROS 2 ↔ DJI", "tópicos ↔ socket\ndo app Android", "#F9CB9C",
-     ["pub /dji/telemetria", "pub /dji/camera", "sub /dji/cmd_vel", "sub /dji/acao"]),
+     ["pub /dji/telemetria", "pub /dji/camera", "pub /dji/obstaculos", "sub /dji/cmd_vel", "sub /dji/acao"]),
 ]
 
 
@@ -182,10 +184,10 @@ def nivel_1():
     c.box(365, 172, 1355, 660, "#FFF9E6", ec="#C9A100")
     c.text(377, 178, "ROS 2 — nós comunicando por tópicos (publica / assina)", fs=11, va="top", weight="bold", color="#5D4600")
 
-    largura, passo, x_ini = 182, 197, 375
+    largura, passo, x_ini = 152, 164, 375
     topo, base, bus0, bus1 = (205, 285), (560, 640), 408, 432
-    c.box(x_ini, bus0, x_ini + 5 * passo - 15, bus1, "#A4C2F4", ec=INFO, lw=1.3, z=2)
-    c.text(x_ini + (5 * passo - 15) / 2, (bus0 + bus1) / 2, "Barramento ROS 2 (DDS) — tópicos", fs=11.5,
+    c.box(x_ini, bus0, x_ini + 6 * passo - 12, bus1, "#A4C2F4", ec=INFO, lw=1.3, z=2)
+    c.text(x_ini + (6 * passo - 12) / 2, (bus0 + bus1) / 2, "Barramento ROS 2 (DDS) — tópicos", fs=11.5,
            ha="center", va="center", color="#1C4587", weight="bold")
 
     def topicos(x, y_meio, linhas):
@@ -259,7 +261,8 @@ def nivel_1():
 
     c.text(370, 930, "Alvo da decomposição: as tarefas e os serviços ROS 2 que elas usam.\n"
                      "Tarefa 1 e Tarefa 2 reutilizam gerenciador, estimação, controle,\n"
-                     "supervisão, registro e a ponte DJI; só a Tarefa 2 usa a percepção.\n"
+                     "supervisão, registro e a ponte DJI; só a Tarefa 2 usa percepção\n"
+                     "e mapeamento (mapa grosseiro para localizar os balões).\n"
                      "O operador só comanda \"executar tarefa N\" ou \"interromper\".\n\n"
                      "Android emulado, rádio DJI e drone: componentes de\n"
                      "comunicação e execução, tratados só pelas entradas e saídas.",

@@ -2,3 +2,5 @@
 - [Architecture: ROS 2 notebook + emulated Android bridge](project_arquitetura_ros2.md) — missions are the decomposition target; drone is a black box
 - [Push every change to GitHub](feedback_push_github.md) — commit+push to Caetano-ma/PSI-3442 after each change; no git config edits
 - [Adapt, don't redesign](feedback_adapt_existing.md) — extend the user's own diagrams minimally instead of redrawing from scratch
+- [State and Linux Mint handoff](project_estado_e_proximos_passos.md) — C2 + Gazebo done 2026-11-24; on Linux Mint, do all the rest (plan in CLAUDE.md)
+- [Terminal-by-terminal instructions](feedback_instrucoes_terminais.md) — say which terminal runs what; operador accepts typing, painel does not; sim waits for the command

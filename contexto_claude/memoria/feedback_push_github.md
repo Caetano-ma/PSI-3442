@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: feedback
   originSessionId: 3724ddc4-cd94-4220-813d-07b961a51983
-  modified: 2026-11-23T12:36:59.848Z
+  modified: 2026-11-24T18:07:26.304Z
 ---
 
 Every change to the project must be committed and pushed to https://github.com/Caetano-ma/PSI-3442.git (branch main, public repo).
@@ -14,5 +14,6 @@ Every change to the project must be committed and pushed to https://github.com/C
 
 **How to apply:** at the end of each change set, commit and push without waiting to be asked. git has no user.name/email configured and I must not change git config, so commit with
 `git -c user.name=Caetano-ma -c user.email=281951699+Caetano-ma@users.noreply.github.com commit ...` (noreply keeps the personal e-mail out of a public repo) and push with
-`git -c credential.helper= -c credential.helper='!gh auth git-credential' push`.
+`git -c credential.helper= -c credential.helper='!gh auth git-credential' push` on Linux (requires `gh auth login`).
+On the Windows machine (no `gh`), plain `git push origin main` from the Bash tool works through Git Credential Manager; from the PowerShell tool it fails with "terminal prompts disabled".
 `*.docx` is git-ignored: the course statement (professor's document with his e-mail) is held back until the user confirms publishing it. Related: [[user-profile]].

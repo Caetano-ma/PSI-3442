@@ -75,10 +75,60 @@ ação (usar `bind`); item dentro de item é `item`, não `attribute`; não nome
   Não alterar o git config. Commit com
   `git -c user.name=Caetano-ma -c user.email=281951699+Caetano-ma@users.noreply.github.com commit ...`
   e push com `git -c credential.helper= -c credential.helper='!gh auth git-credential' push` (requer `gh auth login`).
+  Na máquina Windows (sem `gh`), `git push origin main` pela ferramenta Bash funciona via Git Credential Manager;
+  pela ferramenta PowerShell falha com "terminal prompts disabled".
 - Quando o usuário fornecer diagramas/modelos próprios, **adaptar minimamente** (manter blocos, layout e cores);
   ele rejeitou redesenhos do zero.
 - Instruções condicionais ("se X estiver errado, aponte e pare") devem ser seguidas literalmente.
 - Valores e nomes de API marcados "verificar" no modelo ainda não foram confirmados — não apresentá-los como fatos.
+
+## Como o usuário roda a simulação (e o que confundiu em 24/11)
+
+São dois terminais, e a correspondência com o voo real é esta:
+- **Terminal 1:** `.\ros2_ws\docker\simular_gazebo.ps1 rapido` no Windows, ou
+  `ros2 launch psi3442_gazebo tarefa1_gazebo.launch.py` no Linux. Ele sobe o sistema ROS 2 de verdade, que é o mesmo
+  do voo, e também o Gazebo com o `app_ponte_gazebo`, que substitui o app Kotlin, o SDK, o controle e o drone.
+  No voo real, o terminal 1 vira `adb forward tcp:5760 tcp:5760` seguido de `ros2 launch psi3442_tarefas sistema.launch.py`.
+- **Terminal 2:** o operador, igual no voo real. No Windows é `docker exec -it psi3442_gazebo bash /repo/ros2_ws/docker/operador.sh`;
+  no Linux, `ros2 run psi3442_tarefas interface_operador`. Nele se digita `executar tarefa 1`.
+- O **painel** (`operador.sh painel` / `ros2 run psi3442_tarefas painel`) **só mostra o estado e não aceita digitação**.
+  O usuário o confundiu com o operador e achou que o terminal tinha travado.
+- **A simulação não faz nada até receber o comando**, a menos que se passe `comando_automatico:=true`.
+  O usuário esperou 2 min com o drone parado em A por isso.
+- **Defeito corrigido** (commit `dfada22`): o `interface_operador --comando` publicava assim que encontrava *qualquer*
+  assinante. O rosbag é descoberto antes do gerenciador, e o comando se perdia, o que afetava o `comando_automatico` e
+  o `ensaio_t10.sh`. Agora o envio espera o `gerenciador_tarefas` estar descoberto e casado com o publicador.
+- Ao ouvir "o drone está parado", inspecionar o contêiner antes de responder: `/tarefa/status`, `ps`, `~/.ros/log/latest/`.
+
+## Plano para a máquina Linux Mint (pedido do usuário em 24/11)
+
+O usuário vai mudar o Claude para um notebook **Linux Mint** e quer que ele faça **todo o restante** lá. Ordem sugerida:
+
+1. **Ambiente.** Mint 22 tem base Ubuntu 24.04 (noble); no repositório apt do ROS, usar `UBUNTU_CODENAME`, não o
+   codinome do Mint.
+   - Instalar `ros-jazzy-desktop` (ou `ros-base`), `ros-jazzy-ros-gz`, `python3-colcon-common-extensions` e `python3-pytest`.
+   - Rodar `bash ambiente/instalar_ambiente.sh` para o conda `sysml`.
+   - Restaurar as memórias de `contexto_claude/` (ver o LEIA-ME).
+2. **Revalidar** com `colcon build && colcon test`, que deu 79 testes nos 3 pacotes em 24/11. Depois, rodar o Gazebo
+   nativo com `ros2 launch psi3442_gazebo tarefa1_gazebo.launch.py config:=…/tarefas_teste_rapido.yaml`.
+3. **Modelo SysML.** Refletir no modelo os 8 ajustes da seção "Ajustes de implementação" de `ros2_ws/README.md`.
+   Em seguida, rodar `executar_modelo.py` e `gerar_matriz.py`.
+4. **C1, viabilidade da ponte.** Instalar o Android Studio, o SDK e o emulador e testar o MSDK v5 no emulador.
+   - As bibliotecas nativas do SDK são ARM: verificar se a imagem do emulador traduz ARM.
+   - Testar o controle por USB passthrough e a ativação da App Key.
+   - Se falhar, usar o celular Android físico.
+5. **C3, app ponte Kotlin.**
+   - Módulos: ConexaoSdk, LeitorTelemetria, EmissorComandos, ConfiguradorSeguranca, ServidorSocket.
+   - Seguir o protocolo do cabeçalho de `no_ponte_dji.py`.
+   - Isolar o SDK da DJI atrás de uma interface, com uma implementação falsa no lugar. Assim o app pode ser testado
+     contra o ROS 2 sem drone; a referência de comportamento é `simulador_cinematico.py`.
+   - Depois, testes em solo, T09 e latência.
+6. **C4 e C5:** voos T01–T04 com o usuário e a Tarefa 2, conforme as pendências abaixo.
+
+Dependem do usuário:
+- o controle RC-N2/RC-N3 do kit (H7);
+- o cadastro de desenvolvedor DJI e a App Key, que fica ligada ao nome do pacote do app;
+- a confirmação de `bateria_critica_pct` = 15 %.
 
 ## Pendências (em 24/11/2026)
 
@@ -89,7 +139,7 @@ ação (usar `bind`); item dentro de item é `item`, não `attribute`; não nome
 4. Ciclo C2 — **feito em 24/11**: workspace, nós da Tarefa 1, simulador cinemático, testes T05, T07, T08 e T10
    (76 testes; T10 também no ROS real via Docker). Falta: refletir no modelo SysML e na matriz os ajustes listados
    em `ros2_ws/README.md` (exige o ambiente conda `sysml`) e a decisão do usuário sobre `bateria_critica_pct` (15 %).
-5. Ciclo C3: app ponte Kotlin (ConexaoSdk, LeitorTelemetria, EmissorComandos, ConfiguradorSeguranca, ServidorSocket),
+5. Ciclo C3 (**não iniciado**: não há código Android/Kotlin nem SDK Android instalado): app ponte Kotlin (ConexaoSdk, LeitorTelemetria, EmissorComandos, ConfiguradorSeguranca, ServidorSocket),
    testes em solo, T09, latência. Seguir o protocolo do cabeçalho de `no_ponte_dji.py`; o simulador é a referência
    de comportamento (conversão com psi0, watchdog de 0,2 s, pouso após 2 s sem heartbeat, resposta `erro`).
 6. Ciclo C4: voos T01–T04, ajuste do controlador, demonstração da Tarefa 1.

@@ -1,0 +1,4 @@
+- [User profile](user_profile.md) — USP PSI3442 student, Portuguese, DJI Mini 4 Pro P2 project; respects gated instructions
+- [Architecture: ROS 2 notebook + emulated Android bridge](project_arquitetura_ros2.md) — missions are the decomposition target; drone is a black box
+- [Push every change to GitHub](feedback_push_github.md) — commit+push to Caetano-ma/PSI-3442 after each change; no git config edits
+- [Adapt, don't redesign](feedback_adapt_existing.md) — extend the user's own diagrams minimally instead of redrawing from scratch

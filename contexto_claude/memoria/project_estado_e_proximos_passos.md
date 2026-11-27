@@ -14,4 +14,4 @@ Verified fact: the MSDK talks to the RC in USB accessory mode, so an emulator on
 
 **Why:** the user asked (2026-11-27) to work on the emulation module and close Task 1 on the physical drone.
 
-**How to apply:** next steps and what depends on the user are in the "Pendências" section of CLAUDE.md: RC-N2/N3 (H7), an ARM64 Android phone, DJI App Key for package br.usp.psi3442.ponte, the 15 % critical battery value, and approval for the model update. Before T01, run T00 (`ensaios/teste_eixos.py`): the roll/pitch-to-north/east mapping (`DroneDji.ROLL_E_NORTE`) is not documented by DJI. Use an AOSP (not google_apis) emulator image. Related: [[project-arquitetura-ros2]], [[feedback-push-github]].
+**How to apply:** next steps and what depends on the user are in the "Pendências" section of CLAUDE.md: RC-N2/N3 (H7), an ARM64 Android phone, DJI App Key for package br.usp.psi3442.ponte and the 15 % critical battery value. Before T01, run T00 (`ensaios/teste_eixos.py`): the roll/pitch-to-north/east mapping (`DroneDji.ROLL_E_NORTE`) is not documented by DJI. Use an AOSP (not google_apis) emulator image. Related: [[project-arquitetura-ros2]], [[feedback-push-github]].

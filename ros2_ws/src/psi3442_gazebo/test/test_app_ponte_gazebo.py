@@ -29,7 +29,7 @@ class GazeboFalso(DroneGazebo):
         self.yaw = yaw
         self.xyz = [0.0, 0.0, 0.0]
         super().__init__(ParametrosSimulacao(altura_toque_m=0.01, ruido_velocidade_mps=0.0),
-                         lambda vx, vy, vz, wz=0.0: setattr(self, 'corpo', (vx, vy, vz, wz)))
+                         lambda vx, vy, vz, wz=0.0, wx=0.0, wy=0.0: setattr(self, 'corpo', (vx, vy, vz, wz)))
         self.ao_odometria(0.0, 0.0, 0.0, 0.0, yaw)
 
     def passo(self, dt, agora):

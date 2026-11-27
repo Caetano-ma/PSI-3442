@@ -17,13 +17,24 @@ QOS_LATCHED = QoSProfile(history=HistoryPolicy.KEEP_LAST, depth=1, reliability=R
 QOS_FLUXO = QoSProfile(history=HistoryPolicy.KEEP_LAST, depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
 
 
+_relogio_simulador = None
+
+
 def agora():
-    """Relógio monotônico (tempo real) usado por toda a lógica: cronômetro, prazos, watchdogs."""
+    """Relógio da lógica (cronômetro, prazos, watchdogs): monotônico em tempo real; na simulação com
+    use_sim_time:=true, o relógio do simulador (/clock), como exige o R04 ("na simulação, usar o relógio do
+    simulador")."""
+    if _relogio_simulador is not None:
+        return _relogio_simulador.now().nanoseconds * 1e-9
     return time.monotonic()
 
 
 def carregar_config(no):
     """Lê o parâmetro `config` (caminho do YAML) e devolve a Configuracao validada."""
+    global _relogio_simulador
+    if no.has_parameter('use_sim_time') and no.get_parameter('use_sim_time').value:
+        _relogio_simulador = no.get_clock()
+        no.get_logger().info('relógio do simulador (use_sim_time)')
     no.declare_parameter('config', carregador_config.caminho_padrao())
     caminho = no.get_parameter('config').get_parameter_value().string_value
     cfg = carregador_config.carregar(caminho)

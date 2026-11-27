@@ -16,6 +16,8 @@ import threading
 from psi3442_tarefas.simulador_cinematico import DroneCinematico, ParametrosSimulacao, ServidorSimulado
 
 ALFA_FILTRO = 0.5            # filtro passa-baixas da velocidade derivada da posição
+KP_NIVEL = 3.0               # 1/s: realimentação de rolagem/arfagem (a estabilização da DJI e o gimbal mantêm a
+                             # câmera horizontal; o VelocityControl não corrige inclinações causadas por contato)
 
 
 def guinada_bussola(yaw_enu_rad):
@@ -26,6 +28,12 @@ def guinada_bussola(yaw_enu_rad):
 
 def yaw_de_quaternio(x, y, z, w):
     return math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
+
+
+def rolagem_arfagem(x, y, z, w):
+    rolagem = math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y))
+    arfagem = math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x))))
+    return rolagem, arfagem
 
 
 def mundo_para_corpo(vx, vy, yaw):
@@ -39,6 +47,7 @@ class DroneGazebo(DroneCinematico):
         self.enviar_velocidade_corpo = enviar_velocidade_corpo
         self._trava = threading.Lock()
         self.pose = None                     # (t_sim, x, y, z, yaw)
+        self.inclinacao = (0.0, 0.0)         # rolagem, arfagem (rad)
         self.v_medida = (0.0, 0.0, 0.0)      # norte, leste, baixo
 
     def ao_odometria(self, t_sim, x, y, z, yaw):
@@ -66,7 +75,8 @@ class DroneGazebo(DroneCinematico):
         vx, vy = mundo_para_corpo(vx_mundo, vy_mundo, yaw)
         # taxa de guinada da DJI é horária (graus/s); no Gazebo, anti-horária (rad/s)
         wz = -math.radians(self.taxa_guinada) if self.motores else 0.0
-        self.enviar_velocidade_corpo(vx, vy, vz_mundo, wz)
+        rolagem, arfagem = self.inclinacao
+        self.enviar_velocidade_corpo(vx, vy, vz_mundo, wz, -KP_NIVEL * rolagem, -KP_NIVEL * arfagem)
         if self.pose is not None:
             with self._trava:
                 self.norte, self.leste, self.altura = self.pose[2], self.pose[1], self.pose[3]
@@ -105,10 +115,10 @@ def main(args=None):
     no = Node('app_ponte_gazebo')
     pub = no.create_publisher(Twist, '/gazebo/mini4pro/cmd_vel', 10)
 
-    def enviar(vx, vy, vz, wz=0.0):
+    def enviar(vx, vy, vz, wz=0.0, wx=0.0, wy=0.0):
         msg = Twist()
         msg.linear.x, msg.linear.y, msg.linear.z = float(vx), float(vy), float(vz)
-        msg.angular.z = float(wz)
+        msg.angular.x, msg.angular.y, msg.angular.z = float(wx), float(wy), float(wz)
         pub.publish(msg)
 
     parametros = ParametrosSimulacao(
@@ -119,6 +129,7 @@ def main(args=None):
     def ao_odometria(msg):
         p, q = msg.pose.pose.position, msg.pose.pose.orientation
         t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        drone.inclinacao = rolagem_arfagem(q.x, q.y, q.z, q.w)
         drone.ao_odometria(t, p.x, p.y, p.z, yaw_de_quaternio(q.x, q.y, q.z, q.w))
 
     no.create_subscription(Odometry, '/gazebo/mini4pro/odometria', ao_odometria, 10)

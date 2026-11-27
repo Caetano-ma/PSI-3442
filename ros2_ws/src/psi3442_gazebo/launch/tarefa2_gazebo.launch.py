@@ -64,7 +64,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share_tarefas, 'launch', 'sistema.launch.py')),
             launch_arguments={'simulador': 'false', 'simulacao': 'true', 'liberar_tarefa2': 'true',
-                              'video_ponte': 'false', 'config': LaunchConfiguration('config'),
+                              'video_ponte': 'false', 'use_sim_time': 'true', 'config': LaunchConfiguration('config'),
                               'registro': LaunchConfiguration('registro'),
                               'pasta_bags': LaunchConfiguration('pasta_bags')}.items()),
         TimerAction(period=LaunchConfiguration('atraso_comando'), condition=IfCondition(

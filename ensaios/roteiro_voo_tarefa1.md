@@ -64,3 +64,66 @@ antes da demonstração e não ampliados depois. Todos os ensaios usam o mesmo a
 1. Exportar o CSV do bag (`ros2_ws/src/psi3442_tarefas/ferramentas/exportar_csv.py`).
 2. Arquivar bag, CSV e vídeos com a data, a versão do código (commit) e o arquivo de configuração usado.
 3. Ensaios que falharem são mantidos e reportados; tolerâncias não são alteradas depois do ensaio.
+
+---
+
+# Ensaios da Tarefa 2 (Questão 2) — só depois de T01–T04 aprovados em voo real
+
+Casos de verificação V01–V10 em `modelo_sysml/04_Verificacao.sysml`. Os cenários de falha que podem comprometer o
+equipamento ficam na simulação (`ensaios/simulacao/`) e nos testes sem voo.
+
+## S1 — Em solo, motores desligados (aeronave ligada, app em "Iniciar (dji)")
+
+1. **Vídeo:** o painel mostra o alvo da visão a ~5 Hz. No log do nó ponte, conferir:
+   - a resolução do quadro;
+   - o aviso de gimbal, se o pitch passar de 3°.
+
+   Com um balão a 1,00 m medido com trena à frente da câmera, `/alvos.distancia_m` deve dar 1,00 ± 0,10 m.
+   Se não der, ajustar `visao.hfov_graus` (campo de visão do fluxo) e registrar o valor.
+2. **Proximidade:** com o balão a 0,20 m da câmera (gabarito de papelão), `distancia_central_m` deve dar 0,20 ± 0,01 m.
+3. **Obstáculos:** com um anteparo a 1,00 m à frente e depois à direita, conferir em `/dji/obstaculos`:
+   - a unidade (m);
+   - a origem (0° = nariz);
+   - o sentido (o ângulo da direita deve ser negativo no LaserScan).
+4. **Raio do balão:** medir o diâmetro horizontal dos balões da prova e ajustar `tarefa2.raio_balao_m`.
+
+## S2 — Um balão-alvo (V03, V04), em voo
+
+- **Preparação:**
+  - um balão vermelho fixo a ~1,5 m de altura, a ≥ 1,2 m da decolagem;
+  - câmera de validação fixa ao lado (celular, 30 quadros/s), perpendicular ao eixo de aproximação;
+  - régua milimetrada no plano vertical do balão.
+- **Comando:** `executar tarefa 2` (config com `cores_alvo: [vermelho]`).
+- **Aceita se:**
+  - `BALAO_DESTRUIDO` com 60 s contínuos em tempo real;
+  - no vídeo lateral, a folga entre a frente das hélices e o balão fica em 0 < d ≤ 5 cm durante toda a contagem
+    (medida quadro a quadro);
+  - nenhum contato;
+  - retorno e pouso.
+- **Registrar:**
+  - d estimada (`/tarefa/evento`, CSV);
+  - d medida no vídeo;
+  - o erro de estimação na aproximação.
+
+## S3 — Múltiplos alvos e cores não alvo (V03, V06)
+
+- **Preparação:** dois balões-alvo e um não alvo, a ≥ 1,1 m entre centros.
+- **Aceita se:**
+  - cada alvo é destruído uma vez;
+  - nenhum `ALVO_SELECIONADO` de cor não alvo;
+  - a folga ao não alvo fica > 0,50 m (vídeo).
+
+## S4 — Reinício da contagem (V04)
+
+Durante a permanência do S2, um auxiliar afasta o balão 10 cm com uma vara.
+
+- **Aceita se:**
+  - `PERMANENCIA_INTERROMPIDA` registrada;
+  - o drone segue o balão (reancoragem) ou volta à faixa;
+  - nova contagem de 60 s contínuos.
+
+## Encerramento da Tarefa 2
+
+O mesmo da Tarefa 1, mais:
+- `analisar_ensaio.py` sobre o CSV, para o tempo contínuo por balão, os reinícios e os descartes;
+- os vídeos laterais com a marcação dos quadros medidos.

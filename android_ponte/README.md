@@ -1,7 +1,10 @@
-# App ponte DJI (ciclo C3)
+# App ponte DJI (ciclos C3 e C5)
 
-App Android (Kotlin) que liga o nó `ponte_dji` do ROS 2 à aeronave, pelo ContratoSocketPonte: TCP na porta 5760,
-JSON por linha. A especificação está no cabeçalho de `ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_ponte_dji.py`.
+App Android (Kotlin) que liga o nó `ponte_dji` do ROS 2 à aeronave pelo ContratoSocketPonte. Usa dois canais:
+- **TCP 5760**: JSON por linha (telemetria, comandos, heartbeat, erros, obstáculos);
+- **TCP 5761**: canal de vídeo, uma linha JSON de cabeçalho seguida do JPEG, só o quadro mais recente.
+
+A especificação está no cabeçalho de `ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_ponte_dji.py`.
 
 | Arquivo | Módulo do nível n |
 |---|---|
@@ -11,8 +14,26 @@ JSON por linha. A especificação está no cabeçalho de `ros2_ws/src/psi3442_ta
 | `EmissorComandos.kt` | EmissorComandos: conversão local → norte/leste com ψ₀, watchdog 0,2 s, pouso após 2 s sem heartbeat |
 | `ConfiguradorSeguranca.kt` | ConfiguradorSeguranca: ação em perda de sinal = pousar |
 | `Drone.kt` | interface que isola o SDK da DJI |
-| `DroneFalso.kt` | drone cinemático (mesma dinâmica de `simulador_cinematico.py`) |
-| `celular/…/DroneDji.kt`, `ConexaoSdk.kt` | DJI Mobile SDK v5.20.1 (só na variante `celular`) |
+| `DroneFalso.kt` | drone cinemático (mesma dinâmica de `simulador_cinematico.py`), com guinada; com `CenaFalsa` gera quadros e distâncias |
+| `CenaFalsa.kt` | sala sintética com balões, renderizada por traçado de raios (testes da Tarefa 2 sem aeronave) |
+| `ServidorVideo.kt` | canal de vídeo (porta 5761): cabeçalho JSON + JPEG, descarta quadros atrasados |
+| `Nv21.kt`, `JpegAndroid.kt` | redução de quadros NV21 a ~640 px e codificação JPEG |
+| `celular/…/DroneDji.kt`, `ConexaoSdk.kt` | DJI Mobile SDK v5.20.1 (só na variante `celular`): telemetria, comandos, câmera, obstáculos, gimbal |
+
+### APIs do MSDK 5.20.1 usadas (nomes conferidos no jar `dji-sdk-v5-aircraft-provided-5.20.1`)
+
+| Interface `Drone` | API |
+|---|---|
+| telemetria | `KeyManager.listen`: `FlightControllerKey.KeyAircraftVelocity`, `KeyAltitude`, `KeyUltrasonicHeight`, `KeyAircraftAttitude`, `KeyIsFlying`, `KeyAreMotorsOn`, `KeyFlightMode`, `KeyConnection`, `KeyFailsafeAction`; `BatteryKey.KeyChargeRemainingInPercent`; `FlightAssistantKey.KeyVisionPositioningEnabled`; `GimbalKey.KeyGimbalAttitude` |
+| decolar / pousar | `KeyManager.performAction(FlightControllerKey.KeyStartTakeoff / KeyStartAutoLanding)` |
+| controle virtual | `VirtualStickManager`: `enableVirtualStick`, `setVirtualStickAdvancedModeEnabled`, `sendVirtualStickAdvancedParam` |
+| perda de sinal | `KeyManager.setValue(FlightControllerKey.KeyFailsafeAction, FailsafeAction.LANDING)` |
+| câmera (Tarefa 2) | `MediaDataCenter.getInstance().cameraStreamManager.addFrameListener(ComponentIndexType.LEFT_OR_MAIN, FrameFormat.NV21, …)` |
+| obstáculos (Tarefa 2) | `PerceptionManager.getInstance().addObstacleDataListener` → `ObstacleData.horizontalObstacleDistance`, `horizontalAngleInterval` |
+| câmera nivelada | `KeyManager.performAction(GimbalKey.KeyRotateByAngle, GimbalAngleRotation(ABSOLUTE_ANGLE, pitch 0°))` |
+
+Testes JVM (22): protocolo, watchdog e perda da ponte (T09), integração com socket, redução NV21, canal de vídeo,
+obstáculos, cena falsa e guinada do drone falso.
 
 ## Por que duas variantes
 
@@ -62,7 +83,7 @@ para `simulacoes/`. Passo a passo manual:
 # terminal 1: emulador e app
 emulator -avd psi3442 &                       # AVD x86_64, Android 14
 adb install -r app/build/outputs/apk/emulador/debug/app-emulador-debug.apk
-adb forward tcp:5760 tcp:5760                  # no app: "Iniciar (falso)"
+adb forward tcp:5760 tcp:5760; adb forward tcp:5761 tcp:5761   # no app: "Iniciar (falso)"
 # terminal 2: sistema ROS 2 (o mesmo do voo)
 ros2 launch psi3442_tarefas sistema.launch.py
 # terminal 3: operador (aceita digitação)      terminal 4 (opcional): painel (só mostra)
@@ -77,6 +98,11 @@ ros2 run psi3442_tarefas interface_operador     # digite: executar tarefa 1
 3. `python3 ensaios/teste_eixos.py --host <IP>` (T00) antes do primeiro voo da Tarefa 1.
 4. `ros2 launch psi3442_tarefas sistema.launch.py host_ponte:=<IP>` e o operador como acima.
 
-O que ainda precisa ser confirmado com a aeronave (marcado em `DroneDji.kt`): o eixo norte/leste do controle virtual
-(`ROLL_E_NORTE`, verificado pelo T00), o referencial de `KeyAircraftVelocity` e a unidade de `KeyUltrasonicHeight`
-(até lá a altura vem de `KeyAltitude`).
+O que ainda precisa ser confirmado com a aeronave (marcado em `DroneDji.kt`):
+- o eixo norte/leste do controle virtual (`ROLL_E_NORTE`, verificado pelo T00);
+- o referencial de `KeyAircraftVelocity`;
+- a unidade de `KeyUltrasonicHeight` (até lá, a altura vem de `KeyAltitude`);
+- para a Tarefa 2:
+  - a resolução e o campo de visão do fluxo ao vivo (`visao.hfov_graus` na config);
+  - a unidade (mm), a origem e o sentido de `ObstacleData` (anteparo a distância conhecida, em solo);
+  - o gimbal efetivamente em 0° (o nó ponte avisa no log se o pitch passar de 3°).

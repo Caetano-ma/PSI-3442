@@ -20,6 +20,8 @@ DERIVA_MAX_CORRIGIDA_M = 1.0                  # correção de deriva maior que i
 OBSERVACOES_MARCO = 20                        # balão com mais observações que isto vira marco (posição fixa)
 DISTANCIA_MAX_MARCO_M = 2.5                   # só detecções de perto realinham o mapa pelo marco
 GANHO_MARCO = 0.05                            # fração do resíduo aplicada ao mapa inteiro a cada detecção
+DISTANCIA_FUSAO_M = 0.6                       # mesma cor mais perto que isto = o mesmo balão (hipótese: balões da
+                                              # mesma cor ficam a mais de 0,6 m entre centros)
 
 
 @dataclass
@@ -102,7 +104,7 @@ class MapeamentoLocal:
 
     # ------------------------------------------------------------------ balões
     def _janela(self, balao, distancia):
-        return max(0.45, 3.0 * balao.incerteza_m, 0.15 * distancia)
+        return max(0.45, 3.0 * balao.incerteza_m, 0.25 * distancia)   # distância pelo tamanho: erro ~15 % de longe
 
     def atualizar_deteccoes(self, alvos, agora):
         """`alvos`: objeto com x_m, y_m, z_m, guinada_local_graus e deteccoes (azimute, elevação, distância, cor).
@@ -159,7 +161,7 @@ class MapeamentoLocal:
             for b in list(self.baloes):
                 if a is b or a not in self.baloes or b not in self.baloes or a.cor != b.cor:
                     continue
-                if math.dist(a.posicao(), b.posicao()) < 1.2 * self.cfg.raio_balao_m * 2:
+                if math.dist(a.posicao(), b.posicao()) < DISTANCIA_FUSAO_M:
                     manter, sair = (a, b) if a.id < b.id else (b, a)
                     total = manter.peso + sair.peso
                     manter.x_m, manter.y_m, manter.z_m = (

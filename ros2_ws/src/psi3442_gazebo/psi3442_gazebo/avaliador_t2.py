@@ -2,7 +2,8 @@
 
 Assina a odometria verdadeira do Gazebo e /tarefa/evento; lê verdade.yaml (gerado com o mundo). Calcula, a cada
 amostra, a distância real d entre a frente das hélices (envelope) e a superfície do balão-alvo mais próximo, e a
-folga até os balões não alvo. Publica /avaliador/distancia_m e grava avaliacao.csv; ao fim da tarefa imprime e grava
+folga entre a caixa do envelope (orientada pela guinada) e os balões não alvo; colisão = folga da caixa <= 0 com
+qualquer balão. Publica /avaliador/distancia_m e grava avaliacao.csv; ao fim da tarefa imprime e grava
 resumo.yaml: por permanência, d real mín./máx. durante a contagem e se ficou em 0 < d <= 5 cm; colisões; menor folga
 a não alvos; cores realmente "destruídas".
 """
@@ -14,7 +15,16 @@ import os
 import yaml
 
 RAIO_ENVELOPE_FRONTAL_M = 0.149
-MEIA_DIAGONAL_M = math.hypot(0.298, 0.373) / 2
+MEIA_CAIXA = (0.149, 0.1865, 0.0505)          # envelope com hélices (0,298 x 0,373 x 0,101 m), origem na base
+
+
+def folga_caixa(x, y, z, yaw, b):
+    """Distância entre a superfície do balão (esfera) e a caixa do envelope da aeronave, orientada pela guinada."""
+    dx, dy, dz = b['x'] - x, b['y'] - y, b['z'] - (z + MEIA_CAIXA[2])
+    c, s = math.cos(yaw), math.sin(yaw)
+    local = (c * dx + s * dy, -s * dx + c * dy, dz)
+    fora = [max(abs(q) - h, 0.0) for q, h in zip(local, MEIA_CAIXA)]
+    return math.sqrt(sum(f * f for f in fora)) - b['raio']
 
 
 def frente(x, y, z, yaw):
@@ -41,10 +51,9 @@ class Avaliacao:
         p = frente(x, y, z, yaw)
         d, alvo = min(((distancia_superficie(p, b), b) for b in self.alvos), key=lambda par: par[0],
                       default=(math.inf, None))
-        folga = min((math.dist((x, y, z), (b['x'], b['y'], b['z'])) - b['raio'] - MEIA_DIAGONAL_M
-                     for b in self.nao_alvos), default=math.inf)
+        folga = min((folga_caixa(x, y, z, yaw, b) for b in self.nao_alvos), default=math.inf)
         self.folga_min = min(self.folga_min, folga)
-        colidiu = d <= 0 or folga <= 0
+        colidiu = min((folga_caixa(x, y, z, yaw, b) for b in self.alvos + self.nao_alvos), default=math.inf) <= 0
         if colidiu and not self._em_colisao:
             self.colisoes += 1
         self._em_colisao = colidiu

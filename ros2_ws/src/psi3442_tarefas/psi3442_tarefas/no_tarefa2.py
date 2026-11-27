@@ -24,7 +24,7 @@ from collections import namedtuple
 import math
 
 from .cronometro_permanencia import CONCLUIDA, INICIADA, INTERROMPIDA, CronometroPermanencia
-from .no_mapeamento_local import CONFIRMADO, DESLOCAMENTO_CAMERA, ponto_da_deteccao, posicao_camera
+from .no_mapeamento_local import CANDIDATO, CONFIRMADO, DESLOCAMENTO_CAMERA, DESTRUIDO, ponto_da_deteccao, posicao_camera
 from .tipos import DECOLAR, HABILITAR_CONTROLE_VIRTUAL, POUSAR, Evento, Setpoint, normalizar_graus
 
 EM_VOO = ('decolando', 'subindo', 'girando', 'deslocando', 'aproximando', 'confirmando', 'aproximacaoFinal',
@@ -37,6 +37,9 @@ TEMPO_MAX_FORA_S = 15.0           # na permanência, sem voltar à faixa por mai
 TEMPO_REFINO_S = 1.0              # no ponto de espera: média das detecções de perto antes da aproximação final
 DISTANCIA_REFINO_M = 1.5          # só detecções mais próximas que isto refinam o centro do alvo
 ALFA_ANCORA = 0.5                 # filtro da reancoragem do centro pela medida de proximidade (por quadro)
+MARGEM_CANDIDATO_M = 0.15         # folga a um balão ainda candidato (além de raio + envelope)
+INCERTEZA_MAX_ALVO_M = 0.25       # balão com posição mais incerta que isto ainda não é alvo (fantasmas do mapa)
+DISTANCIA_DUPLICATA_M = 0.6       # mesma cor e mais perto que isto do alvo: duplicata dele no mapa
 SALTO_MAX_ANCORA_M = 0.40         # medida de perto mais longe que isto do centro atual é descartada
 PontoBalao = namedtuple('PontoBalao', 'id cor x_m y_m z_m')
 
@@ -190,14 +193,33 @@ class MaquinaTarefa2:
 
     def _folga_balao(self, b):
         alvo_atual = self.alvo is not None and b.id == self.alvo['id']
-        margem = 0.0 if alvo_atual else (self.cfg.margem_obstaculos_m if b.alvo else self.cfg.margem_nao_alvo_m)
+        if alvo_atual:
+            margem = 0.0
+        elif getattr(b, 'situacao', CONFIRMADO) == CANDIDATO:
+            margem = MARGEM_CANDIDATO_M       # ainda incerto (pode ser fantasma): bolha menor, mas nunca encostar
+        else:
+            margem = self.cfg.margem_obstaculos_m if b.alvo else self.cfg.margem_nao_alvo_m
         return self.cfg.raio_balao_m + self.cfg.raio_envelope_frontal_m + margem
 
+    @staticmethod
+    def _obstaculos_balao(mapa):
+        """Balões que restringem rotas: todos. Confirmados e destruídos com as margens do R06; candidatos (1-2
+        observações, às vezes fantasmas) com uma bolha menor, para não fecharem a sala nem serem atravessados."""
+        return list(mapa.baloes if mapa is not None else [])
+
+    def _mesmo_alvo(self, balao, ignorar_id, mapa):
+        """O balão é o alvo `ignorar_id` ou uma duplicata dele no mapa (mesma cor, a menos de 0,6 m)."""
+        if balao.id == ignorar_id:
+            return True
+        alvo = next((b for b in (mapa.baloes if mapa is not None else []) if b.id == ignorar_id), None)
+        return alvo is not None and balao.cor == alvo.cor and math.dist(
+            (balao.x_m, balao.y_m, balao.z_m), (alvo.x_m, alvo.y_m, alvo.z_m)) < DISTANCIA_DUPLICATA_M
+
     def _bloqueio(self, a, b, mapa, ignorar_id=None):
-        """Primeiro balão que bloqueia o segmento a -> b (exceto `ignorar_id`), ou None."""
+        """Primeiro balão que bloqueia o segmento a -> b (exceto o alvo `ignorar_id` e suas duplicatas), ou None."""
         piores = []
-        for balao in (mapa.baloes if mapa is not None else []):
-            if balao.id == ignorar_id:
+        for balao in self._obstaculos_balao(mapa):
+            if self._mesmo_alvo(balao, ignorar_id, mapa):
                 continue
             c = (balao.x_m, balao.y_m, balao.z_m)
             d = distancia_ponto_segmento(c, a, b)
@@ -213,7 +235,7 @@ class MaquinaTarefa2:
         """Menor rota até `destino` num grafo de visibilidade: nós em 8 direções em volta de cada balão do mapa (à
         altura do destino), arestas só onde nenhum balão bloqueia o segmento (R06). None se não há rota livre.
         Se a aeronave já está dentro da folga de um balão, a primeira aresta pode sair dela."""
-        baloes = [b for b in (mapa.baloes if mapa is not None else []) if b.id != ignorar_id]
+        baloes = [b for b in self._obstaculos_balao(mapa) if not self._mesmo_alvo(b, ignorar_id, mapa)]
         dentro = {b.id for b in baloes if math.dist((b.x_m, b.y_m, b.z_m), origem) < self._folga_balao(b)}
         nos = [tuple(origem), tuple(destino)]
         for b in baloes:
@@ -276,7 +298,7 @@ class MaquinaTarefa2:
 
     def _destino_livre(self, destino, mapa):
         return not self._obstaculo(mapa, destino) and not any(
-            math.dist((b.x_m, b.y_m, b.z_m), destino) < self._folga_balao(b) for b in (mapa.baloes if mapa else []))
+            math.dist((b.x_m, b.y_m, b.z_m), destino) < self._folga_balao(b) for b in self._obstaculos_balao(mapa))
 
     def distancia_estimada(self, estado, centro):
         g = math.radians(estado.guinada_local_graus)
@@ -287,8 +309,14 @@ class MaquinaTarefa2:
     # ------------------------------------------------------------------ escolha e aproximação
     def _escolher_alvo(self, mapa, estado):
         ignorar = {i for i, _, _ in self.destruidos} | self.descartados | self.inalcancaveis
-        opcoes = [b for b in (mapa.baloes if mapa is not None else [])
-                  if b.alvo and b.situacao == CONFIRMADO and b.id not in ignorar]
+        baloes = mapa.baloes if mapa is not None else []
+        ja_tratados = [b for b in baloes if b.situacao == DESTRUIDO or b.id in ignorar]
+        c = self.cfg
+        opcoes = [b for b in baloes if b.alvo and b.situacao == CONFIRMADO and b.id not in ignorar
+                  and getattr(b, 'incerteza_m', 0.0) <= INCERTEZA_MAX_ALVO_M
+                  and c.volume_z_min_m - 0.3 <= b.z_m <= c.volume_z_max_m + 0.3
+                  and not any(t.cor == b.cor and t.id != b.id and math.dist((t.x_m, t.y_m, t.z_m), (b.x_m, b.y_m, b.z_m))
+                              < DISTANCIA_DUPLICATA_M for t in ja_tratados)]
         if not opcoes or estado is None or not estado.valido:
             return None
         return min(opcoes, key=lambda b: math.dist((b.x_m, b.y_m, b.z_m), (estado.x_m, estado.y_m, estado.z_m)))
@@ -360,6 +388,7 @@ class MaquinaTarefa2:
             self._ir('retornando', agora, detalhe or 'varredura completa')
 
     def _proximo_ponto(self, agora, estado, mapa):
+        self.inalcancaveis.clear()            # o mapa melhorou: alvos inalcançáveis voltam a ser tentados
         while self.indice_busca + 1 < len(self.pontos):
             self.indice_busca += 1
             x, y = self.pontos[self.indice_busca]
@@ -506,6 +535,9 @@ class MaquinaTarefa2:
             if len(self._refino) >= 3:
                 pontos = [p for _, p in self._refino]
                 self.alvo['centro'] = tuple(sum(c) / len(pontos) for c in zip(*pontos))
+            duplicata = self._e_balao_destruido(self.alvo['centro'], mapa)
+            if duplicata:
+                return self._descartar_duplicata(agora, estado, mapa, duplicata)
             geo = self._geometria_aproximacao(PontoBalao(self.alvo['id'], self.alvo['cor'], *self.alvo['centro']),
                                               estado, mapa)
             if geo is not None and math.dist(geo['espera'], espera) >= 0.25 and self._reaproximacoes < 2:
@@ -530,6 +562,23 @@ class MaquinaTarefa2:
             self._decidir(agora, estado, mapa)
             return self._setpoint(*espera, guinada, 'descartado')
         return self._setpoint(*espera, guinada, f'confirmação {self._rotulo()}')
+
+    def _e_balao_destruido(self, centro, mapa):
+        """Rótulo do balão já destruído (mesma cor, a menos de 0,6 m) que o centro medido de perto revela, ou ''."""
+        for b in (mapa.baloes if mapa is not None else []):
+            if (b.cor == self.alvo['cor'] and b.id != self.alvo['id']
+                    and (b.situacao == DESTRUIDO or any(i == b.id for i, _, _ in self.destruidos))
+                    and math.dist((b.x_m, b.y_m, b.z_m), centro) < DISTANCIA_DUPLICATA_M):
+                return f'{b.cor}#{b.id}'
+        return ''
+
+    def _descartar_duplicata(self, agora, estado, mapa, rotulo):
+        """O alvo é, na verdade, um balão já destruído (duplicata no mapa): descarta sem contar de novo (R04)."""
+        self.descartados.add(self.alvo['id'])
+        self._evento('ALVO_DESCARTADO', detalhe=f'medido de perto, é o balão já destruído {rotulo}: não conta de novo')
+        espera, guinada = self.alvo['espera'], self.alvo['guinada']
+        self._decidir(agora, estado, mapa)
+        return self._setpoint(*espera, guinada, 'descartado')
 
     def _acumular_refino(self, visao, guinada):
         """Guarda o ponto de cada detecção de perto do alvo (uma por quadro de visão)."""
@@ -612,6 +661,9 @@ class MaquinaTarefa2:
         if estado is not None and estado.valido:
             self.d_estimada = self.distancia_estimada(estado, self.alvo['centro'])
             if self._ramp == final and 0 < self.d_estimada <= self.cfg.d_max_m:
+                duplicata = self._e_balao_destruido(self.alvo['centro'], mapa)
+                if duplicata:
+                    return self._descartar_duplicata(agora, estado, mapa, duplicata)
                 self._ir('permanecendo', agora, f'faixa atingida: d = {self.d_estimada * 100:.1f} cm')
         return self._setpoint(*self._ramp, guinada, f'aproximação {self._rotulo()}')
 

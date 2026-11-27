@@ -28,6 +28,7 @@ echo "--- compilando e instalando o app (variante emulador)"
 (cd "$PASTA" && ./gradlew -q assembleEmuladorDebug)
 "$ADB" install -r "$PASTA/app/build/outputs/apk/emulador/debug/app-emulador-debug.apk" >/dev/null
 "$ADB" forward tcp:5760 tcp:5760 >/dev/null
+"$ADB" forward tcp:5761 tcp:5761 >/dev/null     # canal de vídeo (Tarefa 2)
 "$ADB" shell am force-stop "$PACOTE"
 "$ADB" logcat -c
 "$ADB" shell am start -n "$PACOTE/br.usp.psi3442.ponte.MainActivity" --es modo falso >/dev/null

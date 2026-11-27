@@ -52,8 +52,11 @@ demonstração em voo real **04/12/2026**. Equipe: Caetano Maciel Anibali (13681
 | `ensaios/roteiro_voo_tarefa1.md` | Procedimentos dos ensaios em voo T01–T04 |
 | `entregas/2026-11-27_intermediaria/` | `relatorio.md` → `gerar_pdf.py` → `relatorio.pdf` + ZIP do Moodle |
 | `ambiente/instalar_ambiente.sh` | Recria o ambiente conda `sysml` (kernel SysML v2 0.63.1, JupyterLab, weasyprint) |
-| `ros2_ws/` | Workspace ROS 2 (ciclo C2): `psi3442_interfaces` (10 mensagens) e `psi3442_tarefas` (nós, simulador, launch, CSV, testes). Ver `ros2_ws/README.md`; os 8 ajustes em relação ao modelo foram refletidos no SysML em 27/11 |
-| `ros2_ws/src/psi3442_gazebo/` + `ros2_ws/docker/simular_gazebo.ps1` | Tarefa 1 no Gazebo Harmonic (imagem `psi3442-gazebo`, `Dockerfile.gazebo`), janela via WSLg; drone caixa-preta com VelocityControl; app ponte simulado com o mesmo protocolo TCP |
+| `ros2_ws/` | Workspace ROS 2: `psi3442_interfaces` (14 mensagens), `psi3442_tarefas` (nós das 2 tarefas, visão, mapa, simulador, launch, ferramentas, modelo ONNX, testes) e `psi3442_gazebo`. Ver `ros2_ws/README.md` |
+| `ros2_ws/src/psi3442_gazebo/` | Gazebo Harmonic: Tarefa 1 (`sala_tarefa1.sdf`) e Tarefa 2 (sala gerada por semente com `gerar_sala_t2.py`, câmera + lidar, `avaliador_t2` com a verdade). Nesta máquina: conda `ros_gz` (RoboStack, sem sudo), workspace em `build_gz/install_gz` |
+| `README.md` (raiz) | Instalação, execução por terminal (simulação e voo real), testes, situação |
+| `entregas/2026-12-04_final/` | `relatorio.md` → PDF, `gerar_graficos.py` (figuras dos ensaios), ZIP; apresentação = artefato Slides https://claude.ai/artifact/4w2sCDrPCLtwUCYS7QwDbL |
+| `ensaios/simulacao/` | Resultados dos ensaios no Gazebo (CSV, métricas, verdade, avaliação), separados dos de voo real |
 | `ros2_ws/docker/ensaio_t10.sh` | Compila e faz o ensaio T10 integrado (launch + simulador + bag + CSV) na imagem `ros:jazzy-ros-base` |
 | `android_ponte/` | App ponte (C3): variantes `emulador` e `celular`, testes JVM (protocolo, T09, integração), `ensaio_emulador.sh` (Tarefa 1 de ponta a ponta com o app no emulador e o ROS 2 real). Ver `android_ponte/README.md` |
 | `ensaios/teste_eixos.py` | T00: confere o eixo norte/leste do controle virtual com a aeronave real, antes do T01 |
@@ -143,6 +146,23 @@ Dependem do usuário:
 - o controle RC-N2/RC-N3 do kit (H7);
 - o cadastro de desenvolvedor DJI e a App Key, que fica ligada ao nome do pacote do app;
 - a confirmação de `bateria_critica_pct` = 15 %.
+
+## Tarefa 2 e simulação (feito em 27/11, segunda sessão)
+
+- Tarefa 2 completa (varredura, YOLOv8n por cor via ONNX Runtime, mapa com fusão/marcos, grafo de visibilidade,
+  medida de proximidade pela linha mais larga do balão, reancoragem 3D, salvaguardas contra fantasmas e contagem
+  duplicada). App ponte: canal de vídeo 5761, ObstacleData, gimbal, drone falso com câmera sintética.
+- **Pegadinhas encontradas:**
+  - `cv2.dnn` 4.6 não carrega YOLOv8: usar onnxruntime (instalado com `pip --user`);
+  - caminho com espaço quebra `gz_args`: o mundo é copiado para `~/.ros/psi3442_mundos`;
+  - com o Gazebo lento, o app simulado repetia instantes e invalidava a estimação;
+  - o drone simulado ficava inclinado após contato: realimentação de rolagem/arfagem;
+  - `pkill -f` mata o próprio shell (exit 144): usar PID ou `~/psi3442_ensaios/limpar_sim.sh`;
+  - parar um processo com SIGSTOP faz o ambiente matá-lo;
+  - simulação: `use_sim_time:=true` (R04).
+- Ensaios automatizados: `~/psi3442_ensaios/rodar_gazebo.sh <launch> <s> <pasta> [args]`, que limpa, roda, espera
+  TAREFA_*, exporta o CSV, a verdade e as métricas. Fora do repositório; copiar resultados para `ensaios/simulacao/`.
+- Detector: 1 época de treino em CPU (dados sintéticos em `~/psi3442_dados`); métricas em `modelos/`.
 
 ## Pendências (em 27/11/2026)
 

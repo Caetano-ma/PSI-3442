@@ -262,3 +262,34 @@ def test_proximidade_pela_linha_mais_larga_numa_imagem():
     img2 = np.full((480, 640, 3), 200, np.uint8)
     cv2.circle(img2, (320, 240), 400, (20, 20, 220), -1)
     assert bordas_centrais(img2, 'vermelho')[3]
+
+
+def test_fantasma_perto_de_balao_destruido_nao_e_contado_de_novo():
+    """Uma entrada falsa do mapa a ~0,5 m do balão já destruído é selecionada; medida de perto, ela é o mesmo balão:
+    descartada, sem nova contagem (R04: impedir contagem duplicada)."""
+    from types import SimpleNamespace
+    s = SistemaSimuladoT2(ALVOS[:1], cfg=cfg_rapida())
+    s.comando(EXECUTAR_TAREFA2)
+    assert s.rodar_ate(lambda s: destruidos(s), 300)
+    destruido = next(b for b in s.mapa.baloes if b.situacao == 2)
+    fantasma = SimpleNamespace(**{**destruido.__dict__})
+    fantasma.id, fantasma.situacao, fantasma.observacoes = 999, CONFIRMADO, 5
+    fantasma.y_m += 0.7                               # além da fusão do mapa (0,6 m): só a medida de perto o pega
+    s.mapa.baloes.append(s.mapa.baloes[0].__class__(**fantasma.__dict__))
+    assert s.rodar_ate(lambda s: any(ev.vertice == 999 for ev in s.tipos_evento('ALVO_DESCARTADO')) or
+                       len(destruidos(s)) > 1, 300)
+    assert len(destruidos(s)) == 1
+
+
+def test_alvo_com_posicao_muito_incerta_nao_e_selecionado():
+    from psi3442_tarefas.no_tarefa2 import MaquinaTarefa2
+    from types import SimpleNamespace
+    cfg = cfg_rapida().tarefa2
+    m = MaquinaTarefa2(cfg, 30.0)
+    estado = SimpleNamespace(x_m=0.0, y_m=0.0, z_m=1.4, valido=True)
+    incerto = SimpleNamespace(id=1, cor='vermelho', alvo=True, situacao=CONFIRMADO, x_m=2, y_m=1, z_m=1.5,
+                              incerteza_m=0.35)
+    baixo = SimpleNamespace(id=2, cor='azul', alvo=True, situacao=CONFIRMADO, x_m=2, y_m=2, z_m=0.1, incerteza_m=0.1)
+    bom = SimpleNamespace(id=3, cor='azul', alvo=True, situacao=CONFIRMADO, x_m=3, y_m=1, z_m=1.5, incerteza_m=0.1)
+    assert m._escolher_alvo(SimpleNamespace(baloes=[incerto, baixo]), estado) is None
+    assert m._escolher_alvo(SimpleNamespace(baloes=[incerto, baixo, bom]), estado).id == 3

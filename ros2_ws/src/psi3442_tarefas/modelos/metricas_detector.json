@@ -1,0 +1,25 @@
+{
+  "imagens": 400,
+  "verdadeiros_positivos": 790,
+  "falsos_positivos": 44,
+  "falsos_negativos": 119,
+  "cor_trocada": 27,
+  "precisao": 0.918,
+  "revocacao": 0.869,
+  "limiar_confianca": 0.5,
+  "iou_min": 0.5,
+  "tempo_medio_ms": 195.8,
+  "revocacao_por_diametro_px": {
+    "0-19": 0.688,
+    "20-39": 0.862,
+    "40-59": 0.833,
+    "60-79": 0.933,
+    "80-99": 0.913,
+    "100-119": 1.0,
+    "120-139": 1.0,
+    "140-159": 0.974,
+    "160-179": 1.0,
+    "180-199": 0.963,
+    "200+": 0.868
+  }
+}

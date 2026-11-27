@@ -23,11 +23,12 @@ def generate_launch_description():
     share = get_package_share_directory('psi3442_tarefas')
     config = LaunchConfiguration('config')
     simulador = LaunchConfiguration('simulador')
-    parametros = [{'config': config}]
+    tempo_sim = ParameterValue(LaunchConfiguration('use_sim_time'), value_type=bool)
+    parametros = [{'config': config, 'use_sim_time': tempo_sim}]
 
-    def no(executavel, extras=()):
+    def no(executavel, extras=(), relogio_sim=True):
         return Node(package='psi3442_tarefas', executable=executavel, name=executavel, output='screen',
-                    parameters=parametros + list(extras), emulate_tty=True)
+                    parameters=(parametros if relogio_sim else [{'config': config}]) + list(extras), emulate_tty=True)
 
     return LaunchDescription([
         DeclareLaunchArgument('config', default_value=os.path.join(share, 'config', 'tarefas.yaml'),
@@ -37,6 +38,8 @@ def generate_launch_description():
         DeclareLaunchArgument('simulacao', default_value=simulador,
                               description='true: conclusões não contam como voo real (padrão: igual a simulador; '
                                           'o launch do Gazebo passa true)'),
+        DeclareLaunchArgument('use_sim_time', default_value='false',
+                              description='true no Gazebo: cronômetro e prazos no relógio do simulador (R04)'),
         DeclareLaunchArgument('video_ponte', default_value='true',
                               description='false: câmera e distâncias vêm de outra fonte (Gazebo), não do app ponte'),
         DeclareLaunchArgument('liberar_tarefa2', default_value='false',
@@ -62,7 +65,8 @@ def generate_launch_description():
         no('controle_voo'),
         no('supervisao'),
         no('ponte_dji', [{'host': LaunchConfiguration('host_ponte'),
-                          'video': ParameterValue(LaunchConfiguration('video_ponte'), value_type=bool)}]),
+                          'video': ParameterValue(LaunchConfiguration('video_ponte'), value_type=bool)}],
+           relogio_sim=False),     # watchdogs do app ponte são em tempo real
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'registro.launch.py')),

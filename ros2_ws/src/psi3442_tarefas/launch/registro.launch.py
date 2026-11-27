@@ -14,6 +14,7 @@ TOPICOS = [
     '/operador/comando', '/tarefa/ativa', '/tarefa/status', '/tarefa/evento', '/dji/acao', '/setpoint',
     '/estado', '/dji/telemetria', '/dji/cmd_vel', '/falhas',
     '/alvos', '/mapa', '/dji/obstaculos',          # Tarefa 2 (os quadros /dji/camera ficam de fora: volume)
+    '/gazebo/mini4pro/odometria', '/avaliador/distancia_m',   # só na simulação: verdade para validação (R05)
 ]
 
 

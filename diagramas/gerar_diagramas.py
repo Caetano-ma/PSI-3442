@@ -76,33 +76,35 @@ def legenda(c, x, y):
 
 # ------------------------------------------------------------------ Nível 0
 def nivel_0():
-    c = Canvas(1500, 900)
+    c = Canvas(1500, 920)
     c.text(750, 25, "Nível 0 — Sistema de Missões Autônomas com DJI Mini 4 Pro", fs=22, ha="center", va="top",
            weight="bold", color="#333333")
 
     # sistema de interesse
     c.box(430, 170, 1090, 600, "#93C47D")
-    c.text(760, 180, "Sistema de Missões Autônomas", fs=20, ha="center", va="top", color="#1E3D14", weight="bold")
-    c.text(760, 210, "Tarefa 1: voo de familiarização  ·  Tarefa 2: balões", fs=12, ha="center", va="top", color="#1E3D14")
+    c.text(445, 180, "Sistema de Missões Autônomas", fs=20, va="top", color="#1E3D14", weight="bold")
+    c.text(445, 210, "Tarefa 1: voo de familiarização  ·  Tarefa 2: balões", fs=12, va="top", color="#1E3D14")
 
     # notebook
-    c.box(450, 245, 760, 580, "#FFF2CC")
-    c.text(605, 252, "Notebook Linux", fs=14, ha="center", va="top", weight="bold", color="#5D4600")
-    c.bloco(470, 280, 740, 422, "#FFE599", "ROS 2", "lógica das tarefas\n(gerenciador, tarefas, estimação,\nmapeamento, controle, supervisão,\nregistro)",
-            fs=15, fs_sub=10)
-    c.bloco(470, 450, 740, 560, "#F9CB9C", "Android emulado", "app ponte DJI\n(DJI Mobile SDK v5)", fs=14, fs_sub=10.5)
-    c.arrow([(605, 422), (605, 450)], color=COM, both=True)
-    c.text(615, 436, "TCP (adb)", fs=10, color=COM, va="center")
+    c.box(450, 245, 730, 580, "#FFF2CC")
+    c.text(590, 252, "Notebook Linux", fs=14, ha="center", va="top", weight="bold", color="#5D4600")
+    c.bloco(468, 285, 712, 560, "#FFE599", "ROS 2",
+            "lógica das tarefas\n(gerenciador, tarefas, estimação,\nvisão computacional, mapeamento,\n"
+            "controle, supervisão, registro)", fs=16, fs_sub=10)
 
-    # controle remoto e drone
-    c.bloco(785, 455, 880, 555, "#EA9999", "Rádio\nDJI", "RC-N2/N3 só\ncomo enlace,\nsem pilotagem", fs=11.5, fs_sub=8)
-    c.arrow([(740, 505), (785, 505)], color=COM, both=True)
-    c.text(762, 500, "USB", fs=10, color=COM, ha="center")
+    # celular, rádio e drone
+    c.bloco(780, 270, 905, 395, "#F6B26B", "Celular /\ntablet\nAndroid", "app ponte DJI\n(Mobile SDK v5)",
+            fs=11, fs_sub=8.5)
+    c.arrow([(730, 332), (780, 332)], color=COM, both=True)
+    c.text(755, 327, "Wi-Fi", fs=10, color=COM, ha="center")
+    c.bloco(780, 455, 905, 555, "#EA9999", "Rádio DJI", "RC-N2/N3:\nsó enlace,\nsem pilotagem", fs=11.5, fs_sub=8.5)
+    c.arrow([(842, 395), (842, 455)], color=COM, both=True)
+    c.text(850, 425, "USB", fs=10, color=COM, va="center")
     c.box(940, 270, 1070, 570, CAIXA_PRETA, ec="#111111", z=2)
     c.text(1005, 410, "Drone\nDJI Mini 4 Pro", fs=12.5, ha="center", va="bottom", color="white", weight="bold")
     c.text(1005, 416, "caixa-preta", fs=11, ha="center", va="top", color="#DDDDDD", style="italic")
-    c.arrow([(880, 505), (940, 505)], color=COM, both=True)
-    c.text(910, 500, "RF O4", fs=10, color=COM, ha="center")
+    c.arrow([(905, 505), (940, 505)], color=COM, both=True)
+    c.text(922, 512, "RF\nO4", fs=8.5, color=COM, ha="center", va="top")
 
     # entradas e saídas de informação (esquerda)
     c.arrow([(30, 300), (430, 300)], color=INFO)
@@ -131,15 +133,19 @@ def nivel_0():
     c.text(1105, 546, "LED ON e Ready", fs=13, color=VIS)
 
     # energia e ação manual (abaixo)
-    for x, nome, cor, alvo in [(832, "Bateria\ndo rádio", EN, 555), (970, "Bateria\nde voo", EN, 570),
+    c.arrow([(842, 128), (842, 270)], color=EN)
+    c.text(842, 122, "Bateria do celular", fs=12, ha="center", color=EN)
+    for x, nome, cor, alvo in [(842, "Bateria\ndo rádio", EN, 555), (970, "Bateria\nde voo", EN, 570),
                                (1045, "Botão\nON/OFF", VIS, 570)]:
         c.arrow([(x, 640), (x, alvo)], color=cor)
         c.text(x, 646, nome, fs=12, ha="center", va="top", color=cor)
 
-    c.text(30, 640, "Drone, rádio DJI e Android emulado são componentes de comunicação e execução, tratados só pelas\n"
-                    "entradas e saídas. O alvo da decomposição são as tarefas. Ninguém pilota: o operador só comanda tarefas.",
+    c.text(30, 640, "Drone, rádio DJI e celular são componentes de comunicação e execução, tratados só pelas entradas e\n"
+                    "saídas. O alvo da decomposição são as tarefas. Ninguém pilota: o operador só comanda tarefas.\n"
+                    "O celular é necessário porque o rádio só conversa com um Android em modo acessório USB; um Android\n"
+                    "emulado no notebook serve apenas para testes sem drone (app ponte com drone falso).",
            fs=11, va="top", style="italic")
-    legenda(c, 40, 720)
+    legenda(c, 40, 740)
     c.save("nivel_0.png")
 
 
@@ -163,11 +169,11 @@ NOS_INFERIORES = [
      ["pub /estado", "sub /dji/telemetria"]),
     ("Controle\nde Voo", "setpoint + estado →\nvelocidade comandada", "#F4CCCC",
      ["pub /dji/cmd_vel", "sub /setpoint", "sub /estado"]),
-    ("Percepção\nVisual", "detectar balões e\nestimar distância", "#CFE2F3",
+    ("Visão\nComputacional", "balões por cor (T2):\ndistância e direção", "#CFE2F3",
      ["pub /alvos", "sub /dji/camera"]),
     ("Mapeamento\nLocal", "mapa grosseiro:\nobstáculos e balões", "#D9D2E9",
      ["pub /mapa", "sub /estado", "sub /alvos", "sub /dji/obstaculos"]),
-    ("Nó Ponte\nROS 2 ↔ DJI", "tópicos ↔ socket\ndo app Android", "#F9CB9C",
+    ("Nó Ponte\nROS 2 ↔ DJI", "tópicos ↔ app ponte\nno celular (Wi-Fi)", "#F9CB9C",
      ["pub /dji/telemetria", "pub /dji/camera", "pub /dji/obstaculos", "sub /dji/cmd_vel", "sub /dji/acao"]),
 ]
 
@@ -179,7 +185,7 @@ def nivel_1():
 
     c.box(330, 100, 1390, 1150, "#93C47D")
     c.text(342, 108, "Sistema de Missões Autônomas", fs=14, va="top", weight="bold", color="#1E3D14")
-    c.box(350, 140, 1370, 800, "#FFF2CC")
+    c.box(350, 140, 1370, 680, "#FFF2CC")
     c.text(362, 146, "Notebook Linux", fs=12, va="top", weight="bold", color="#5D4600")
     c.box(365, 172, 1355, 660, "#FFF9E6", ec="#C9A100")
     c.text(377, 178, "ROS 2 — nós comunicando por tópicos (publica / assina)", fs=11, va="top", weight="bold", color="#5D4600")
@@ -211,13 +217,14 @@ def nivel_1():
 
     # cadeia de comunicação com o drone (coluna da ponte)
     _, cx_ponte = centros["Nó Ponte\nROS 2 ↔ DJI"]
-    c.bloco(1060, 690, 1350, 780, "#F6B26B", "Android emulado", "app ponte DJI — Mobile SDK v5 (Kotlin)",
+    c.bloco(1060, 715, 1350, 790, "#F6B26B", "Celular / tablet Android", "app ponte DJI — Mobile SDK v5 (Kotlin)",
             fs=12.5, fs_sub=9)
-    c.arrow([(cx_ponte, base[1]), (cx_ponte, 690)], color=COM, both=True)
-    c.text(cx_ponte - 8, 676, "TCP (adb forward)", fs=9, color=COM, ha="right", va="center")
+    c.arrow([(cx_ponte, base[1]), (cx_ponte, 715)], color=COM, both=True)
+    c.text(cx_ponte - 8, 698, "Wi-Fi: TCP 5760 (comandos, telemetria)\n+ vídeo da câmera", fs=9, color=COM,
+           ha="right", va="center")
     c.bloco(1130, 830, 1330, 890, "#EA9999", "Rádio DJI (RC-N2/N3)", "só enlace — sem pilotagem", fs=12, fs_sub=9)
-    c.arrow([(1230, 780), (1230, 830)], color=COM, both=True)
-    c.text(1240, 815, "USB (passthrough)", fs=9, color=COM, va="center")
+    c.arrow([(1230, 790), (1230, 830)], color=COM, both=True)
+    c.text(1240, 810, "USB: rádio = hospedeiro,\ncelular = acessório", fs=8.5, color=COM, va="center")
     c.box(1060, 930, 1370, 1125, CAIXA_PRETA, ec="#111111", z=2)
     c.text(1215, 1020, "Drone DJI Mini 4 Pro", fs=14, ha="center", va="bottom", color="white", weight="bold")
     c.text(1215, 1026, "caixa-preta: estabilização, sensores,\natuadores e energia (firmware DJI)", fs=9.5,
@@ -237,8 +244,10 @@ def nivel_1():
     _, cx_reg = centros["Registro"]
     c.arrow([(cx_reg, topo[0]), (cx_reg, 72)], color=INFO)
     c.text(cx_reg, 66, "Logs Exportáveis (rosbag / CSV)", fs=14, ha="center")
-    c.arrow([(30, 740), (350, 740)], color=EN)
-    c.text(30, 736, "Alimentação do Notebook", fs=14, color=EN)
+    c.arrow([(30, 600), (350, 600)], color=EN)
+    c.text(30, 596, "Alimentação do Notebook", fs=14, color=EN)
+    c.arrow([(30, 752), (1060, 752)], color=EN)
+    c.text(30, 748, "Bateria do celular", fs=14, color=EN)
     c.arrow([(30, 860), (1130, 860)], color=EN)
     c.text(30, 856, "Bateria do rádio (RC)", fs=14, color=EN)
 
@@ -261,11 +270,12 @@ def nivel_1():
 
     c.text(370, 930, "Alvo da decomposição: as tarefas e os serviços ROS 2 que elas usam.\n"
                      "Tarefa 1 e Tarefa 2 reutilizam gerenciador, estimação, controle,\n"
-                     "supervisão, registro e a ponte DJI; só a Tarefa 2 usa percepção\n"
-                     "e mapeamento (mapa grosseiro para localizar os balões).\n"
+                     "supervisão, registro e a ponte DJI; só a Tarefa 2 usa visão\n"
+                     "computacional e mapeamento (localizar os balões no espaço).\n"
                      "O operador só comanda \"executar tarefa N\" ou \"interromper\".\n\n"
-                     "Android emulado, rádio DJI e drone: componentes de\n"
-                     "comunicação e execução, tratados só pelas entradas e saídas.",
+                     "Celular, rádio DJI e drone: componentes de comunicação e\n"
+                     "execução, tratados só pelas entradas e saídas. Android emulado:\n"
+                     "só em testes sem drone.",
            fs=11.5, va="top", style="italic", linespacing=1.4)
     legenda(c, 40, 1215)
     c.save("nivel_1.png")

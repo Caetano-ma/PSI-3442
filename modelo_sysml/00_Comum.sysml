@@ -213,7 +213,7 @@ package Comum {
     port def PortaSinalVisual { out item sinal : SinalVisual; }
     port def PortaRF { inout item pacote : PacoteDados; }
     port def PortaUSB { inout item pacote : PacoteDados; }
-    port def PortaSocket { doc /* TCP (adb forward) entre o Linux e o Android emulado. */ inout item pacote : PacoteDados; }
+    port def PortaSocket { doc /* TCP pelo Wi-Fi entre o notebook e o celular (nos testes sem drone: adb forward para o Android emulado). */ inout item pacote : PacoteDados; }
     port def PortaConfiguracao { in item config : ConfiguracaoTarefas; }
     port def PortaLogs { out item registro : RegistroLog; }
     port def PortaPainel { out item status : StatusTarefa; }

@@ -27,8 +27,10 @@ demonstração em voo real **04/12/2026**. Equipe: Caetano Maciel Anibali (13681
 - **Verificado em 27/11** no manifesto do app de exemplo da DJI: o SDK fala com o controle pelo **modo acessório USB**
   (o controle é o hospedeiro USB). Um emulador num notebook não consegue isso, então **o voo real usa o app no celular
   ligado ao controle**, e o notebook se conecta a ele pelo Wi-Fi (`host_ponte:=<IP>` no launch). O emulador serve para
-  testar o app inteiro contra o ROS 2 sem drone. O modelo SysML e os diagramas ainda dizem "Android emulado": atualizar
-  quando o usuário confirmar.
+  testar o app inteiro contra o ROS 2 sem drone. Modelo SysML e diagramas atualizados em 27/11 (pedido do usuário):
+  celular/tablet Android fora do notebook, Wi-Fi até o ROS 2, USB até o rádio; tablet Android também serve (iPad não).
+- **Visão computacional** (Tarefa 2): nó `VisaoComputacional` (antes "Percepção Visual") sobre os quadros da câmera
+  repassados pelo celular; publica `/alvos` para a Tarefa 2 e o mapeamento local.
 - O operador só envia `executar tarefa 1`, `executar tarefa 2` ou `interromper`; ninguém pilota.
 - **Controle remoto:** verificado nas notas do MSDK v5 que o Mini 4 Pro só funciona com **DJI RC N2 ou RC N3**
   (SDK ≥ 5.13.0; atual 5.20.1); DJI RC 2 não é suportado e não há conexão direta celular ↔ drone. O usuário diz não ter
@@ -154,8 +156,6 @@ Para voar a Tarefa 1 no drone físico, depende do usuário:
 3. Conta de desenvolvedor DJI e App Key do tipo Mobile SDK com o pacote `br.usp.psi3442.ponte`, em
    `~/.gradle/gradle.properties` como `DJI_API_KEY=…`; internet no celular na 1ª execução (registro).
 4. Confirmar `bateria_critica_pct` = 15 %.
-5. Autorizar a atualização do modelo SysML e dos diagramas de "Android emulado" para "celular ligado ao controle"
-   (o emulador fica como ambiente de teste).
 
 Depois, em ordem: instalar `app-celular-debug.apk` (adb por USB), modo "falso" no celular com o ROS 2 pelo Wi-Fi
 (`host_ponte:=<IP>`), testes em solo (registro do SDK, telemetria, ação em perda de sinal = pousar, comando rejeitado,

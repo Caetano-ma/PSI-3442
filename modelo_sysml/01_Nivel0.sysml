@@ -3,12 +3,14 @@ package Nivel0 {
            fronteiras, entradas, saídas e fluxos de informação e energia. Corresponde a diagramas/nivel_0.png.
 
            Paradigma: o drone é um produto dado; o trabalho é de software. A lógica das tarefas roda em nós ROS 2 num
-           notebook Linux; um Android emulado no mesmo notebook executa o app ponte com o DJI Mobile SDK v5; o rádio
-           DJI (RC-N2) é apenas o enlace exigido pelo SDK (seção 6 do enunciado), sem pilotagem; o drone é um
-           componente caixa-preta. O operador só comanda "executar tarefa 1", "executar tarefa 2" ou "interromper".
+           notebook Linux; um celular (ou tablet) Android executa o app ponte com o DJI Mobile SDK v5 e conversa com o
+           notebook pelo Wi-Fi; o rádio DJI (RC-N2/N3) é apenas o enlace exigido pelo SDK (seção 6 do enunciado), sem
+           pilotagem; o drone é um componente caixa-preta. O celular é necessário porque o SDK fala com o rádio pelo
+           modo acessório USB do Android (o rádio é o hospedeiro USB), papel que a porta USB do notebook não cumpre;
+           um Android emulado no notebook serve só como ambiente de teste sem drone. O operador só comanda "executar tarefa 1", "executar tarefa 2" ou "interromper".
 
            Diferenças em relação aos modelos anteriores (P1 e primeira versão desta prova, com celular):
-           - estação de solo substituída por notebook Linux + ROS 2; celular substituído por Android emulado;
+           - estação de solo substituída por notebook Linux + ROS 2; o celular só executa o app ponte (tradutor);
            - controle remoto rebaixado a rádio-enlace; nenhuma entrada de pilotagem;
            - drone deixa de ser decomposto em blocos internos: é tratado só pelas entradas e saídas;
            - GPS mantido só como entrada indisponível (R07); textura do piso e iluminação como entrada do ambiente;
@@ -38,8 +40,9 @@ package Nivel0 {
     }
 
     part def FonteEnergia {
-        doc /* Alimentação do notebook e baterias carregadas do rádio e da aeronave. */
+        doc /* Alimentação do notebook e baterias carregadas do celular, do rádio e da aeronave. */
         port notebook : ~PortaEnergia;
+        port celular : ~PortaEnergia;
         port radio : ~PortaEnergia;
         port aeronave : ~PortaEnergia;
     }
@@ -62,7 +65,8 @@ package Nivel0 {
     part def Simulador {
         doc /* Opcional — ambiente de teste. Substitui ponte, rádio e drone publicando e assinando os mesmos tópicos
                /dji/* do nó ponte; a lógica das tarefas roda sem alteração. Resultados identificados separadamente,
-               com a escala de tempo usada (P06). Uso a decidir pela equipe. */
+               com a escala de tempo usada (P06). Implementados: simulador cinemático, Gazebo e o Android emulado com
+               o app ponte e um drone falso (android_ponte, variante emulador). */
         port socket : PortaSocket;
     }
 
@@ -76,12 +80,13 @@ package Nivel0 {
         port socketPonte : PortaSocket;
     }
 
-    part def AndroidEmulado {
-        doc /* Android emulado no notebook, executando o app ponte com o DJI Mobile SDK v5.
-               Riscos a testar cedo: tradução de bibliotecas ARM do SDK, repasse USB do rádio ao emulador,
-               ativação da chave do SDK pela internet. */
+    part def DispositivoMovel {
+        doc /* Celular ou tablet Android (ARM64, Android 7+) com o app ponte e o DJI Mobile SDK v5. Ligado ao rádio por
+               cabo USB (rádio = hospedeiro, celular = acessório) e ao notebook pelo Wi-Fi. Precisa de internet na
+               primeira execução para registrar a App Key. */
         port socketPonte : PortaSocket;
         port usb : PortaUSB;
+        port bateria : PortaEnergia;
     }
 
     part def NotebookLinux {
@@ -89,14 +94,12 @@ package Nivel0 {
         port painel : PortaPainel;
         port config : PortaConfiguracao;
         port logs : PortaLogs;
-        port usb : PortaUSB;
+        port wifi : PortaSocket;
         port energia : PortaEnergia;
 
         part ros2 : AplicacaoROS2;
-        part android : AndroidEmulado;
 
-        connect ros2.socketPonte to android.socketPonte;
-        connect android.usb to usb;
+        connect ros2.socketPonte to wifi;
         connect comandosOperador to ros2.comandosOperador;
         connect ros2.painel to painel;
         connect config to ros2.config;
@@ -132,10 +135,13 @@ package Nivel0 {
                (Tarefa 1: quadrado de 1,50 m a 1,80 m com quatro permanências de 60 s; Tarefa 2: balões), respeitando
                tolerâncias e restrições e registrando evidências; interromper com segurança quando comandado. */
         part notebook : NotebookLinux;
+        part celular : DispositivoMovel;
         part radio : RadioDJI;
         part drone : Drone;
-        flow of PacoteDados from notebook.usb.pacote to radio.usb.pacote;
-        flow of PacoteDados from radio.usb.pacote to notebook.usb.pacote;
+        flow of PacoteDados from notebook.wifi.pacote to celular.socketPonte.pacote;
+        flow of PacoteDados from celular.socketPonte.pacote to notebook.wifi.pacote;
+        flow of PacoteDados from celular.usb.pacote to radio.usb.pacote;
+        flow of PacoteDados from radio.usb.pacote to celular.usb.pacote;
         flow of PacoteDados from radio.rf.pacote to drone.rf.pacote;
         flow of PacoteDados from drone.rf.pacote to radio.rf.pacote;
     }
@@ -166,6 +172,7 @@ package Nivel0 {
 
         // energia e força
         flow of Energia from energia.notebook.energia to sistema.notebook.energia.energia;
+        flow of Energia from energia.celular.energia to sistema.celular.bateria.energia;
         flow of Energia from energia.radio.energia to sistema.radio.bateria.energia;
         flow of Energia from energia.aeronave.energia to sistema.drone.bateria.energia;
         flow of Empuxo from sistema.drone.empuxo.empuxo to ambiente.empuxo.empuxo;
@@ -186,8 +193,8 @@ package Nivel0 {
         }
         action posicionarAeronave { doc /* Aeronave sobre A, nariz apontado para B (define psi0). */ }
         action ligarEquipamentos {
-            doc /* Ligar aeronave e rádio; no notebook, iniciar o Android emulado com o app ponte (rádio repassado por
-                   USB) e lançar os nós ROS 2. */
+            doc /* Ligar aeronave e rádio; ligar o celular ao rádio pelo cabo e abrir o app ponte; celular e notebook na
+                   mesma rede Wi-Fi; lançar os nós ROS 2 com o IP do celular. */
         }
         action carregarConfiguracao { doc /* Gerenciador carrega o YAML aprovado; o painel exibe os parâmetros. */ }
         action comandarTarefa { doc /* Operador envia "executar tarefa 1" (ou 2). A partir daqui nada é pilotado. */ }

@@ -1,6 +1,6 @@
 package NivelN {
     doc /* Nível n — implementação. Detalha a Tarefa 1 (Questão 1), os serviços comuns às duas tarefas e a ponte DJI.
-           A Tarefa 2, a percepção visual e o mapeamento local ficam no nível 1 e serão detalhadas quando a Questão 2 for implementada.
+           A Tarefa 2, a visão computacional e o mapeamento local ficam no nível 1 e serão detalhadas quando a Questão 2 for implementada.
 
            Componentes caixa-preta (drone e rádio): não são decompostos; o drone é "explorado" pela interface do
            DJI Mobile SDK v5 (o que se lê, o que se comanda e os limites conhecidos). Nomes de chaves/APIs e valores
@@ -86,7 +86,7 @@ package NivelN {
 
     part def RadioDjiN :> Nivel0::RadioDJI {
         doc /* Rádio-enlace obrigatório para o Mobile SDK (RC-N2 ou RC-N3). Fica ligado e conectado ao notebook por USB, repassado ao
-               Android emulado; os sticks não são usados. */
+               celular por cabo USB; os sticks não são usados. */
     }
 
     // =========================================================================================== contratos de interface
@@ -101,12 +101,13 @@ package NivelN {
     }
 
     interface def ContratoSocketPonte {
-        doc /* Nó ponte (Linux) <-> app ponte (Android emulado), TCP via adb forward. Mensagens JSON delimitadas por
+        doc /* Nó ponte (notebook) <-> app ponte (celular), TCP pelo Wi-Fi (nos testes sem drone: adb forward para o
+               Android emulado). Mensagens JSON delimitadas por
                linha, com campo "tipo" (telemetria, cmd_vel, acao, heartbeat, erro). Telemetria a 10 Hz; cmd_vel a
                20 Hz; heartbeat a 1 Hz nos dois sentidos. Pós: sem mensagem do nó ponte por prazoWatchdog o app envia
                velocidade zero; sem heartbeat por prazoPerdaPonte o app comanda pouso automático (perdaPonte). */
         end ros : PortaSocket;
-        end android : PortaSocket;
+        end celular : PortaSocket;
         attribute porta : Integer = 5760;
         attribute prazoWatchdog : DurationValue = 0.2 [s];
         attribute prazoPerdaPonte : DurationValue = 2 [s];
@@ -136,7 +137,7 @@ package NivelN {
         attribute arquivoCodigo : String;
     }
 
-    // ---------------------------------------------------------------- app ponte (Kotlin, Android emulado)
+    // ---------------------------------------------------------------- app ponte (Kotlin, celular)
     part def GerenciadorConexaoSdk :> ModuloSoftware {
         doc /* Registra o app no SDK (chave de app, ativação online na primeira vez) e detecta a aeronave conectada. */
         attribute :>> arquivoCodigo = "android_ponte/app/src/celular/java/br/usp/psi3442/ponte/ConexaoSdk.kt";
@@ -310,25 +311,25 @@ package NivelN {
         interface contratoTelemetria : ContratoTopicoTelemetria connect noPonte.pubTelemetria to estimacao.subTelemetria;
     }
 
-    part def AndroidEmuladoN :> Nivel1::AndroidEmuladoN1 {
+    part def DispositivoMovelN :> Nivel1::DispositivoMovelN1 {
         part :>> appPonte : AppPonteDJIN;
     }
 
     part def NotebookLinuxN :> Nivel1::NotebookLinuxN1 {
         part :>> ros2 : AplicacaoROS2N;
-        part :>> android : AndroidEmuladoN;
-        interface contratoSocket : ContratoSocketPonte connect ros2.noPonte.socket to android.appPonte.socket;
     }
 
     part def SistemaMissoesN :> Nivel1::SistemaMissoesAutonomasN1 {
         doc /* As conexões abaixo são lógicas (SDK); fisicamente passam por USB, rádio e enlace O4. */
         part :>> notebook : NotebookLinuxN;
+        part :>> celular : DispositivoMovelN;
+        interface contratoSocket : ContratoSocketPonte connect notebook.ros2.noPonte.socket to celular.appPonte.socket;
         part :>> radio : RadioDjiN;
         part :>> drone : DroneN;
-        interface contratoSdk : ContratoSdkControladorVoo connect notebook.android.appPonte.sdkVoo to drone.sdkVoo;
-        connect notebook.android.appPonte.sdkBateria to drone.sdkBateria;
-        connect notebook.android.appPonte.sdkEnlace to drone.sdkEnlace;
-        connect notebook.android.appPonte.sdkPercepcao to drone.sdkPercepcao;
+        interface contratoSdk : ContratoSdkControladorVoo connect celular.appPonte.sdkVoo to drone.sdkVoo;
+        connect celular.appPonte.sdkBateria to drone.sdkBateria;
+        connect celular.appPonte.sdkEnlace to drone.sdkEnlace;
+        connect celular.appPonte.sdkPercepcao to drone.sdkPercepcao;
     }
 
     // =========================================================================================== configuração proposta (Tarefa 1)
@@ -499,7 +500,7 @@ package NivelN {
     allocate ciclo.avancar to sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
     allocate ciclo.calcular to sistemaN.notebook.ros2.controle.controlador;
     allocate ciclo.enviar to sistemaN.notebook.ros2.noPonte.clienteSocket;
-    allocate ciclo.enviar to sistemaN.notebook.android.appPonte.emissorComandos;
+    allocate ciclo.enviar to sistemaN.celular.appPonte.emissorComandos;
     allocate ciclo.gravar to sistemaN.notebook.ros2.registro.gravadorBag;
 
     // refinamento nível 1 -> nível n
@@ -518,16 +519,16 @@ package NivelN {
     allocate Nivel1::funcaoGlobal.registrar to sistemaN.notebook.ros2.registro.exportadorCsv;
     allocate Nivel1::funcaoGlobal.traduzirParaDji to sistemaN.notebook.ros2.noPonte.clienteSocket;
     allocate Nivel1::funcaoGlobal.traduzirParaDji to sistemaN.notebook.ros2.noPonte.conversorMensagens;
-    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.gerenciadorConexao;
-    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.leitorTelemetria;
-    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.emissorComandos;
-    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.configuradorSeguranca;
-    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.notebook.android.appPonte.servidorSocket;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.celular.appPonte.gerenciadorConexao;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.celular.appPonte.leitorTelemetria;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.celular.appPonte.emissorComandos;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.celular.appPonte.configuradorSeguranca;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.celular.appPonte.servidorSocket;
 
     // requisito -> módulo (Questão 1)
     satisfy Nivel0::p01 by sistemaN.notebook.ros2.estimacao.estimador;
     satisfy Nivel0::p01 by sistemaN.notebook.ros2.controle.controlador;
-    satisfy Nivel0::p01 by sistemaN.notebook.android.appPonte.emissorComandos;
+    satisfy Nivel0::p01 by sistemaN.celular.appPonte.emissorComandos;
     satisfy Nivel0::p02 by sistemaN.notebook.ros2.tarefa1.planejador;
     satisfy Nivel0::p02 by sistemaN.notebook.ros2.estimacao.estimador;
     satisfy Nivel0::p02 by sistemaN.notebook.ros2.controle.controlador;
@@ -536,7 +537,7 @@ package NivelN {
     satisfy Nivel0::p03 by sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
     satisfy Nivel0::p04 by sistemaN.notebook.ros2.controle.controlador;
     satisfy Nivel0::p04 by sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
-    satisfy Nivel0::p04 by sistemaN.notebook.android.appPonte.emissorComandos;
+    satisfy Nivel0::p04 by sistemaN.celular.appPonte.emissorComandos;
     satisfy Nivel0::p05 by sistemaN.notebook.ros2.gerenciador.carregadorConfig;
     satisfy Nivel0::p05 by sistemaN.notebook.ros2.tarefa1.verificador;
     satisfy Nivel0::p05 by sistemaN.notebook.ros2.tarefa1.cronometro;
@@ -544,6 +545,6 @@ package NivelN {
     satisfy Nivel0::p06 by sistemaN.notebook.ros2.registro.exportadorCsv;
     satisfy Nivel0::p06 by sistemaN.notebook.ros2.tarefa1.supervisorTarefa1;
     satisfy Nivel0::r07 by sistemaN.notebook.ros2.supervisao.monitorFalhas;
-    satisfy Nivel0::r07 by sistemaN.notebook.android.appPonte.configuradorSeguranca;
-    satisfy Nivel0::r07 by sistemaN.notebook.android.appPonte.emissorComandos;
+    satisfy Nivel0::r07 by sistemaN.celular.appPonte.configuradorSeguranca;
+    satisfy Nivel0::r07 by sistemaN.celular.appPonte.emissorComandos;
 }

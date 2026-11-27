@@ -10,7 +10,7 @@ metadata:
 
 On 2026-11-27, on the Linux Mint notebook (this machine), Claude built `android_ponte/` (Kotlin bridge app, DJI MSDK 5.20.1 behind a `Drone` interface; variants `emulador` = fake drone, `celular` = real SDK). The celular variant compiles and packages against the real SDK. Task 1 ran end to end in an AOSP emulator through the app with the real ROS 2 system (concluded, 10 Hz telemetry, max vertical error 0.069 m). The 8 implementation adjustments are now in the SysML model.
 
-Verified fact: the MSDK talks to the RC in USB accessory mode, so an emulator on a laptop cannot reach the RC. Real flight = app on a phone cabled to the RC, notebook connected over Wi-Fi (`host_ponte:=<IP>`). The SysML model and diagrams still say "Android emulado": update them only after the user confirms.
+Verified fact: the MSDK talks to the RC in USB accessory mode, so an emulator on a laptop cannot reach the RC. Real flight = app on a phone cabled to the RC, notebook connected over Wi-Fi (`host_ponte:=<IP>`). On 2026-11-27 the user confirmed: model and diagrams now show the phone/tablet (Wi-Fi to the notebook, USB to the RC) and a "Visão Computacional" node for Task 2; the emulator is only a test environment.
 
 **Why:** the user asked (2026-11-27) to work on the emulation module and close Task 1 on the physical drone.
 

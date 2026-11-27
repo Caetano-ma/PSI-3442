@@ -1,9 +1,9 @@
 package Nivel1 {
     doc /* Nível 1 — decomposição funcional do Sistema de Missões Autônomas (diagramas/nivel_1.png).
-           Alvo da decomposição: as tarefas e os serviços ROS 2 que elas usam. Android emulado, rádio DJI e drone
+           Alvo da decomposição: as tarefas e os serviços ROS 2 que elas usam. Celular, rádio DJI e drone
            permanecem componentes caixa-preta de comunicação e execução.
            Reuso entre as tarefas: gerenciador, estimação, controle, supervisão, registro e ponte DJI são comuns;
-           só a Tarefa 2 usa a percepção visual e o mapeamento local. */
+           só a Tarefa 2 usa a visão computacional e o mapeamento local. */
 
     private import ScalarValues::*;
     private import Comum::*;
@@ -87,8 +87,9 @@ package Nivel1 {
         port pubCmdVel : TopicoCmdVel;
     }
 
-    part def PercepcaoVisual {
-        doc /* Só na Tarefa 2. */
+    part def VisaoComputacional {
+        doc /* Só na Tarefa 2. Visão computacional sobre os quadros da câmera do drone (vídeo repassado pelo celular):
+               detecta e classifica balões pela cor, estima direção e distância de cada um e publica em /alvos. */
         port subCamera : ~TopicoCamera;
         port pubAlvos : TopicoAlvos;
     }
@@ -117,7 +118,7 @@ package Nivel1 {
         part registro : Registro;
         part estimacao : EstimacaoEstado;
         part controle : ControleVoo;
-        part percepcao : PercepcaoVisual;
+        part visao : VisaoComputacional;
         part mapeamento : MapeamentoLocal;
         part supervisao : SupervisaoSeguranca;
         part noPonte : NoPonteDJI;
@@ -147,8 +148,8 @@ package Nivel1 {
         connect estimacao.pubEstado to controle.subEstado;
         connect estimacao.pubEstado to supervisao.subEstado;
         connect estimacao.pubEstado to registro.subEstado;
-        connect percepcao.pubAlvos to tarefa2.subAlvos;
-        connect percepcao.pubAlvos to mapeamento.subAlvos;
+        connect visao.pubAlvos to tarefa2.subAlvos;
+        connect visao.pubAlvos to mapeamento.subAlvos;
         connect estimacao.pubEstado to mapeamento.subEstado;
         connect noPonte.pubObstaculos to mapeamento.subObstaculos;
         connect mapeamento.pubMapa to tarefa2.subMapa;
@@ -161,17 +162,17 @@ package Nivel1 {
         connect noPonte.pubTelemetria to tarefa1.subTelemetria;
         connect noPonte.pubTelemetria to gerenciador.subTelemetria;
         connect estimacao.pubEstado to gerenciador.subEstado;
-        connect noPonte.pubCamera to percepcao.subCamera;
+        connect noPonte.pubCamera to visao.subCamera;
     }
 
-    // ------------------------------------------------------------------ Android emulado
+    // ------------------------------------------------------------------ celular (app ponte)
     part def AppPonteDJI {
         doc /* App Android (Kotlin) com o DJI Mobile SDK v5: única parte que conhece o SDK. */
         port socket : PortaSocket;
         port usb : PortaUSB;
     }
 
-    part def AndroidEmuladoN1 :> AndroidEmulado {
+    part def DispositivoMovelN1 :> DispositivoMovel {
         part appPonte : AppPonteDJI;
         connect socketPonte to appPonte.socket;
         connect appPonte.usb to usb;
@@ -179,11 +180,11 @@ package Nivel1 {
 
     part def NotebookLinuxN1 :> NotebookLinux {
         part :>> ros2 : AplicacaoROS2N1;
-        part :>> android : AndroidEmuladoN1;
     }
 
     part def SistemaMissoesAutonomasN1 :> SistemaMissoesAutonomas {
         part :>> notebook : NotebookLinuxN1;
+        part :>> celular : DispositivoMovelN1;
     }
 
     // ------------------------------------------------------------------ modos de operação
@@ -377,13 +378,13 @@ package Nivel1 {
     allocate funcaoGlobal.executarTarefa1 to sistema.notebook.ros2.tarefa1;
     allocate funcaoGlobal.executarTarefa2 to sistema.notebook.ros2.tarefa2;
     allocate funcaoGlobal.estimarEstado to sistema.notebook.ros2.estimacao;
-    allocate funcaoGlobal.perceberAlvos to sistema.notebook.ros2.percepcao;
+    allocate funcaoGlobal.perceberAlvos to sistema.notebook.ros2.visao;
     allocate funcaoGlobal.mapear to sistema.notebook.ros2.mapeamento;
     allocate funcaoGlobal.controlarVoo to sistema.notebook.ros2.controle;
     allocate funcaoGlobal.supervisionar to sistema.notebook.ros2.supervisao;
     allocate funcaoGlobal.registrar to sistema.notebook.ros2.registro;
     allocate funcaoGlobal.traduzirParaDji to sistema.notebook.ros2.noPonte;
-    allocate funcaoGlobal.acionarSdk to sistema.notebook.android.appPonte;
+    allocate funcaoGlobal.acionarSdk to sistema.celular.appPonte;
     allocate funcaoGlobal.transmitirRadio to sistema.radio;
     allocate funcaoGlobal.voar to sistema.drone;
 

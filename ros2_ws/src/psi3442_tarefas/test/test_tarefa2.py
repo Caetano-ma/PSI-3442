@@ -281,7 +281,7 @@ def test_fantasma_perto_de_balao_destruido_nao_e_contado_de_novo():
     assert len(destruidos(s)) == 1
 
 
-def test_alvo_com_posicao_muito_incerta_nao_e_selecionado():
+def test_escolha_do_alvo_prioriza_baixa_incerteza_e_ignora_fora_do_volume():
     from psi3442_tarefas.no_tarefa2 import MaquinaTarefa2
     from types import SimpleNamespace
     cfg = cfg_rapida().tarefa2
@@ -290,6 +290,57 @@ def test_alvo_com_posicao_muito_incerta_nao_e_selecionado():
     incerto = SimpleNamespace(id=1, cor='vermelho', alvo=True, situacao=CONFIRMADO, x_m=2, y_m=1, z_m=1.5,
                               incerteza_m=0.35)
     baixo = SimpleNamespace(id=2, cor='azul', alvo=True, situacao=CONFIRMADO, x_m=2, y_m=2, z_m=0.1, incerteza_m=0.1)
-    bom = SimpleNamespace(id=3, cor='azul', alvo=True, situacao=CONFIRMADO, x_m=3, y_m=1, z_m=1.5, incerteza_m=0.1)
-    assert m._escolher_alvo(SimpleNamespace(baloes=[incerto, baixo]), estado) is None
+    bom = SimpleNamespace(id=3, cor='azul', alvo=True, situacao=CONFIRMADO, x_m=2.5, y_m=1, z_m=1.5, incerteza_m=0.05)
+    assert m._escolher_alvo(SimpleNamespace(baloes=[baixo]), estado) is None          # abaixo do volume
+    assert m._escolher_alvo(SimpleNamespace(baloes=[incerto]), estado).id == 1         # incerto ainda é visitado
     assert m._escolher_alvo(SimpleNamespace(baloes=[incerto, baixo, bom]), estado).id == 3
+
+
+def test_alvo_perto_de_obstaculo_aproxima_pelo_lado_livre():
+    """Cenário: alvo junto de obstáculo (seção 7). Paredes mapeadas logo atrás (x = 3,45) e à direita (y = 0,55) do
+    balão: a aproximação escolhe uma direção livre e a missão destrói o balão sem violar a margem de 0,40 m."""
+    s = SistemaSimuladoT2(ALVOS[:1], cfg=cfg_rapida())
+    for _ in range(5):                                  # acertos do sensor de distâncias nas duas paredes
+        for k in range(30):
+            s.mapa.grade.acertos[s.mapa.grade.indice(3.45, -0.4 + 0.15 * k)] += 1
+            s.mapa.grade.acertos[s.mapa.grade.indice(2.0 + 0.05 * k, 0.55)] += 1
+    s.comando(EXECUTAR_TAREFA2)
+    assert s.rodar_ate(lambda s: destruidos(s), 400)
+    final = s.tarefa2.alvo['final'] if s.tarefa2.alvo else None
+    assert final is None or not s.mapa.obstaculo_perto(final[0], final[1], 0.2)
+    assert all(0.0 < d <= 0.05 for _, d in distancias_reais_contando(s, ALVOS[:1]))
+
+
+def test_tempo_de_missao_excedido_pousa_no_local():
+    """Cenário: tempo de missão excedido. A supervisão gera a falha e a Tarefa 2 termina pousando no local."""
+    s = SistemaSimuladoT2(ALVOS + NAO_ALVOS, cfg=cfg_rapida(tempo_max_tarefa_s=40.0))
+    s.comando(EXECUTAR_TAREFA2)
+    assert s.rodar_ate(pousado, 200)
+    from psi3442_tarefas.tipos import TEMPO_TAREFA_EXCEDIDO
+    assert any(f.tipo == TEMPO_TAREFA_EXCEDIDO for _, f in s.falhas), s.falhas
+    assert s.tarefa2.estado == 'abortada'
+
+
+SALA_SEMENTE_2 = [  # psi3442_gazebo/gerar_sala_t2.py --semente 2 --baloes 7 (config padrão)
+    BalaoVerdadeiro('azul', 2.66, 1.97, 1.07), BalaoVerdadeiro('vermelho', 1.90, 1.35, 1.70),
+    BalaoVerdadeiro('vermelho', 4.33, 3.18, 1.50), BalaoVerdadeiro('vermelho', 0.17, 1.58, 1.25),
+    BalaoVerdadeiro('vermelho', 1.68, 2.99, 1.48), BalaoVerdadeiro('azul', 4.03, 1.70, 1.81),
+    BalaoVerdadeiro('verde', 0.37, 2.76, 1.70)]
+
+
+def test_sala_aleatoria_com_erro_de_tamanho_destroi_todos_uma_vez():
+    """Sala da semente 2 (6 alvos, 1 não alvo) com 10 % de erro no tamanho aparente (como o YOLO no Gazebo): o mapa
+    gera duplicatas e fantasmas, mas cada alvo real é destruído exatamente uma vez, sempre na faixa."""
+    s = SistemaSimuladoT2(SALA_SEMENTE_2, cfg=cfg_rapida(), erro_tamanho=0.10)
+    s.comando(EXECUTAR_TAREFA2)
+    assert s.rodar_ate(pousado, 3000)
+    assert s.tarefa2.estado == 'concluida' and not s.falhas
+    reais = [(b.cor, b.x, b.y) for b in SALA_SEMENTE_2 if b.cor in ('vermelho', 'azul')]
+    destruidos_reais = []
+    for ev in destruidos(s):
+        b = next(m for m in s.mapa.baloes if m.id == int(ev.valor))
+        v = s.balao_verdadeiro(b.x_m, b.y_m, b.z_m)
+        destruidos_reais.append((v.cor, v.x, v.y))
+    assert sorted(destruidos_reais) == sorted(reais)
+    alvos = [b for b in SALA_SEMENTE_2 if b.cor != 'verde']
+    assert all(0.0 < d <= 0.05 for _, d in distancias_reais_contando(s, alvos))

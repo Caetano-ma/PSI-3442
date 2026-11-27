@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import matplotlib
+import matplotlib.ticker
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
@@ -28,7 +29,12 @@ plt.rcParams.update({
     'xtick.color': TEXTO2, 'ytick.color': TEXTO2, 'axes.grid': True, 'grid.color': GRADE, 'grid.linewidth': 0.8,
     'axes.spines.top': False, 'axes.spines.right': False, 'lines.linewidth': 2, 'figure.dpi': 160,
     'axes.titlesize': 10, 'axes.titleweight': 'bold', 'axes.titlecolor': TEXTO, 'legend.frameon': False,
+    'axes.axisbelow': True, 'axes.formatter.use_locale': False,
 })
+
+
+def virgula(v, casas=2):
+    return f'{v:.{casas}f}'.replace('.', ',')
 
 
 def ler_csv(caminho):
@@ -36,9 +42,10 @@ def ler_csv(caminho):
         return list(csv.DictReader(f))
 
 
-def salvar(fig, nome):
+def salvar(fig, nome, ajustar=True):
     FIG.mkdir(exist_ok=True)
-    fig.tight_layout()
+    if ajustar:
+        fig.tight_layout()
     fig.savefig(FIG / nome, facecolor='white')
     plt.close(fig)
     print('figura:', FIG / nome)
@@ -136,12 +143,16 @@ def detector():
         return
     m = json.loads(caminho.read_text())
     faixas = list(m['revocacao_por_diametro_px'].items())
-    fig, ax = plt.subplots(figsize=(5.6, 2.4))
+    fig, ax = plt.subplots(figsize=(6.0, 3.0))
     ax.bar([f for f, _ in faixas], [v for _, v in faixas], color=AZUL, width=0.75)
+    ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: virgula(v)))
     ax.set(ylim=(0, 1.05), ylabel='revocação', xlabel='diâmetro aparente do balão (px)',
-           title=f"Detector YOLOv8n — validação sintética: precisão {m['precisao']:.2f}, revocação {m['revocacao']:.2f}")
+           title='Revocação do detector por tamanho aparente')
     ax.tick_params(axis='x', labelsize=7, rotation=30)
-    salvar(fig, 'detector_revocacao.png')
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    fig.text(0.01, 0.015, f"Validação sintética ({m['imagens']} imagens): precisão {virgula(m['precisao'])}, "
+             f"revocação {virgula(m['revocacao'])}, {m['cor_trocada']} trocas de cor", fontsize=8, color=TEXTO2)
+    salvar(fig, 'detector_revocacao.png', ajustar=False)
 
 
 def main():

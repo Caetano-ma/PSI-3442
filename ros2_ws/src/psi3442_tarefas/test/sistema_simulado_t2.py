@@ -45,6 +45,7 @@ class VisaoSintetica:
     baloes: list
     ruido_px: float = 1.5
     alcance_m: float = 6.0
+    erro_tamanho: float = 0.0          # desvio relativo do tamanho aparente (o YOLO erra a caixa: ~10 % no Gazebo)
     rng: random.Random = field(default_factory=lambda: random.Random(7))
 
     def observar(self, pose_real, guinada_estimada, cores):
@@ -78,7 +79,7 @@ class VisaoSintetica:
                     or abs(math.atan2(cima, frente)) > vfov / 2 + angular:
                 continue
             uv = self.geometria.projetar((frente, esquerda, cima))
-            r_px = self.geometria.f * math.tan(angular)
+            r_px = self.geometria.f * math.tan(angular) * (1.0 + self.rng.gauss(0, self.erro_tamanho))
             if any(math.hypot(uv[0] - u, uv[1] - v) < 0.5 * (r_px + r) for u, v, r in ocupados):
                 continue                       # oculto por um balão mais próximo
             ocupados.append((uv[0], uv[1], r_px))
@@ -127,7 +128,7 @@ class VisaoSintetica:
 
 
 class SistemaSimuladoT2:
-    def __init__(self, baloes, cfg=None, parametros=None, ruido_px=1.5):
+    def __init__(self, baloes, cfg=None, parametros=None, ruido_px=1.5, erro_tamanho=0.0):
         self.cfg = cfg or carregador_config.carregar(CONFIG)
         c = self.cfg
         self.drone = DroneCinematico(parametros or ParametrosSimulacao())
@@ -145,7 +146,8 @@ class SistemaSimuladoT2:
         v = c.visao
         self.baloes = baloes
         self.visao_sintetica = VisaoSintetica(GeometriaCamera(v.hfov_graus, v.largura_px, v.altura_px,
-                                                              c.tarefa2.raio_balao_m), v.hfov_graus, baloes, ruido_px)
+                                                              c.tarefa2.raio_balao_m), v.hfov_graus, baloes, ruido_px,
+                                              erro_tamanho=erro_tamanho)
         self.visao = None
         self.t = 0.0
         self.ativa = 0

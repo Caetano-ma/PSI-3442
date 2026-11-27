@@ -33,12 +33,15 @@ FINAIS = ('aguardando', 'concluida', 'abortada')
 INATIVO = Setpoint(ativo=False)
 REPETICAO_POUSO_S = 5.0
 TOL_AZIMUTE_GRAUS = 12.0
+TOL_CONFIRMACAO_GRAUS = 25.0      # no ponto de espera: o centro do mapa pode errar ~0,3 m; a visão reorienta
+DISTANCIA_CANDIDATO_MESMO_ALVO_M = 1.2   # candidato da mesma cor a menos disto do alvo: duplicata dele
+REPESCAGENS_MAX = 2               # rodadas extras sobre alvos descartados/inalcançáveis antes de voltar
 TEMPO_MAX_FORA_S = 15.0           # na permanência, sem voltar à faixa por mais que isto: nova tentativa
 TEMPO_REFINO_S = 1.0              # no ponto de espera: média das detecções de perto antes da aproximação final
 DISTANCIA_REFINO_M = 1.5          # só detecções mais próximas que isto refinam o centro do alvo
 ALFA_ANCORA = 0.5                 # filtro da reancoragem do centro pela medida de proximidade (por quadro)
 MARGEM_CANDIDATO_M = 0.15         # folga a um balão ainda candidato (além de raio + envelope)
-INCERTEZA_MAX_ALVO_M = 0.25       # balão com posição mais incerta que isto ainda não é alvo (fantasmas do mapa)
+PESO_INCERTEZA = 3.0              # na escolha do alvo: 1 m de distância equivale a 0,33 m de incerteza
 DISTANCIA_DUPLICATA_M = 0.6       # mesma cor e mais perto que isto do alvo: duplicata dele no mapa
 SALTO_MAX_ANCORA_M = 0.40         # medida de perto mais longe que isto do centro atual é descartada
 PontoBalao = namedtuple('PontoBalao', 'id cor x_m y_m z_m')
@@ -125,6 +128,7 @@ class MaquinaTarefa2:
         self._confirmado_s = None
         self._refino = []
         self._reaproximacoes = 0
+        self._repescagens = 0
         self._ancora = None
         self._t_medida = -math.inf        # última medida de proximidade do alvo (reancoragem)
 
@@ -212,8 +216,11 @@ class MaquinaTarefa2:
         if balao.id == ignorar_id:
             return True
         alvo = next((b for b in (mapa.baloes if mapa is not None else []) if b.id == ignorar_id), None)
-        return alvo is not None and balao.cor == alvo.cor and math.dist(
-            (balao.x_m, balao.y_m, balao.z_m), (alvo.x_m, alvo.y_m, alvo.z_m)) < DISTANCIA_DUPLICATA_M
+        if alvo is None or balao.cor != alvo.cor:
+            return False
+        d = math.dist((balao.x_m, balao.y_m, balao.z_m), (alvo.x_m, alvo.y_m, alvo.z_m))
+        limite = DISTANCIA_CANDIDATO_MESMO_ALVO_M if balao.situacao == CANDIDATO else DISTANCIA_DUPLICATA_M
+        return d < limite
 
     def _bloqueio(self, a, b, mapa, ignorar_id=None):
         """Primeiro balão que bloqueia o segmento a -> b (exceto o alvo `ignorar_id` e suas duplicatas), ou None."""
@@ -313,13 +320,14 @@ class MaquinaTarefa2:
         ja_tratados = [b for b in baloes if b.situacao == DESTRUIDO or b.id in ignorar]
         c = self.cfg
         opcoes = [b for b in baloes if b.alvo and b.situacao == CONFIRMADO and b.id not in ignorar
-                  and getattr(b, 'incerteza_m', 0.0) <= INCERTEZA_MAX_ALVO_M
                   and c.volume_z_min_m - 0.3 <= b.z_m <= c.volume_z_max_m + 0.3
                   and not any(t.cor == b.cor and t.id != b.id and math.dist((t.x_m, t.y_m, t.z_m), (b.x_m, b.y_m, b.z_m))
                               < DISTANCIA_DUPLICATA_M for t in ja_tratados)]
         if not opcoes or estado is None or not estado.valido:
             return None
-        return min(opcoes, key=lambda b: math.dist((b.x_m, b.y_m, b.z_m), (estado.x_m, estado.y_m, estado.z_m)))
+        # o mais próximo, penalizando a incerteza (fantasmas do mapa têm incerteza alta e são descartados de perto)
+        return min(opcoes, key=lambda b: math.dist((b.x_m, b.y_m, b.z_m), (estado.x_m, estado.y_m, estado.z_m))
+                   + PESO_INCERTEZA * getattr(b, 'incerteza_m', 0.0))
 
     def _geometria_aproximacao(self, balao, estado, mapa):
         """Ponto de espera, ponto final e guinada; testa 8 direções em volta do balão (R06)."""
@@ -350,6 +358,7 @@ class MaquinaTarefa2:
         geo = self._geometria_aproximacao(balao, estado, mapa)
         if geo is None:
             self.inalcancaveis.add(balao.id)
+            self.tentativas[balao.id] = self.tentativas.get(balao.id, 0) + 1
             self.alvo = {'id': balao.id, 'cor': balao.cor}
             self._evento('ALVO_INALCANCAVEL', detalhe='sem ponto de aproximação livre no volume permitido')
             self.alvo = None
@@ -358,6 +367,7 @@ class MaquinaTarefa2:
         rota = self._planejar_rota(origem, geo['espera'], mapa, ignorar_id=balao.id)
         if rota is None:
             self.inalcancaveis.add(balao.id)
+            self.tentativas[balao.id] = self.tentativas.get(balao.id, 0) + 1
             self.alvo = geo
             self._evento('ALVO_INALCANCAVEL', detalhe='caminho bloqueado')
             self.alvo = None
@@ -384,11 +394,29 @@ class MaquinaTarefa2:
             self._ir('girando', agora, detalhe or 'retoma a varredura')
         elif self.indice_busca + 1 < len(self.pontos):
             self._proximo_ponto(agora, estado, mapa)
+        elif self._repescar(agora, estado, mapa):
+            return
         else:
             self._ir('retornando', agora, detalhe or 'varredura completa')
 
+    def _liberar_para_nova_tentativa(self):
+        """Descartados e inalcançáveis com tentativas restantes voltam a ser elegíveis (o mapa melhorou)."""
+        restam = {i for i in self.inalcancaveis | self.descartados
+                  if self.tentativas.get(i, 0) < self.cfg.tentativas_por_balao}
+        self.inalcancaveis -= restam
+        self.descartados -= restam
+        return restam
+
+    def _repescar(self, agora, estado, mapa):
+        """Varredura completa: antes de voltar, tenta de novo os alvos descartados/inalcançáveis (até 2 rodadas)."""
+        if self._repescagens >= REPESCAGENS_MAX or not self._liberar_para_nova_tentativa():
+            return False
+        self._repescagens += 1
+        balao = self._escolher_alvo(mapa, estado)
+        return balao is not None and self._iniciar_aproximacao(balao, agora, estado, mapa)
+
     def _proximo_ponto(self, agora, estado, mapa):
-        self.inalcancaveis.clear()            # o mapa melhorou: alvos inalcançáveis voltam a ser tentados
+        self._liberar_para_nova_tentativa()
         while self.indice_busca + 1 < len(self.pontos):
             self.indice_busca += 1
             x, y = self.pontos[self.indice_busca]
@@ -399,20 +427,21 @@ class MaquinaTarefa2:
                 self.rota = rota
                 self._ir('deslocando', agora, f'ponto de busca {self.indice_busca}')
                 return
-        self._ir('retornando', agora, 'varredura completa')
+        if not self._repescar(agora, estado, mapa):
+            self._ir('retornando', agora, 'varredura completa')
 
     def _comecar_giro(self, estado):
         g0 = estado.guinada_local_graus if estado is not None else 0.0
         passos = int(round(360.0 / self.cfg.passo_giro_graus))
         self.direcoes = [normalizar_graus(g0 + k * self.cfg.passo_giro_graus) for k in range(1, passos + 1)]
 
-    def _confirmacao_visual(self, visao, agora, guinada_esperada):
+    def _confirmacao_visual(self, visao, agora, guinada_esperada, tolerancia=TOL_AZIMUTE_GRAUS):
         if visao is None or agora - visao.t > self.cfg.tempo_sem_confirmacao_s:
             return False
         cor = self.alvo['cor']
         if visao.cor_central == cor and visao.fracao_cor_central >= self.cfg.fracao_cor_central_min:
             return True
-        return any(d.cor == cor and abs(normalizar_graus(d.azimute_graus - guinada_esperada)) <= TOL_AZIMUTE_GRAUS
+        return any(d.cor == cor and abs(normalizar_graus(d.azimute_graus - guinada_esperada)) <= tolerancia
                    for d in visao.deteccoes)
 
     # ------------------------------------------------------------------ passo (10 Hz)
@@ -516,6 +545,7 @@ class MaquinaTarefa2:
     def _em_aproximando(self, agora, estado, tel, mapa, visao):
         if not self._replanejar(estado, mapa, self.alvo['id']):
             self.inalcancaveis.add(self.alvo['id'])
+            self.tentativas[self.alvo['id']] = self.tentativas.get(self.alvo['id'], 0) + 1
             self._evento('ALVO_INALCANCAVEL', detalhe='caminho bloqueado por balão mapeado no trajeto')
             self._decidir(agora, estado, mapa)
             return self._setpoint(estado.x_m, estado.y_m, estado.z_m, None, 'replanejando')
@@ -526,7 +556,7 @@ class MaquinaTarefa2:
 
     def _em_confirmando(self, agora, estado, tel, mapa, visao):
         espera, guinada = self.alvo['espera'], self.alvo['guinada']
-        if self._confirmacao_visual(visao, agora, guinada):
+        if self._confirmacao_visual(visao, agora, guinada, TOL_CONFIRMACAO_GRAUS):
             if self._confirmado_s is None:
                 self._confirmado_s = agora
             self._acumular_refino(visao, guinada)
@@ -558,6 +588,7 @@ class MaquinaTarefa2:
                                                 '({:.2f}, {:.2f}, {:.2f}) m'.format(*self.alvo['centro']))
         elif self._confirmado_s is None and agora - self.t_entrada > self.cfg.tempo_confirmacao_s:
             self.descartados.add(self.alvo['id'])
+            self.tentativas[self.alvo['id']] = self.tentativas.get(self.alvo['id'], 0) + 1
             self._evento('ALVO_DESCARTADO', detalhe='não confirmado pela visão no ponto de espera')
             self._decidir(agora, estado, mapa)
             return self._setpoint(*espera, guinada, 'descartado')
@@ -575,6 +606,7 @@ class MaquinaTarefa2:
     def _descartar_duplicata(self, agora, estado, mapa, rotulo):
         """O alvo é, na verdade, um balão já destruído (duplicata no mapa): descarta sem contar de novo (R04)."""
         self.descartados.add(self.alvo['id'])
+        self.tentativas[self.alvo['id']] = self.cfg.tentativas_por_balao       # definitivo: é um balão já destruído
         self._evento('ALVO_DESCARTADO', detalhe=f'medido de perto, é o balão já destruído {rotulo}: não conta de novo')
         espera, guinada = self.alvo['espera'], self.alvo['guinada']
         self._decidir(agora, estado, mapa)
@@ -586,11 +618,11 @@ class MaquinaTarefa2:
             return
         dets = [d for d in visao.deteccoes if d.cor == self.alvo['cor'] and not d.cortada
                 and 0 < d.distancia_m < DISTANCIA_REFINO_M
-                and abs(normalizar_graus(d.azimute_graus - guinada)) <= TOL_AZIMUTE_GRAUS]
+                and abs(normalizar_graus(d.azimute_graus - guinada)) <= TOL_CONFIRMACAO_GRAUS]
         if dets:
             d = min(dets, key=lambda d: abs(normalizar_graus(d.azimute_graus - guinada)))
             p = ponto_da_deteccao(visao.x_m, visao.y_m, visao.z_m, visao.guinada_local_graus, d)
-            if math.dist(p, self.alvo['centro']) < 0.5:
+            if math.dist(p, self.alvo['centro']) < 0.6:
                 self._refino.append((visao, p))
 
     def _medida_proxima(self, visao, agora):

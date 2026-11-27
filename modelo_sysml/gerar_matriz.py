@@ -1,7 +1,8 @@
 """Gera a matriz requisito -> função -> elemento -> módulo/arquivo -> teste/evidência a partir dos arquivos .sysml
 e confere a consistência entre os níveis. Sai com código 1 se houver pendências.
 
-Uso: python3 gerar_matriz.py   (gera rastreabilidade/matriz_q1.csv e rastreabilidade/matriz_q1.md)
+Uso: python3 gerar_matriz.py   (gera rastreabilidade/matriz_q1.* e rastreabilidade/matriz_q2.*; o R07 aparece nas
+duas, pois o tratamento de falhas é reutilizado)
 """
 import csv
 import re
@@ -22,12 +23,22 @@ def ultimo(caminho):
 
 
 def main():
-    comum, n0, n1, nn, ver = (ler(f) for f in
-                              ("00_Comum.sysml", "01_Nivel0.sysml", "02_Nivel1.sysml", "03_NivelN.sysml", "04_Verificacao.sysml"))
+    comum = ler("00_Comum.sysml")
+    bloco_q1 = comum[comum.index("package RequisitosQ1"):comum.index("package RequisitosQ2")]
+    bloco_q2 = comum[comum.index("package RequisitosQ2"):]
+    defs_q1 = {d: i for i, d in re.findall(r"requirement def <(\w+)> (\w+)", bloco_q1)}
+    defs_q2 = {d: i for i, d in re.findall(r"requirement def <(\w+)> (\w+)", bloco_q2)}
+    defs_q2.update({d: i for d, i in defs_q1.items() if i == "R07"})
+    codigo = 0
+    for nome, defs in (("q1", defs_q1), ("q2", defs_q2)):
+        codigo |= gerar(nome, defs)
+    return codigo
+
+
+def gerar(nome, id_por_def):
+    n0, n1, nn, ver = (ler(f) for f in ("01_Nivel0.sysml", "02_Nivel1.sysml", "03_NivelN.sysml", "04_Verificacao.sysml"))
 
     # requisito: uso -> (id, definição)
-    bloco_q1 = comum[comum.index("package RequisitosQ1"):comum.index("package RequisitosQ2")]
-    id_por_def = {d: i for i, d in re.findall(r"requirement def <(\w+)> (\w+)", bloco_q1)}
     requisitos = {uso: (id_por_def[d], d) for uso, d in re.findall(r"requirement (\w+) : (\w+);", n0)
                   if d in id_por_def}
 
@@ -96,15 +107,15 @@ def main():
     SAIDA.mkdir(exist_ok=True)
     cab = ["Requisito", "Definição", "Função (nível 1)", "Componente (nível 1)", "Módulo (nível n)",
            "Arquivo de código", "Teste", "Evidência"]
-    with open(SAIDA / "matriz_q1.csv", "w", newline="", encoding="utf-8") as f:
+    with open(SAIDA / f"matriz_{nome}.csv", "w", newline="", encoding="utf-8") as f:
         csv.writer(f).writerows([cab] + linhas)
-    with open(SAIDA / "matriz_q1.md", "w", encoding="utf-8") as f:
-        f.write("# Matriz de rastreabilidade — Questão 1\n\n_Gerada por `gerar_matriz.py` a partir do modelo SysML._\n\n")
+    with open(SAIDA / f"matriz_{nome}.md", "w", encoding="utf-8") as f:
+        f.write(f"# Matriz de rastreabilidade — Questão {nome[1]}\n\n_Gerada por `gerar_matriz.py` a partir do modelo SysML._\n\n")
         f.write("| " + " | ".join(cab) + " |\n|" + "---|" * len(cab) + "\n")
         for lin in linhas:
             f.write("| " + " | ".join(c.replace("|", "/") for c in lin) + " |\n")
 
-    print(f"{len(linhas)} linhas -> {SAIDA / 'matriz_q1.csv'} e matriz_q1.md")
+    print(f"{len(linhas)} linhas -> {SAIDA / f'matriz_{nome}.csv'} e matriz_{nome}.md")
     if pendencias:
         print(f"{len(pendencias)} pendência(s) de consistência:")
         print("\n".join("  - " + p for p in pendencias))

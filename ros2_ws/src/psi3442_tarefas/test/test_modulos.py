@@ -50,6 +50,27 @@ def test_config_invalida_e_rejeitada(dados, alteracao, trecho):
         carregador_config.carregar_dict(dados)
 
 
+def test_config_tarefa2_oficial():
+    cfg = carregador_config.carregar(CONFIG)
+    t2 = cfg.tarefa2
+    assert t2.cores_alvo == ('vermelho', 'azul') and t2.d_max_m == 0.05 and t2.tempo_permanencia_s == 60.0
+    assert 0 < t2.d_alvo_m < t2.d_max_m and cfg.visao.classes == t2.cores_conhecidas
+
+
+@pytest.mark.parametrize('alteracao', [
+    lambda d: d['tarefa2'].__setitem__('cores_alvo', ['laranja']),
+    lambda d: d['tarefa2'].__setitem__('d_alvo_m', 0.06),
+    lambda d: d['tarefa2'].__setitem__('volume_x_max_m', -1.0),
+    lambda d: d['tarefa2'].__setitem__('altura_busca_m', 3.0),
+    lambda d: d['visao'].__setitem__('classes', ['vermelho']),
+    lambda d: d['tarefa2'].__setitem__('cor_extra', 1),
+])
+def test_config_tarefa2_invalida_e_rejeitada(dados, alteracao):
+    alteracao(dados)
+    with pytest.raises(ErroConfiguracao):
+        carregador_config.carregar_dict(dados)
+
+
 def test_config_teste_rapido_usa_padroes():
     cfg = carregador_config.carregar(CONFIG.replace('tarefas.yaml', 'tarefas_teste_rapido.yaml'))
     assert cfg.tarefa1.tempo_permanencia_s == 5.0

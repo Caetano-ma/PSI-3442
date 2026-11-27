@@ -429,4 +429,10 @@ package Nivel1 {
     satisfy Nivel0::r08 by funcaoGlobal.registrar;
     satisfy Nivel0::r09 by funcaoGlobal.gerenciarTarefas;
     satisfy Nivel0::r09 by funcaoGlobal.registrar;
+    satisfy Nivel0::r02 by funcaoGlobal.traduzirParaDji;
+    satisfy Nivel0::r02 by funcaoGlobal.acionarSdk;
+    satisfy Nivel0::r08 by funcaoGlobal.interpretarComando;
+    satisfy Nivel0::r08 by funcaoGlobal.registrar;
+    satisfy Nivel0::r09 by funcaoGlobal.gerenciarTarefas;
+    satisfy Nivel0::r09 by funcaoGlobal.registrar;
 }

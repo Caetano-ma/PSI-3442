@@ -172,11 +172,30 @@ package Comum {
     }
 
     item def ConfiguracaoTarefa2 {
-        doc /* Parâmetros da Tarefa 2 (R01) — a detalhar. */
+        doc /* Parâmetros da Tarefa 2 (R01), seções tarefa2 e visao de config/tarefas.yaml. Distâncias de
+               superfície a superfície; volume relativo ao ponto de decolagem (ReferencialLocal). */
         attribute coresAlvo : String[*];
-        attribute distanciaMaxima : LengthValue;
+        attribute coresConhecidas : String[*];
+        attribute volumeMin : Ponto3D;
+        attribute volumeMax : Ponto3D;
+        attribute alturaBusca : LengthValue;
+        attribute passoBusca : LengthValue;
+        attribute raioBalao : LengthValue;
+        attribute raioEnvelopeFrontal : LengthValue;   // centro da aeronave -> frente das hélices
+        attribute distanciaAlvo : LengthValue;         // d desejada na permanência
+        attribute distanciaMaxima : LengthValue;       // faixa válida 0 < d <= distanciaMaxima (R04)
         attribute tempoPermanencia : DurationValue;
-        attribute margemObstaculos : LengthValue;
+        attribute distanciaAproximacao : LengthValue;  // ponto de espera
+        attribute vAproximacaoFinal : SpeedValue;
+        attribute margemObstaculos : LengthValue;      // paredes e mobiliário (R06)
+        attribute margemNaoAlvo : LengthValue;         // balões não selecionados (R06)
+        attribute observacoesMin : Integer;
+        attribute tempoConfirmacao : DurationValue;
+        attribute tempoSemConfirmacao : DurationValue;
+        attribute tentativasPorBalao : Integer;
+        attribute tempoMaxTarefa : DurationValue;
+        attribute campoVisaoHorizontal : Real;         // graus — verificar no fluxo ao vivo da DJI
+        attribute limiarConfianca : Real;
     }
 
     item def ConfiguracaoTarefas {
@@ -198,6 +217,27 @@ package Comum {
     attribute def VerticeAtingido { doc /* Veredito "dentro" no setpoint atual (erro horizontal, vertical e velocidade). */ }
     attribute def ToleranciaExcedida { doc /* Veredito passa de "dentro" para "fora" durante a permanência: zera o cronômetro (P05). */ }
     attribute def PermanenciaConcluida { doc /* Cronômetro atinge tempoPermanencia contínuo em tempo real. */ }
+
+    // Tarefa 2
+    attribute def GiroCompleto { doc /* Varredura de 360° concluída no ponto de busca atual. */ }
+    attribute def PontoBuscaAtingido { doc /* Chegou ao próximo ponto da grade de varredura. */ }
+    attribute def VarreduraCompleta { doc /* Não há mais pontos de busca nem alvos confirmados pendentes. */ }
+    attribute def AlvoConfirmadoNoMapa { doc /* Balão de cor-alvo CONFIRMADO no mapa, não destruído, com rota livre. */ }
+    attribute def AlvoInalcancavel { doc /* Sem ponto de aproximação livre no volume ou rota bloqueada. */ }
+    attribute def PontoEsperaAtingido { doc /* Na posição de espera (0,60 m da superfície), apontado para o alvo. */ }
+    attribute def ConfirmacaoVisual {
+        doc /* Detecção da cor-alvo na direção esperada (±12°) ou cor central igual à do alvo; o centro é refinado pela
+               média das detecções de perto durante 1 s. */
+    }
+    attribute def SemConfirmacao { doc /* Nenhuma confirmação visual em tempoConfirmacao: o alvo é descartado. */ }
+    attribute def FaixaAtingida { doc /* Rampa no ponto final e 0 < d estimada <= distanciaMaxima. */ }
+    attribute def SaiuDaFaixa {
+        doc /* d fora da faixa, |v| > vPairadoMax, ou sem confirmação/medida de proximidade por tempoSemConfirmacao:
+               a contagem reinicia (R04). */
+    }
+    attribute def ContatoEstimado { doc /* d estimada <= 0: afasta e faz nova tentativa (até tentativasPorBalao). */ }
+    attribute def BalaoDestruido { doc /* tempoPermanencia contínuo na faixa: o balão fica no mapa como DESTRUIDO e é ignorado. */ }
+    attribute def AfastamentoConcluido { doc /* De volta ao ponto de espera após destruir ou desistir do alvo. */ }
     attribute def Estabilizado { doc /* Veredito "dentro" em A (retorno) mantido por tempoEstabilizacao. */ }
     attribute def PousoConfirmado { doc /* Telemetria: emVoo = false e motoresLigados = false. */ }
     attribute def FalhaDetectada {

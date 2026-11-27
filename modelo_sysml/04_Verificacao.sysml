@@ -121,3 +121,133 @@ package VerificacaoQ1 {
     verification t09 : VerificarWatchdog;
     verification t10 : VerificarComandoDeTarefa;
 }
+
+package VerificacaoQ2 {
+    doc /* Casos de verificação da Tarefa 2 (Questão 2). Cenários exigidos na seção 7: único alvo (V03, V04),
+           múltiplos alvos e cores não alvo (V03, V06), ausência de alvos (V07), iluminação/oclusão desfavorável (V02),
+           alvo perto de obstáculo (V06), perda de detecção na permanência (V07) e perda de comunicação/tempo excedido
+           (V07, mais T07/T09 da Q1, reutilizados). Ambientes identificados: "teste sem voo" (malha fechada sintética,
+           pytest), "simulação" (Gazebo, relógio do simulador, avaliador com a verdade) e "voo real". */
+
+    private import ScalarValues::*;
+
+    verification def <V01> VerificarConfiguracaoT2 {
+        doc /* Método: carregar config/tarefas.yaml e variações inválidas (cor-alvo fora das conhecidas, d_alvo >= d_max,
+               volume vazio). Critério: configuração válida carrega; inválidas são rejeitadas com mensagem. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r01; }
+        attribute ambiente : String = "teste sem voo (unitário)";
+        attribute evidencia : String = "relatório do pytest";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/test/test_modulos.py";
+    }
+
+    verification def <V02> VerificarPercepcao {
+        doc /* Método: avaliação do detector ONNX (mesmo código do voo) no conjunto de validação sintético com
+               oclusão, cortes, desfoque, ruído e iluminação variados; depois nos quadros do Gazebo e do voo real.
+               Critério: precisão e revocação >= 0,9 para diâmetro aparente >= 20 px; nenhuma troca de cor em alvo. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r02; }
+        attribute ambiente : String = "teste sem voo (conjunto sintético) + simulação + voo real";
+        attribute evidencia : String = "modelos/metricas_detector.json + resumo.yaml do Gazebo + bag do voo";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/ferramentas/treinar_yolo.py";
+    }
+
+    verification def <V03> VerificarAutonomiaT2 {
+        doc /* Método: só "executar tarefa 2"; cenários com um alvo e com vários alvos e cores não alvo (sementes
+               registradas). Critério: todos os alvos destruídos uma única vez, nenhum ALVO_SELECIONADO de cor não alvo,
+               retorno e pouso no ponto de decolagem, sem falhas. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r03; }
+        attribute ambiente : String = "teste sem voo (malha fechada sintética) + simulação + voo real";
+        attribute evidencia : String = "pytest test_tarefa2 + resumo.yaml/CSV do Gazebo + bag do voo";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/test/test_tarefa2.py";
+    }
+
+    verification def <V04> VerificarDistanciaPermanencia {
+        doc /* Método: durante a contagem, distância VERDADEIRA (avaliador/simulação; no voo real, câmera lateral fixa
+               com escala, 30 quadros/s) comparada com 0 < d <= 5 cm; rajada e perda de visão para provar o reinício;
+               balão em movimento (1 cm/s). Critério: d real na faixa em todas as amostras com contagem; 60 s contínuos
+               por balão; reinício registrado após a interrupção. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r04; }
+        attribute ambiente : String = "teste sem voo + simulação + voo real (validação por câmera lateral)";
+        attribute evidencia : String = "pytest test_tarefa2 + avaliacao.csv do Gazebo + vídeo lateral e bag do voo";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/test/test_tarefa2.py";
+    }
+
+    verification def <V05> VerificarEstimacaoDistancia {
+        doc /* Método: mesma missão com viés de velocidade (deriva da posição integrada) de 0,5 e 2 cm/s; a verdade só
+               entra no avaliador. Critério: com 0,5 cm/s cumpre R04; com 2 cm/s pode não cumprir, mas nunca conta fora da
+               faixa e termina pousada. Erro de estimação na aproximação registrado (d estimada x d real). */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r05; }
+        attribute ambiente : String = "teste sem voo (malha fechada sintética) + simulação";
+        attribute evidencia : String = "pytest test_tarefa2 (deriva) + avaliacao.csv";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/test/test_tarefa2.py";
+    }
+
+    verification def <V06> VerificarRestricoes {
+        doc /* Método: folga mínima a balões não alvo e a paredes/móveis durante toda a missão (verdade do simulador);
+               balão novo no caminho força replanejamento; alvo junto de obstáculo. Critério: folga > 0,15 m a não alvos,
+               nenhuma colisão, nenhuma saída do volume. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r06; }
+        attribute ambiente : String = "teste sem voo + simulação";
+        attribute evidencia : String = "pytest test_tarefa2 + resumo.yaml (folga_min_nao_alvo_m, colisoes)";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/test/test_tarefa2.py";
+    }
+
+    verification def <V07> VerificarFalhasT2 {
+        doc /* Método: ausência de alvos; perda de detecção de 3 s na permanência; interromper durante a aproximação;
+               deriva extrema; perda da ponte e tempo excedido (reuso de T07/T09). Critério: varre e pousa sem alvos;
+               contagem reinicia; pouso no local; nenhuma contagem fora da faixa. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r07; }
+        attribute ambiente : String = "teste sem voo (malha fechada sintética)";
+        attribute evidencia : String = "relatório do pytest";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/test/test_tarefa2.py";
+    }
+
+    verification def <V08> VerificarObservabilidade {
+        doc /* Método: inspeção do painel (estado, alvo, distância estimada, cronômetro, eventos, falhas) e do CSV
+               exportado (analisar_ensaio.py). Critério: todos os campos presentes; logs exportáveis. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r08; }
+        attribute ambiente : String = "inspeção (simulação e voo real)";
+        attribute evidencia : String = "CSV/metricas.md de cada ensaio";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_tarefas/ferramentas/analisar_ensaio.py";
+    }
+
+    verification def <V09> VerificarReprodutibilidade {
+        doc /* Método: mesma semente gera a mesma sala; instalação em outra máquina pelo README (versões fixadas).
+               Critério: salas idênticas; testes passam numa instalação limpa. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r09; }
+        attribute ambiente : String = "teste sem voo";
+        attribute evidencia : String = "pytest test_sala_t2 + README";
+        attribute arquivoTeste : String = "ros2_ws/src/psi3442_gazebo/test/test_sala_t2.py";
+    }
+
+    verification def <V10> VerificarCanalVideoObstaculos {
+        doc /* Método: testes JVM do app ponte (redução NV21, canal de vídeo, obstáculos, cena falsa) e do lado ROS 2
+               (LeitorQuadros, LaserScan); no celular, modo "falso" com o ROS 2 pelo Wi-Fi; em solo com a aeronave,
+               quadros e distâncias reais (anteparo a distância conhecida). Critério: quadros a ~5 Hz e distâncias
+               coerentes com a medida de referência. */
+        subject sistema : NivelN::SistemaMissoesN;
+        objective { verify Nivel0::r02; }
+        attribute ambiente : String = "teste sem voo (JVM e pytest) + teste em solo com a aeronave";
+        attribute evidencia : String = "relatórios dos testes + log do app ponte";
+        attribute arquivoTeste : String = "android_ponte/app/src/test/java/br/usp/psi3442/ponte/SensoresTest.kt";
+    }
+
+    verification v01 : VerificarConfiguracaoT2;
+    verification v02 : VerificarPercepcao;
+    verification v03 : VerificarAutonomiaT2;
+    verification v04 : VerificarDistanciaPermanencia;
+    verification v05 : VerificarEstimacaoDistancia;
+    verification v06 : VerificarRestricoes;
+    verification v07 : VerificarFalhasT2;
+    verification v08 : VerificarObservabilidade;
+    verification v09 : VerificarReprodutibilidade;
+    verification v10 : VerificarCanalVideoObstaculos;
+}

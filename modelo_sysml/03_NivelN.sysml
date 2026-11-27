@@ -1,6 +1,7 @@
 package NivelN {
     doc /* Nível n — implementação. Detalha a Tarefa 1 (Questão 1), os serviços comuns às duas tarefas e a ponte DJI.
-           A Tarefa 2, a visão computacional e o mapeamento local ficam no nível 1 e serão detalhadas quando a Questão 2 for implementada.
+           A Tarefa 2 (Questão 2), a visão computacional e o mapeamento local estão detalhados na segunda parte deste
+           pacote ("Tarefa 2"); funções e módulos reutilizados entre as duas tarefas estão marcados com "reuso".
 
            Componentes caixa-preta (drone e rádio): não são decompostos; o drone é "explorado" pela interface do
            DJI Mobile SDK v5 (o que se lê, o que se comanda e os limites conhecidos). Nomes de chaves/APIs e valores
@@ -162,22 +163,46 @@ package NivelN {
         attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/ServidorSocket.kt";
     }
 
+    part def LeitorCameraObstaculos :> ModuloSoftware {
+        doc /* Tarefa 2. Quadros: MediaDataCenter.cameraStreamManager.addFrameListener(LEFT_OR_MAIN, NV21), 1 a cada
+               0,2 s, reduzidos por amostragem (Nv21.kt) a <= 640 px de largura e codificados em JPEG (YuvImage).
+               Distâncias: PerceptionManager.addObstacleDataListener -> ObstacleData.horizontalObstacleDistance (mm,
+               a partir do nariz, sentido horário, passo horizontalAngleInterval — verificar). Gimbal em pitch 0°
+               (GimbalKey.KeyRotateByAngle, ABSOLUTE_ANGLE) ao habilitar o controle virtual. APIs conferidas no jar do
+               MSDK 5.20.1. Variante falsa: CenaFalsa.kt (traçado de raios) para testes sem aeronave. */
+        attribute :>> arquivoCodigo = "android_ponte/app/src/celular/java/br/usp/psi3442/ponte/DroneDji.kt";
+        attribute taxaQuadros : Real = 5.0;    // Hz
+    }
+    part def ServidorVideo :> ModuloSoftware {
+        doc /* Canal de vídeo: TCP na porta do socket + 1; linha JSON de cabeçalho ("quadro", instante, largura, altura,
+               bytes, pitch do gimbal) seguida do JPEG. Só o quadro mais recente é enviado (descarta os atrasados). */
+        attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/ServidorVideo.kt";
+    }
+
     part def AppPonteDJIN :> Nivel1::AppPonteDJI {
         port sdkVoo : ~SdkControladorVoo;
         port sdkBateria : ~SdkBateria;
         port sdkEnlace : ~SdkEnlace;
         port sdkPercepcao : ~SdkPercepcao;
+        port sdkCamera : ~SdkCamera;
         part gerenciadorConexao : GerenciadorConexaoSdk;
         part leitorTelemetria : LeitorTelemetria;
         part emissorComandos : EmissorComandos;
         part configuradorSeguranca : ConfiguradorSeguranca;
         part servidorSocket : ServidorSocket;
+        part leitorCameraObstaculos : LeitorCameraObstaculos;
+        part servidorVideo : ServidorVideo;
     }
 
     // ---------------------------------------------------------------- nós ROS 2 (Python)
     part def ClienteSocketPonte :> ModuloSoftware {
         doc /* Cliente TCP do ContratoSocketPonte; reconecta automaticamente. A perda da ponte aparece como
                ausência de /dji/telemetria e é tratada pela supervisão (telemetriaAtrasada). */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/cliente_socket_ponte.py";
+    }
+    part def ClienteVideo :> ModuloSoftware {
+        doc /* Tarefa 2. Cliente do canal de vídeo (LeitorQuadros remonta cabeçalho + JPEG); o nó publica /dji/camera
+               (sensor_msgs/Image) e converte "obstaculos" em /dji/obstaculos (LaserScan, anti-horário). */
         attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/cliente_socket_ponte.py";
     }
     part def ConversorMensagens :> ModuloSoftware {
@@ -296,6 +321,7 @@ package NivelN {
     part def NoPonteDJIN :> Nivel1::NoPonteDJI {
         part clienteSocket : ClienteSocketPonte;
         part conversorMensagens : ConversorMensagens;
+        part clienteVideo : ClienteVideo;
     }
 
     part def AplicacaoROS2N :> Nivel1::AplicacaoROS2N1 {
@@ -307,6 +333,9 @@ package NivelN {
         part :>> supervisao : SupervisaoSegurancaN;
         part :>> registro : RegistroN;
         part :>> noPonte : NoPonteDJIN;
+        part :>> tarefa2 : Tarefa2N;
+        part :>> visao : VisaoComputacionalN;
+        part :>> mapeamento : MapeamentoLocalN;
         interface contratoCmdVel : ContratoTopicoCmdVel connect controle.pubCmdVel to noPonte.subCmdVel;
         interface contratoTelemetria : ContratoTopicoTelemetria connect noPonte.pubTelemetria to estimacao.subTelemetria;
     }
@@ -330,6 +359,7 @@ package NivelN {
         connect celular.appPonte.sdkBateria to drone.sdkBateria;
         connect celular.appPonte.sdkEnlace to drone.sdkEnlace;
         connect celular.appPonte.sdkPercepcao to drone.sdkPercepcao;
+        connect celular.appPonte.sdkCamera to drone.sdkCamera;
     }
 
     // =========================================================================================== configuração proposta (Tarefa 1)
@@ -487,6 +517,227 @@ package NivelN {
         state abortada { entry action publicarAbortoEFecharRegistro; }
     }
 
+
+    // =========================================================================================== Tarefa 2 (Questão 2)
+    part def DetectorYolo :> ModuloSoftware {
+        doc /* R02. YOLOv8 nano (5 classes = cores conhecidas), treinado com imagens sintéticas por randomização de
+               domínio (ferramentas/gerar_dataset_baloes.py, treinar_yolo.py) e exportado em ONNX (opset 12); executado
+               pelo módulo dnn do OpenCV, sem PyTorch em voo. Entrada 416x416 com letterbox; NMS 0,45. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_visao_computacional.py";
+        attribute limiarConfianca : Real = 0.5;
+    }
+    part def GeometriaCamera :> ModuloSoftware {
+        doc /* Pinhole com campo de visão horizontal da config (resolução lida do quadro). Direção = centro da caixa
+               (azimute no ReferencialLocal, elevação do raio); distância câmera->centro = r / sen(atan(r_px / f)),
+               não confiável com a caixa cortada na borda (descartada no mapa). */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_visao_computacional.py";
+    }
+    part def MedidorProximidade :> ModuloSoftware {
+        doc /* R04/R05. De perto o balão não cabe numa caixa: na linha central da imagem, o trecho contínuo da cor
+               central dá as bordas esquerda/direita; meia-largura angular a -> D = r / sen(a), azimute = média das
+               bordas. Precisão ~0,4 mm/px a 0,2 m. Trecho cortado pela borda -> só limite superior (-D). Também
+               fornece a cor dominante no centro (HSV), usada na confirmação do alvo. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_visao_computacional.py";
+    }
+    part def FusaoBaloes :> ModuloSoftware {
+        doc /* Cada detecção vira um ponto (pose estimada + deslocamento da câmera + D na direção medida); associação
+               por cor e janela max(0,45 m; 3σ; 0,15 D); média ponderada por 1/D²; CANDIDATO -> CONFIRMADO com
+               observacoesMin; DESTRUIDO por evento. Balões com > 20 observações viram marcos: o resíduo de uma
+               detecção de perto realinha o mapa inteiro (ganho 0,05), compensando a deriva da posição integrada. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_mapeamento_local.py";
+    }
+    part def GradeOcupacao :> ModuloSoftware {
+        doc /* Grade 2D de 0,20 m a partir de /dji/obstaculos (acertos e células livres por raio); células de balões
+               mapeados não contam como obstáculo fixo. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_mapeamento_local.py";
+        attribute resolucao : LengthValue = 0.2 [m];
+    }
+    part def PlanejadorVarredura :> ModuloSoftware {
+        doc /* Grade de pontos de busca em serpentina dentro do volume (passoBusca), começando na decolagem; em cada
+               ponto, giro de 360° em passos de 45° com pausa para a visão. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_tarefa2.py";
+    }
+    part def PlanejadorRotas :> ModuloSoftware {
+        doc /* R06. Menor rota num grafo de visibilidade (Dijkstra): nós em 8 direções em volta de cada balão do mapa,
+               arestas onde nenhum balão bloqueia o segmento (folga = r + rEnvelope + margem); replanejada a cada passo
+               se um balão recém-mapeado bloqueia o trecho restante. Ponto de aproximação: 8 direções em volta do alvo,
+               livres de obstáculos e de outros balões. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_tarefa2.py";
+    }
+    part def EstimadorDistanciaAlvo :> ModuloSoftware {
+        doc /* R04/R05. d = |c - p_frente| - r, p_frente = pose estimada + rEnvelope na direção do nariz. O centro c do
+               alvo é (1) refinado no ponto de espera pela média das detecções de perto e (2) reancorado a cada quadro
+               pela medida de proximidade (filtro 0,5; salto máx. 0,40 m), junto com os pontos de espera e final.
+               Assim a permanência segue o balão (inclusive em movimento) e não a posição integrada, que deriva.
+               A contagem só corre com medida direta recente; um limite superior só vale se garantir d <= 5 cm. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_tarefa2.py";
+    }
+    part def SupervisorTarefa2 :> ModuloSoftware {
+        doc /* Executa a máquina de estados da Tarefa 2 a 10 Hz; publica /setpoint (com guinada) e /tarefa/evento
+               (BALAO_DESTRUIDO com o centro medido, que realinha o mapa). Impede contagem duplicada: destruídos,
+               descartados e inalcançáveis são ignorados na seleção. */
+        attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_tarefa2.py";
+        exhibit state maquina : MaquinaEstadosTarefa2;
+    }
+
+    part def VisaoComputacionalN :> Nivel1::VisaoComputacional {
+        part detector : DetectorYolo;
+        part geometria : GeometriaCamera;
+        part proximidade : MedidorProximidade;
+    }
+    part def MapeamentoLocalN :> Nivel1::MapeamentoLocal {
+        part fusao : FusaoBaloes;
+        part grade : GradeOcupacao;
+    }
+    part def Tarefa2N :> Nivel1::Tarefa2Baloes {
+        part varredura : PlanejadorVarredura;
+        part rotas : PlanejadorRotas;
+        part estimadorDistancia : EstimadorDistanciaAlvo;
+        part cronometro : CronometroPermanencia;     // reuso da Tarefa 1 (mesma classe, tempo real)
+        part supervisorTarefa2 : SupervisorTarefa2;
+    }
+
+    // ---------------------------------------------------------------- ambiente de teste (fora do sistema de voo)
+    part def SimuladorGazebo {
+        doc /* Gazebo Harmonic 8 + ros_gz: sala gerada com semente (gerar_sala_t2.py), drone caixa-preta com
+               VelocityControl, câmera 640x480 e sensor de distâncias 360° (no lugar da percepção DJI); app ponte
+               simulado com o mesmo protocolo. O AvaliadorT2 usa a verdade do simulador só para validar (R05) e grava
+               avaliacao.csv/resumo.yaml. Ambiente sem sudo: conda RoboStack (ambiente/instalar_gazebo.sh). */
+        attribute geradorSala : String = "ros2_ws/src/psi3442_gazebo/psi3442_gazebo/gerar_sala_t2.py";
+        attribute avaliador : String = "ros2_ws/src/psi3442_gazebo/psi3442_gazebo/avaliador_t2.py";
+        attribute appPonteSimulado : String = "ros2_ws/src/psi3442_gazebo/psi3442_gazebo/app_ponte_gazebo.py";
+    }
+    part simulador : SimuladorGazebo;
+
+    item configTarefa2 : ConfiguracaoTarefa2 {
+        doc /* Valores de config/tarefas.yaml (seções tarefa2 e visao). Margens (R06) definidas antes dos testes. */
+        :>> coresAlvo = ("vermelho", "azul");
+        :>> coresConhecidas = ("vermelho", "azul", "verde", "amarelo", "roxo");
+        :>> alturaBusca = 1.4 [m];
+        :>> passoBusca = 2.2 [m];
+        :>> raioBalao = 0.13 [m];
+        :>> raioEnvelopeFrontal = 0.149 [m];
+        :>> distanciaAlvo = 0.025 [m];
+        :>> distanciaMaxima = 0.05 [m];
+        :>> tempoPermanencia = 60 [s];
+        :>> distanciaAproximacao = 0.60 [m];
+        :>> vAproximacaoFinal = 0.08 [m/s];
+        :>> margemObstaculos = 0.40 [m];
+        :>> margemNaoAlvo = 0.50 [m];
+        :>> observacoesMin = 3;
+        :>> tempoConfirmacao = 4 [s];
+        :>> tempoSemConfirmacao = 1 [s];
+        :>> tentativasPorBalao = 3;
+        :>> tempoMaxTarefa = 1500 [s];
+        :>> campoVisaoHorizontal = 82.1;
+        :>> limiarConfianca = 0.5;
+    }
+
+    state def MaquinaEstadosTarefa2 {
+        doc /* Refina o modo Nivel1::ModosOperacao::tarefa2 (R03, R04, R07). Falha ou interrupção em qualquer estado
+               de voo -> pousoSeguro (pouso no local, nunca retorno por GNSS). */
+        entry; then aguardando;
+
+        state aguardando;
+        transition ativada first aguardando accept ExecutarTarefa2 then preparando;
+        state preparando { entry action verificarPonteConexaoBateriaESeguranca; }
+        transition preparado first preparando accept PreparacaoConcluida then emVoo;
+        transition desistir first preparando accept FalhaDetectada then aguardando;
+
+        state emVoo {
+            entry; then decolando;
+            state decolando { entry action enviarDecolagem; }
+            transition decolou first decolando accept DecolagemConcluida then subindo;
+            state subindo { do action subirAteAlturaBusca; }
+            transition naAltura first subindo accept AlturaAtingida then girando;
+
+            state girando { do action girar360ComPausas; }
+            transition alvoNoGiro first girando accept AlvoConfirmadoNoMapa then aproximando;
+            transition giroFeito first girando accept GiroCompleto then deslocando;
+            transition semMaisPontos first girando accept VarreduraCompleta then retornando;
+
+            state deslocando { do action seguirRotaAteProximoPonto; }
+            transition alvoNoCaminho first deslocando accept AlvoConfirmadoNoMapa then aproximando;
+            transition chegouPonto first deslocando accept PontoBuscaAtingido then girando;
+
+            state aproximando { do action seguirRotaAteEspera; }
+            transition naEspera first aproximando accept PontoEsperaAtingido then confirmando;
+            transition bloqueado first aproximando accept AlvoInalcancavel then girando;
+
+            state confirmando { do action refinarCentroComDeteccoesDePerto; }
+            transition confirmado first confirmando accept ConfirmacaoVisual then aproximacaoFinal;
+            transition descartado first confirmando accept SemConfirmacao then girando;
+
+            state aproximacaoFinal { do action rampaAteDistanciaAlvoReancorando; }
+            transition naFaixa first aproximacaoFinal accept FaixaAtingida then permanecendo;
+
+            state permanecendo {
+                entry action zerarCronometro;
+                do action manterDistanciaReancorando;
+            }
+            transition reiniciar first permanecendo accept SaiuDaFaixa then permanecendo;
+            transition destruido first permanecendo accept BalaoDestruido then afastando;
+            transition contato first permanecendo accept ContatoEstimado then afastando;
+
+            state afastando { do action voltarAoPontoDeEspera; }
+            transition novaTentativa first afastando accept AfastamentoConcluido then confirmando;
+            transition proximoAlvo first afastando accept AlvoConfirmadoNoMapa then aproximando;
+            transition retomarBusca first afastando accept GiroCompleto then girando;
+
+            state retornando { do action seguirRotaAteDecolagem; }
+        }
+        transition iniciarPouso first emVoo accept Estabilizado then pousando;
+        transition falhaEmVoo first emVoo accept FalhaDetectada then pousoSeguro;
+        transition interrompida first emVoo accept InterromperTarefa then pousoSeguro;
+
+        state pousando { entry action descerEmRampa; do action monitorarToque; }
+        transition pousou first pousando accept PousoConfirmado then concluida;
+        transition interrompidaNoPouso first pousando accept InterromperTarefa then pousoSeguro;
+        state pousoSeguro { entry action pousarNoLocal; }
+        transition pousouEmFalha first pousoSeguro accept PousoConfirmado then abortada;
+        state concluida { entry action publicarResumoDosBaloes; }
+        state abortada { entry action publicarAbortoEFecharRegistro; }
+    }
+
+    action def AdquirirQuadro { out quadro : QuadroCamera; }
+    action def DetectarBaloes { in quadro : QuadroCamera; in estado : EstadoEstimado; out alvos : Alvos; }
+    action def AtualizarMapa { in alvos : Alvos; in obstaculos : Obstaculos; in estado : EstadoEstimado; out mapa : MapaLocal; }
+    action def EstimarDistanciaAlvo { in alvos : Alvos; in estado : EstadoEstimado; out distancia : LengthValue; }
+    action def DecidirTarefa2 { in mapa : MapaLocal; in distancia : LengthValue; in estado : EstadoEstimado; out setpoint : Setpoint; }
+
+    action def CicloPercepcaoDecisao {
+        doc /* Malha fechada exigida na seção 5: imagem -> percepção -> decisão -> comando -> movimento -> nova imagem.
+               Quadros a 5 Hz; decisão e controle a 10 Hz; cmd_vel a 20 Hz no app ponte. */
+        action adquirir : AdquirirQuadro;
+        action detectar : DetectarBaloes;
+        action estimar : AtualizarEstimativa;
+        action mapear : AtualizarMapa;
+        action medir : EstimarDistanciaAlvo;
+        action decidir : DecidirTarefa2;
+        action calcular : CalcularVelocidade;
+        action enviar : EnviarComandos;
+
+        first start then adquirir;
+        first adquirir then estimar;
+        first estimar then detectar;
+        first detectar then mapear;
+        first mapear then medir;
+        first medir then decidir;
+        first decidir then calcular;
+        first calcular then enviar;
+        first enviar then done;
+
+        flow from adquirir.quadro to detectar.quadro;
+        flow from estimar.estado to detectar.estado;
+        flow from detectar.alvos to mapear.alvos;
+        flow from detectar.alvos to medir.alvos;
+        flow from estimar.estado to medir.estado;
+        flow from mapear.mapa to decidir.mapa;
+        flow from medir.distancia to decidir.distancia;
+        flow from decidir.setpoint to calcular.setpoint;
+        flow from calcular.comando to enviar.comando;
+    }
+
     // =========================================================================================== instâncias e rastreabilidade
     part sistemaN : SistemaMissoesN;
     action ciclo : CicloControle;
@@ -547,4 +798,52 @@ package NivelN {
     satisfy Nivel0::r07 by sistemaN.notebook.ros2.supervisao.monitorFalhas;
     satisfy Nivel0::r07 by sistemaN.celular.appPonte.configuradorSeguranca;
     satisfy Nivel0::r07 by sistemaN.celular.appPonte.emissorComandos;
+
+    // --------------------------------------------------------------------------------------- Tarefa 2
+    action cicloT2 : CicloPercepcaoDecisao;
+    allocate cicloT2.adquirir to sistemaN.celular.appPonte.leitorCameraObstaculos;
+    allocate cicloT2.adquirir to sistemaN.notebook.ros2.noPonte.clienteVideo;
+    allocate cicloT2.detectar to sistemaN.notebook.ros2.visao.detector;
+    allocate cicloT2.detectar to sistemaN.notebook.ros2.visao.geometria;
+    allocate cicloT2.estimar to sistemaN.notebook.ros2.estimacao.estimador;
+    allocate cicloT2.mapear to sistemaN.notebook.ros2.mapeamento.fusao;
+    allocate cicloT2.mapear to sistemaN.notebook.ros2.mapeamento.grade;
+    allocate cicloT2.medir to sistemaN.notebook.ros2.visao.proximidade;
+    allocate cicloT2.medir to sistemaN.notebook.ros2.tarefa2.estimadorDistancia;
+    allocate cicloT2.decidir to sistemaN.notebook.ros2.tarefa2.supervisorTarefa2;
+    allocate cicloT2.calcular to sistemaN.notebook.ros2.controle.controlador;
+    allocate cicloT2.enviar to sistemaN.celular.appPonte.emissorComandos;
+
+    allocate Nivel1::funcaoGlobal.executarTarefa2 to sistemaN.notebook.ros2.tarefa2.varredura;
+    allocate Nivel1::funcaoGlobal.executarTarefa2 to sistemaN.notebook.ros2.tarefa2.rotas;
+    allocate Nivel1::funcaoGlobal.executarTarefa2 to sistemaN.notebook.ros2.tarefa2.estimadorDistancia;
+    allocate Nivel1::funcaoGlobal.executarTarefa2 to sistemaN.notebook.ros2.tarefa2.cronometro;
+    allocate Nivel1::funcaoGlobal.executarTarefa2 to sistemaN.notebook.ros2.tarefa2.supervisorTarefa2;
+    allocate Nivel1::funcaoGlobal.perceberAlvos to sistemaN.notebook.ros2.visao.detector;
+    allocate Nivel1::funcaoGlobal.perceberAlvos to sistemaN.notebook.ros2.visao.geometria;
+    allocate Nivel1::funcaoGlobal.perceberAlvos to sistemaN.notebook.ros2.visao.proximidade;
+    allocate Nivel1::funcaoGlobal.mapear to sistemaN.notebook.ros2.mapeamento.fusao;
+    allocate Nivel1::funcaoGlobal.mapear to sistemaN.notebook.ros2.mapeamento.grade;
+    allocate Nivel1::funcaoGlobal.traduzirParaDji to sistemaN.notebook.ros2.noPonte.clienteVideo;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.celular.appPonte.leitorCameraObstaculos;
+    allocate Nivel1::funcaoGlobal.acionarSdk to sistemaN.celular.appPonte.servidorVideo;
+
+    // requisito -> módulo (Questão 2)
+    satisfy Nivel0::r01 by sistemaN.notebook.ros2.gerenciador.carregadorConfig;
+    satisfy Nivel0::r02 by sistemaN.notebook.ros2.visao.detector;
+    satisfy Nivel0::r02 by sistemaN.notebook.ros2.visao.geometria;
+    satisfy Nivel0::r03 by sistemaN.notebook.ros2.tarefa2.supervisorTarefa2;
+    satisfy Nivel0::r03 by sistemaN.notebook.ros2.tarefa2.varredura;
+    satisfy Nivel0::r04 by sistemaN.notebook.ros2.tarefa2.estimadorDistancia;
+    satisfy Nivel0::r04 by sistemaN.notebook.ros2.tarefa2.cronometro;
+    satisfy Nivel0::r04 by sistemaN.notebook.ros2.visao.proximidade;
+    satisfy Nivel0::r05 by sistemaN.notebook.ros2.visao.proximidade;
+    satisfy Nivel0::r05 by sistemaN.notebook.ros2.estimacao.estimador;
+    satisfy Nivel0::r06 by sistemaN.notebook.ros2.tarefa2.rotas;
+    satisfy Nivel0::r06 by sistemaN.notebook.ros2.mapeamento.grade;
+    satisfy Nivel0::r06 by sistemaN.notebook.ros2.supervisao.monitorFalhas;
+    satisfy Nivel0::r08 by sistemaN.notebook.ros2.interfaceOperador.painelTerminal;
+    satisfy Nivel0::r08 by sistemaN.notebook.ros2.registro.exportadorCsv;
+    satisfy Nivel0::r09 by sistemaN.notebook.ros2.gerenciador.carregadorConfig;
+    satisfy Nivel0::r09 by sistemaN.notebook.ros2.registro.gravadorBag;
 }

@@ -41,7 +41,9 @@ VISOES = [
     ("09_niveln_modulos_ros2", "Nível n — módulos dos nós ROS 2",
      "%viz --view=tree --style=LR NivelN::InterfaceOperadorN NivelN::GerenciadorTarefasN NivelN::Tarefa1N "
      "NivelN::EstimacaoEstadoN NivelN::ControleVooN NivelN::SupervisaoSegurancaN NivelN::RegistroN NivelN::NoPonteDJIN"),
-    ("10_niveln_app_ponte", "Nível n — módulos do app ponte (Android emulado)",
+    ("09b_niveln_modulos_tarefa2", "Nível n — módulos da Tarefa 2, visão computacional e mapeamento local",
+     "%viz --view=tree --style=LR NivelN::Tarefa2N NivelN::VisaoComputacionalN NivelN::MapeamentoLocalN"),
+    ("10_niveln_app_ponte", "Nível n — módulos do app ponte (celular ligado ao controle)",
      "%viz --view=tree --style=LR NivelN::AppPonteDJIN"),
     ("11_niveln_contratos", "Nível n — contratos de interface",
      "%viz --view=tree --style=LR NivelN::ContratoSdkControladorVoo NivelN::ContratoSocketPonte "
@@ -50,8 +52,14 @@ VISOES = [
      "%viz --view=state NivelN::MaquinaEstadosTarefa1"),
     ("13_niveln_ciclo", "Nível n — ciclo de controle a 10 Hz",
      "%viz --view=action NivelN::CicloControle"),
-    ("14_verificacao", "Casos de verificação",
+    ("12b_niveln_estados_tarefa2", "Nível n — máquina de estados da Tarefa 2 (R03, R04, R07)",
+     "%viz --view=state NivelN::MaquinaEstadosTarefa2"),
+    ("13b_niveln_ciclo_tarefa2", "Nível n — malha fechada imagem -> percepção -> decisão -> comando (Tarefa 2)",
+     "%viz --view=action NivelN::CicloPercepcaoDecisao"),
+    ("14_verificacao", "Casos de verificação da Questão 1",
      "%viz --view=tree --style=LR VerificacaoQ1"),
+    ("15_verificacao_q2", "Casos de verificação da Questão 2",
+     "%viz --view=tree --style=LR VerificacaoQ2"),
 ]
 
 

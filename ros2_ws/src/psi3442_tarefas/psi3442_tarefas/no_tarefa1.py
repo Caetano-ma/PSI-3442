@@ -295,7 +295,9 @@ def main(args=None):
             if estado is not None and agora - self.t_estado > self.prazo_estado_s:
                 estado = None
             setpoint, eventos = self.maquina.passo(agora, self.ativa, estado, tel)
-            self.pub_setpoint.publish(ros_util.carimbar(self, copiar_campos(setpoint, SetpointMsg())))
+            # só a tarefa ativa publica /setpoint (a Tarefa 2 também publica nele)
+            if self.ativa == MaquinaTarefa1.NUMERO or setpoint.ativo:
+                self.pub_setpoint.publish(ros_util.carimbar(self, copiar_campos(setpoint, SetpointMsg())))
             for ev in eventos:
                 msg = copiar_campos(ev, EventoTarefa())
                 msg.valor = float(ev.valor) if math.isfinite(ev.valor) else -1.0

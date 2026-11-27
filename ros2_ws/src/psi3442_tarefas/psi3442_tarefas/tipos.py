@@ -77,6 +77,7 @@ class Estado:
     vy_mps: float = 0.0
     vz_mps: float = 0.0
     psi0_graus: float = 0.0
+    guinada_local_graus: float = 0.0
     valido: bool = False
     motivo_invalido: str = 'sem telemetria'
 
@@ -89,6 +90,8 @@ class Setpoint:
     z_m: float = 0.0
     indice: int = -1
     nome: str = ''
+    guinada_ativa: bool = False
+    guinada_graus: float = 0.0
 
 
 @dataclass
@@ -111,6 +114,9 @@ class Evento:
     valor: float = 0.0
     detalhe: str = ''
     tarefa: int = 1
+    x_m: float = 0.0
+    y_m: float = 0.0
+    z_m: float = 0.0
 
 
 @dataclass
@@ -122,6 +128,12 @@ class Falha:
     @property
     def nome_tipo(self):
         return NOMES_FALHA.get(self.tipo, str(self.tipo))
+
+
+def normalizar_graus(angulo):
+    """Ângulo em (-180, 180]."""
+    a = (angulo + 180.0) % 360.0 - 180.0
+    return 180.0 if a == -180.0 else a
 
 
 def copiar_campos(origem, destino):

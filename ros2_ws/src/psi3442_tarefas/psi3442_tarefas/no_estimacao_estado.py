@@ -12,7 +12,7 @@ Assina /dji/telemetria; publica /estado a cada amostra e, se a telemetria parar,
 """
 import math
 
-from .tipos import Estado
+from .tipos import Estado, normalizar_graus
 
 
 def local_de_solo(v_norte, v_leste, psi0_graus):
@@ -87,7 +87,9 @@ class EstimadorEstado:
             motivo = 'posicionamento visual inativo'
 
         self.estado = Estado(x_m=self.x_m, y_m=self.y_m, z_m=z, vx_mps=vx, vy_mps=vy, vz_mps=vz,
-                             psi0_graus=self.psi0_graus, valido=(motivo == ''), motivo_invalido=motivo)
+                             psi0_graus=self.psi0_graus,
+                             guinada_local_graus=normalizar_graus(self.psi0_graus - tel.guinada_graus),
+                             valido=(motivo == ''), motivo_invalido=motivo)
         return self.estado
 
     def verificar_idade(self, agora_s):
@@ -97,7 +99,8 @@ class EstimadorEstado:
         if agora_s - self._ultima_recepcao_s > self.idade_max_amostra_s:
             e = self.estado
             self.estado = Estado(x_m=e.x_m, y_m=e.y_m, z_m=e.z_m, vx_mps=e.vx_mps, vy_mps=e.vy_mps,
-                                 vz_mps=e.vz_mps, psi0_graus=e.psi0_graus, valido=False,
+                                 vz_mps=e.vz_mps, psi0_graus=e.psi0_graus,
+                                 guinada_local_graus=e.guinada_local_graus, valido=False,
                                  motivo_invalido='telemetria velha')
             return True
         return False

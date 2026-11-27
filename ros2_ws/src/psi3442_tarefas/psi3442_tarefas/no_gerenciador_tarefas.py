@@ -24,8 +24,9 @@ TAREFA_DO_MODO = {TAREFA1: 1, TAREFA2: 2}
 
 
 class SeletorTarefa:
-    def __init__(self, simulacao=False, arquivo_progresso=None, prazo_telemetria_s=0.5):
+    def __init__(self, simulacao=False, arquivo_progresso=None, prazo_telemetria_s=0.5, liberar_tarefa2=False):
         self.simulacao = simulacao
+        self.liberar_tarefa2 = liberar_tarefa2 and simulacao
         self.arquivo_progresso = arquivo_progresso
         self.prazo_telemetria_s = prazo_telemetria_s
         self.modo = OCIOSO
@@ -106,11 +107,9 @@ class SeletorTarefa:
         if self.modo != OCIOSO:
             self.mensagem = f'recusado: executar tarefa {numero} com o sistema em {self.modo}'
             return
-        if numero == 2:
-            if not self.tarefa1_concluida_voo_real:
-                self.mensagem = 'recusado: a Tarefa 2 só é aceita depois da Tarefa 1 concluída em voo real'
-            else:
-                self.mensagem = 'recusado: Tarefa 2 ainda não implementada (ciclo C5)'
+        if numero == 2 and not (self.tarefa1_concluida_voo_real or self.liberar_tarefa2):
+            # critério de progressão do enunciado; só a simulação da Tarefa 2 (liberar_tarefa2) dispensa o voo real
+            self.mensagem = 'recusado: a Tarefa 2 só é aceita depois da Tarefa 1 concluída em voo real'
             return
         if not self._telemetria_atual(agora):
             self.mensagem = 'recusado: sem telemetria da ponte DJI'
@@ -212,10 +211,12 @@ def main(args=None):
             super().__init__('gerenciador_tarefas')
             cfg = ros_util.carregar_config(self)
             self.declare_parameter('simulacao', False)
+            self.declare_parameter('liberar_tarefa2', False)
             self.declare_parameter('arquivo_progresso', os.path.expanduser('~/.psi3442/progresso.json'))
             simulacao = self.get_parameter('simulacao').get_parameter_value().bool_value
             arquivo = self.get_parameter('arquivo_progresso').get_parameter_value().string_value
-            self.seletor = SeletorTarefa(simulacao, arquivo, cfg.seguranca.prazo_telemetria_s)
+            liberar = self.get_parameter('liberar_tarefa2').get_parameter_value().bool_value
+            self.seletor = SeletorTarefa(simulacao, arquivo, cfg.seguranca.prazo_telemetria_s, liberar)
             self.ultima_linha = ''
             if simulacao:
                 self.get_logger().warn('modo simulação: conclusões não contam como voo real')

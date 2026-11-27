@@ -41,9 +41,62 @@ controle:
   v_max_vertical_mps: 0.30
   idade_max_setpoint_s: 0.50
   idade_max_estado_s: 0.30
+  kp_guinada: 1.5               # 1/s — guinada comandada pela Tarefa 2 (a Tarefa 1 não comanda guinada)
+  taxa_guinada_max_grausps: 30.0
 
 ponte:
   host: 127.0.0.1               # adb forward tcp:5760 tcp:5760
   porta: 5760
   taxa_cmd_vel_hz: 20.0
   taxa_heartbeat_hz: 1.0
+
+# Tarefa 2 (Questão 2, R01-R09). Volume relativo ao ponto de decolagem (x para a frente do nariz, y à esquerda):
+# ajustar à sala da demonstração. Distâncias de superfície a superfície.
+tarefa2:
+  cores_alvo: [vermelho, azul]  # definir conforme a demonstração (as outras cores conhecidas são evitadas)
+  cores_conhecidas: [vermelho, azul, verde, amarelo, roxo]
+  volume_x_min_m: -0.4
+  volume_x_max_m: 4.8
+  volume_y_min_m: -0.4
+  volume_y_max_m: 3.8
+  volume_z_min_m: 0.5
+  volume_z_max_m: 2.3
+  altura_busca_m: 1.4
+  passo_busca_m: 2.2            # espaçamento da grade de pontos de varredura
+  passo_giro_graus: 45.0        # giro em cada ponto de varredura
+  pausa_giro_s: 1.5             # parada em cada direção para a visão
+  raio_balao_m: 0.13            # nominal (diâmetro ~26 cm) — verificar com os balões da prova
+  raio_envelope_frontal_m: 0.149  # centro da aeronave -> frente das hélices — verificar no manual
+  d_alvo_m: 0.025               # distância desejada na permanência
+  d_max_m: 0.05                 # faixa válida: 0 < d <= d_max (R04)
+  tempo_permanencia_s: 60.0
+  distancia_aproximacao_m: 0.60 # ponto de espera antes da aproximação final
+  v_aproximacao_final_mps: 0.08
+  margem_obstaculos_m: 0.40     # paredes e mobiliário (R06)
+  margem_nao_alvo_m: 0.50       # balões não selecionados (R06)
+  observacoes_min: 3            # detecções para confirmar um balão no mapa
+  tempo_confirmacao_s: 4.0      # no ponto de espera, sem confirmação visual por mais que isto: descarta
+  fracao_cor_central_min: 0.5
+  tempo_sem_confirmacao_s: 1.0  # sem confirmação/medida por mais que isto: a contagem reinicia
+  tol_posicao_m: 0.15
+  tol_guinada_graus: 6.0
+  v_pairado_max_mps: 0.10
+  tentativas_por_balao: 3
+  tempo_max_tarefa_s: 1500.0
+  altura_inicio_pouso_m: 0.30
+  altura_min_decolagem_m: 0.50
+  tempo_max_preparacao_s: 10.0
+  tempo_max_decolagem_s: 20.0
+
+# Visão computacional (R02): YOLOv8n em ONNX (ferramentas/treinar_yolo.py) e câmera do Mini 4 Pro.
+visao:
+  modelo_onnx: ''               # vazio: share/psi3442_tarefas/modelos/baloes_yolov8n.onnx
+  classes: [vermelho, azul, verde, amarelo, roxo]
+  tamanho_entrada: 416
+  limiar_confianca: 0.5
+  limiar_nms: 0.45
+  hfov_graus: 82.1              # campo de visão horizontal do quadro repassado — verificar
+  largura_px: 640               # resolução do quadro repassado pelo app ponte — verificar
+  altura_px: 480
+  distancia_max_m: 6.0
+  taxa_max_hz: 5.0

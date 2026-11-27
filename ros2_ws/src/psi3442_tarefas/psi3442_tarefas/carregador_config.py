@@ -61,6 +61,62 @@ class ConfigControle:
     v_max_vertical_mps: float = 0.30
     idade_max_setpoint_s: float = 0.50
     idade_max_estado_s: float = 0.30
+    kp_guinada: float = 1.5
+    taxa_guinada_max_grausps: float = 30.0
+
+
+@dataclass(frozen=True)
+class ConfigTarefa2:
+    """Tarefa 2 (Questão 2, R01-R09). Distâncias de superfície a superfície; volume relativo ao ponto de decolagem."""
+    cores_alvo: tuple = ('vermelho', 'azul')
+    cores_conhecidas: tuple = ('vermelho', 'azul', 'verde', 'amarelo', 'roxo')
+    volume_x_min_m: float = -0.4
+    volume_x_max_m: float = 4.8
+    volume_y_min_m: float = -0.4
+    volume_y_max_m: float = 3.8
+    volume_z_min_m: float = 0.5
+    volume_z_max_m: float = 2.3
+    altura_busca_m: float = 1.4
+    passo_busca_m: float = 2.2              # espaçamento da grade de pontos de varredura
+    passo_giro_graus: float = 45.0
+    pausa_giro_s: float = 1.5                # parada em cada direção para a visão
+    raio_balao_m: float = 0.13               # nominal (diâmetro ~26 cm)
+    raio_envelope_frontal_m: float = 0.149   # centro da aeronave -> frente das hélices (verificar no manual)
+    d_alvo_m: float = 0.025                  # distância desejada na permanência
+    d_max_m: float = 0.05                    # faixa válida: 0 < d <= d_max (R04)
+    tempo_permanencia_s: float = 60.0
+    distancia_aproximacao_m: float = 0.60    # distância de superfície do ponto de espera antes da aproximação final
+    v_aproximacao_final_mps: float = 0.08
+    margem_obstaculos_m: float = 0.40        # paredes e mobiliário (R06)
+    margem_nao_alvo_m: float = 0.50          # balões não selecionados (R06)
+    observacoes_min: int = 3
+    tempo_confirmacao_s: float = 4.0
+    fracao_cor_central_min: float = 0.5
+    tempo_sem_confirmacao_s: float = 1.0     # confirmação perdida por mais que isto interrompe a contagem
+    tol_posicao_m: float = 0.15
+    tol_guinada_graus: float = 6.0
+    v_pairado_max_mps: float = 0.10
+    tentativas_por_balao: int = 3
+    tempo_max_tarefa_s: float = 1500.0
+    altura_inicio_pouso_m: float = 0.30
+    altura_min_decolagem_m: float = 0.50
+    tempo_max_preparacao_s: float = 10.0
+    tempo_max_decolagem_s: float = 20.0
+
+
+@dataclass(frozen=True)
+class ConfigVisao:
+    """Visão computacional (R02): modelo YOLO em ONNX e câmera do Mini 4 Pro (valores a verificar)."""
+    modelo_onnx: str = ''                    # vazio: modelos/baloes_yolov8n.onnx no share do pacote
+    classes: tuple = ('vermelho', 'azul', 'verde', 'amarelo', 'roxo')
+    tamanho_entrada: int = 416
+    limiar_confianca: float = 0.5
+    limiar_nms: float = 0.45
+    hfov_graus: float = 82.1
+    largura_px: int = 640
+    altura_px: int = 480
+    distancia_max_m: float = 6.0
+    taxa_max_hz: float = 5.0
 
 
 @dataclass(frozen=True)
@@ -78,6 +134,8 @@ class Configuracao:
     estimacao: ConfigEstimacao = field(default_factory=ConfigEstimacao)
     controle: ConfigControle = field(default_factory=ConfigControle)
     ponte: ConfigPonte = field(default_factory=ConfigPonte)
+    tarefa2: ConfigTarefa2 = field(default_factory=ConfigTarefa2)
+    visao: ConfigVisao = field(default_factory=ConfigVisao)
     arquivo: str = ''
 
 
@@ -100,6 +158,10 @@ def _secao_opcional(classe, dados, nome):
         tipo = conhecidas[chave].type
         if tipo in (str, 'str'):
             valores[chave] = str(valor)
+        elif tipo in (tuple, 'tuple'):
+            if not isinstance(valor, (list, tuple)) or not valor:
+                raise ErroConfiguracao(f'{nome}.{chave} deve ser uma lista não vazia')
+            valores[chave] = tuple(str(v) for v in valor)
         elif tipo in (int, 'int'):
             valores[chave] = int(_numero(nome, chave, valor))
         else:
@@ -162,7 +224,7 @@ def _tarefa1(dados):
 def carregar_dict(dados, arquivo=''):
     if not isinstance(dados, dict):
         raise ErroConfiguracao('o arquivo de configuração deve conter um mapa')
-    desconhecidas = set(dados) - {'tarefa1', 'tarefa2', 'seguranca', 'estimacao', 'controle', 'ponte'}
+    desconhecidas = set(dados) - {'tarefa1', 'tarefa2', 'seguranca', 'estimacao', 'controle', 'ponte', 'visao'}
     if desconhecidas:
         raise ErroConfiguracao(f'seções desconhecidas: {sorted(desconhecidas)}')
     cfg = Configuracao(
@@ -171,11 +233,29 @@ def carregar_dict(dados, arquivo=''):
         estimacao=_secao_opcional(ConfigEstimacao, dados.get('estimacao'), 'estimacao'),
         controle=_secao_opcional(ConfigControle, dados.get('controle'), 'controle'),
         ponte=_secao_opcional(ConfigPonte, dados.get('ponte'), 'ponte'),
+        tarefa2=_secao_opcional(ConfigTarefa2, dados.get('tarefa2'), 'tarefa2'),
+        visao=_secao_opcional(ConfigVisao, dados.get('visao'), 'visao'),
         arquivo=arquivo,
     )
+    _validar_tarefa2(cfg.tarefa2, cfg.visao)
     if cfg.seguranca.bateria_critica_pct >= cfg.seguranca.bateria_minima_pct:
         raise ErroConfiguracao('bateria_critica_pct deve ser menor que bateria_minima_pct')
     return cfg
+
+
+def _validar_tarefa2(t2, visao):
+    desconhecidas = set(t2.cores_alvo) - set(t2.cores_conhecidas)
+    if desconhecidas:
+        raise ErroConfiguracao(f'tarefa2.cores_alvo fora de cores_conhecidas: {sorted(desconhecidas)}')
+    if set(visao.classes) != set(t2.cores_conhecidas):
+        raise ErroConfiguracao('visao.classes deve conter as mesmas cores de tarefa2.cores_conhecidas')
+    if not 0 < t2.d_alvo_m < t2.d_max_m:
+        raise ErroConfiguracao('tarefa2: exige 0 < d_alvo_m < d_max_m (faixa do R04)')
+    if t2.volume_x_min_m >= t2.volume_x_max_m or t2.volume_y_min_m >= t2.volume_y_max_m \
+            or t2.volume_z_min_m >= t2.volume_z_max_m:
+        raise ErroConfiguracao('tarefa2: volume permitido vazio')
+    if not t2.volume_z_min_m <= t2.altura_busca_m <= t2.volume_z_max_m:
+        raise ErroConfiguracao('tarefa2.altura_busca_m fora do volume permitido')
 
 
 def carregar(caminho):

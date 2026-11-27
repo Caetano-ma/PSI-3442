@@ -64,7 +64,9 @@ class DroneGazebo(DroneCinematico):
             vx_mundo = vy_mundo = vz_mundo = 0.0
         yaw = self.pose[4] if self.pose is not None else 0.0
         vx, vy = mundo_para_corpo(vx_mundo, vy_mundo, yaw)
-        self.enviar_velocidade_corpo(vx, vy, vz_mundo)
+        # taxa de guinada da DJI é horária (graus/s); no Gazebo, anti-horária (rad/s)
+        wz = -math.radians(self.taxa_guinada) if self.motores else 0.0
+        self.enviar_velocidade_corpo(vx, vy, vz_mundo, wz)
         if self.pose is not None:
             with self._trava:
                 self.norte, self.leste, self.altura = self.pose[2], self.pose[1], self.pose[3]
@@ -103,9 +105,10 @@ def main(args=None):
     no = Node('app_ponte_gazebo')
     pub = no.create_publisher(Twist, '/gazebo/mini4pro/cmd_vel', 10)
 
-    def enviar(vx, vy, vz):
+    def enviar(vx, vy, vz, wz=0.0):
         msg = Twist()
         msg.linear.x, msg.linear.y, msg.linear.z = float(vx), float(vy), float(vz)
+        msg.angular.z = float(wz)
         pub.publish(msg)
 
     parametros = ParametrosSimulacao(

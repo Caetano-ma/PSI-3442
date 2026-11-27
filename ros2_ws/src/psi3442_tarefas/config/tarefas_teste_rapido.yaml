@@ -19,3 +19,6 @@ tarefa1:
   altura_min_decolagem_m: 0.50
   tempo_max_preparacao_s: 10.0
   tempo_max_decolagem_s: 20.0
+
+tarefa2:
+  tempo_permanencia_s: 5.0

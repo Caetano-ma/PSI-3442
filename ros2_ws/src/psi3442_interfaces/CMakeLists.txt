@@ -17,6 +17,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Telemetria.msg"
   "msg/ComandoVelocidade.msg"
   "msg/Falha.msg"
+  "msg/DeteccaoBalao.msg"
+  "msg/Alvos.msg"
+  "msg/BalaoMapa.msg"
+  "msg/MapaLocal.msg"
   DEPENDENCIES builtin_interfaces std_msgs
 )
 

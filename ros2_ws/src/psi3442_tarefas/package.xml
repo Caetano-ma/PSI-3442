@@ -10,6 +10,9 @@
   <depend>rclpy</depend>
   <depend>psi3442_interfaces</depend>
   <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
   <exec_depend>ros2bag</exec_depend>
   <exec_depend>rosbag2_py</exec_depend>
   <exec_depend>rosbag2_storage_default_plugins</exec_depend>

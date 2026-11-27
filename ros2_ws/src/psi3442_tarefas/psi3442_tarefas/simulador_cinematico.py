@@ -56,6 +56,8 @@ class DroneCinematico:
         self.norte = self.leste = self.altura = 0.0
         self.v_norte = self.v_leste = self.v_baixo = 0.0
         self.alvo = (0.0, 0.0, 0.0)
+        self.alvo_taxa_guinada = 0.0          # graus/s, horária (como a bússola)
+        self.taxa_guinada = 0.0
         self.guinada = self.p.guinada_inicial_graus
         self.em_voo = self.motores = self.controle_virtual = False
         self.manobra = None                  # 'decolagem', 'pouso' ou None
@@ -76,6 +78,7 @@ class DroneCinematico:
                 n, e = solo_de_local(float(mensagem['vx_mps']), float(mensagem['vy_mps']),
                                      float(mensagem['psi0_graus']))
                 self.alvo = (n, e, -float(mensagem['vz_mps']))
+                self.alvo_taxa_guinada = float(mensagem.get('taxa_guinada_grausps', 0.0))
         elif tipo == 'acao':
             erro = self._acao(mensagem.get('comando'), agora)
             self.registro.append((agora, mensagem.get('comando'), erro))
@@ -100,6 +103,7 @@ class DroneCinematico:
             self.controle_virtual = False
         elif comando == 'parar_e_pairar':
             self.alvo = (0.0, 0.0, 0.0)
+            self.alvo_taxa_guinada = 0.0
         else:
             return f'comando desconhecido: {comando}'
         return None
@@ -118,6 +122,7 @@ class DroneCinematico:
         if self.em_voo and self.manobra is None:
             if self.controle_virtual and (self.t_cmd is None or agora - self.t_cmd > p.prazo_watchdog_s):
                 self.alvo = (0.0, 0.0, 0.0)              # watchdog do app ponte
+                self.alvo_taxa_guinada = 0.0
             if self.t_heartbeat is not None and agora - self.t_heartbeat > p.prazo_perda_ponte_s:
                 self.manobra = 'pouso'                    # perdaPonte: pouso automático
                 self.registro.append((agora, 'perda_ponte', None))
@@ -128,6 +133,8 @@ class DroneCinematico:
                 self.t_cmd = agora                        # o watchdog só conta a partir daqui
         elif self.manobra == 'pouso':
             self.alvo = (0.0, 0.0, p.v_pouso_mps)
+        if self.manobra is not None or not self.em_voo:
+            self.alvo_taxa_guinada = 0.0
 
     def _responder(self, dt):
         """Resposta de 1ª ordem da velocidade (estabilização da DJI, caixa-preta)."""
@@ -135,12 +142,14 @@ class DroneCinematico:
         self.v_norte += (self.alvo[0] - self.v_norte) * fator
         self.v_leste += (self.alvo[1] - self.v_leste) * fator
         self.v_baixo += (self.alvo[2] - self.v_baixo) * fator
+        self.taxa_guinada += (self.alvo_taxa_guinada - self.taxa_guinada) * fator
 
     def _mover(self, dt):
         if self.motores:
             self.norte += self.v_norte * dt
             self.leste += self.v_leste * dt
             self.altura -= self.v_baixo * dt
+            self.guinada = (self.guinada + self.taxa_guinada * dt + 180.0) % 360.0 - 180.0
             self.bateria = max(0.0, self.bateria - self.p.consumo_pct_por_s * dt)
 
     def _verificar_toque(self, agora):

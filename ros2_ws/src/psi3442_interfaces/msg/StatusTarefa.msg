@@ -3,7 +3,7 @@ builtin_interfaces/Time stamp
 string modo                     # ocioso, tarefa1, tarefa2, terminoSeguro
 uint8 tarefa                    # 0 = nenhuma
 string estado                   # estado da máquina da tarefa (ex.: pairando)
-int8 vertice                    # índice na sequência de setpoints; -1 = nenhum
+int16 vertice                   # índice na sequência de setpoints (T2: id do balão); -1 = nenhum
 string nome_vertice             # A, B, C, D
 float64 permanencia_s           # tempo contínuo dentro da tolerância no vértice atual
 bool dentro

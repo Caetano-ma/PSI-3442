@@ -13,8 +13,9 @@ Tabela de tratamento (tipo -> detecção -> reação), conforme 03_NivelN.sysml:
 Velocidade zero é aplicada pelo controle (estado inválido/velho) e pelo watchdog do app ponte; a supervisão só
 registra. Término seguro = pouso no local, executado pelo gerenciador. Cada falha é publicada na borda de subida.
 
-Desvio: distância horizontal de (x, y) ao contorno do quadrado, ou excesso de altura acima de altura_alvo — não
-penaliza a descida vertical do pouso no local.
+Desvio: na Tarefa 1, distância horizontal de (x, y) ao contorno do quadrado, ou excesso de altura acima de
+altura_alvo — não penaliza a descida vertical do pouso no local. Na Tarefa 2, saída do volume permitido da sala (R06).
+O tempo máximo é o de cada tarefa (seguranca.tempo_max_tarefa_s na Tarefa 1; tarefa2.tempo_max_tarefa_s na 2).
 
 Assina /dji/telemetria e /estado; publica /falhas.
 """
@@ -35,9 +36,12 @@ def distancia_ponto_segmento_2d(px, py, a, b):
 
 
 class MonitorFalhas:
-    def __init__(self, seguranca, vertices_sequencia, altura_alvo_m):
-        """`seguranca`: ConfigSeguranca; `vertices_sequencia`: pontos (x, y, z) na ordem do percurso."""
+    def __init__(self, seguranca, vertices_sequencia, altura_alvo_m, tarefa2=None):
+        """`seguranca`: ConfigSeguranca; `vertices_sequencia`: pontos (x, y, z) na ordem do percurso;
+        `tarefa2`: ConfigTarefa2 (volume permitido e tempo máximo da Tarefa 2)."""
         self.cfg = seguranca
+        self.tarefa2 = tarefa2
+        self.tarefa = 1
         pontos = list(vertices_sequencia)
         self.segmentos = [(pontos[i], pontos[i + 1]) for i in range(len(pontos) - 1)] or [(pontos[0], pontos[0])]
         self.altura_alvo_m = altura_alvo_m
@@ -48,6 +52,11 @@ class MonitorFalhas:
         self._ultima_tel = None
 
     def desvio(self, estado):
+        if self.tarefa == 2 and self.tarefa2 is not None:
+            v = self.tarefa2
+            return max(v.volume_x_min_m - estado.x_m, estado.x_m - v.volume_x_max_m,
+                       v.volume_y_min_m - estado.y_m, estado.y_m - v.volume_y_max_m,
+                       estado.z_m - v.volume_z_max_m, 0.0)
         horizontal = min(distancia_ponto_segmento_2d(estado.x_m, estado.y_m, a, b) for a, b in self.segmentos)
         return max(horizontal, estado.z_m - self.altura_alvo_m)
 
@@ -117,11 +126,13 @@ class MonitorFalhas:
                        Falha(ESTIMATIVA_INVALIDA, TERMINO_SEGURO, f'estimativa inválida persistente: {motivo}'))
 
         desvio = self.desvio(estado) if (ultima.em_voo and estado is not None and estado.valido) else 0.0
+        referencia = 'do volume permitido' if self.tarefa == 2 else 'da trajetória'
         self._condicao(novas, 'desvio', desvio > self.cfg.desvio_maximo_m, agora,
-                       Falha(DESVIO_EXCESSIVO, TERMINO_SEGURO, f'desvio de {desvio:.2f} m da trajetória'))
+                       Falha(DESVIO_EXCESSIVO, TERMINO_SEGURO, f'desvio de {desvio:.2f} m {referencia}'))
 
         decorrido = 0.0 if self._partida_s is None else agora - self._partida_s
-        self._condicao(novas, 'tempo', decorrido > self.cfg.tempo_max_tarefa_s, agora,
+        limite = self.tarefa2.tempo_max_tarefa_s if self.tarefa == 2 and self.tarefa2 else self.cfg.tempo_max_tarefa_s
+        self._condicao(novas, 'tempo', decorrido > limite, agora,
                        Falha(TEMPO_TAREFA_EXCEDIDO, TERMINO_SEGURO, f'{decorrido:.0f} s desde a partida dos motores'))
         return novas
 
@@ -129,7 +140,7 @@ class MonitorFalhas:
 def main(args=None):
     import rclpy
     from rclpy.node import Node
-    from psi3442_interfaces.msg import EstadoEstimado, Falha as FalhaMsg, Telemetria as TelemetriaMsg
+    from psi3442_interfaces.msg import EstadoEstimado, Falha as FalhaMsg, TarefaAtiva, Telemetria as TelemetriaMsg
 
     from . import ros_util
     from .planejador_trajetoria import PlanejadorTrajetoria
@@ -141,12 +152,17 @@ def main(args=None):
             cfg = ros_util.carregar_config(self)
             t1 = cfg.tarefa1
             planejador = PlanejadorTrajetoria(t1.vertices, t1.sentido)
-            self.monitor = MonitorFalhas(cfg.seguranca, planejador.pontos, t1.altura_alvo_m)
+            self.monitor = MonitorFalhas(cfg.seguranca, planejador.pontos, t1.altura_alvo_m, cfg.tarefa2)
             self.tel, self.t_tel, self.nova_tel, self.estado = None, None, False, None
             self.pub = self.create_publisher(FalhaMsg, '/falhas', ros_util.QOS_CONFIAVEL)
             self.create_subscription(TelemetriaMsg, '/dji/telemetria', self.ao_telemetria, ros_util.QOS_FLUXO)
             self.create_subscription(EstadoEstimado, '/estado', self.ao_estado, ros_util.QOS_FLUXO)
+            self.create_subscription(TarefaAtiva, '/tarefa/ativa', self.ao_ativa, ros_util.QOS_LATCHED)
             self.create_timer(0.1, self.ao_temporizar)
+
+        def ao_ativa(self, msg):
+            if msg.numero:
+                self.monitor.tarefa = msg.numero
 
         def ao_telemetria(self, msg):
             self.tel, self.t_tel, self.nova_tel = de_mensagem(Telemetria, msg), ros_util.agora(), True

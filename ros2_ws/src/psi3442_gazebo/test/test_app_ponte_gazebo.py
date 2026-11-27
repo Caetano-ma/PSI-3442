@@ -22,19 +22,20 @@ from sistema_simulado import CONFIG, SistemaSimulado, pousado  # noqa: E402
 
 
 class GazeboFalso(DroneGazebo):
-    """Corpo cinemático com yaw fixo, tempo de simulação = tempo do teste."""
+    """Corpo cinemático (integra a taxa de guinada como o VelocityControl), tempo de simulação = tempo do teste."""
 
     def __init__(self, yaw=0.0):
-        self.corpo = (0.0, 0.0, 0.0)
+        self.corpo = (0.0, 0.0, 0.0, 0.0)
         self.yaw = yaw
         self.xyz = [0.0, 0.0, 0.0]
         super().__init__(ParametrosSimulacao(altura_toque_m=0.01, ruido_velocidade_mps=0.0),
-                         lambda vx, vy, vz: setattr(self, 'corpo', (vx, vy, vz)))
+                         lambda vx, vy, vz, wz=0.0: setattr(self, 'corpo', (vx, vy, vz, wz)))
         self.ao_odometria(0.0, 0.0, 0.0, 0.0, yaw)
 
     def passo(self, dt, agora):
         super().passo(dt, agora)
-        vx, vy, vz = self.corpo
+        vx, vy, vz, wz = self.corpo
+        self.yaw += wz * dt
         c, s = math.cos(self.yaw), math.sin(self.yaw)
         self.xyz[0] += (c * vx - s * vy) * dt
         self.xyz[1] += (s * vx + c * vy) * dt

@@ -8,5 +8,6 @@ float64 vx_mps
 float64 vy_mps
 float64 vz_mps
 float64 psi0_graus              # guinada registrada na partida dos motores (define o referencial)
+float64 guinada_local_graus     # guinada atual no ReferencialLocal (anti-horária a partir de +x) = psi0 - guinada
 bool valido
 string motivo_invalido

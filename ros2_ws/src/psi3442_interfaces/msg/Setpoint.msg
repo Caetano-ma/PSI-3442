@@ -7,3 +7,5 @@ float64 y_m
 float64 z_m
 int8 indice
 string nome
+bool guinada_ativa              # true: o controle também leva a guinada a guinada_graus
+float64 guinada_graus           # guinada no ReferencialLocal (anti-horária a partir de +x)

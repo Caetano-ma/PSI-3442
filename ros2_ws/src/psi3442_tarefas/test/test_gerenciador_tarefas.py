@@ -127,7 +127,7 @@ def test_progresso_em_voo_real_persistido(tmp_path):
     assert s.rodar_ate(pousado, 200.0)
     assert s.seletor.tarefa1_concluida_voo_real
     assert json.loads(arquivo.read_text(encoding='utf-8'))['tarefa1_concluida_voo_real'] is True
-    assert 'não implementada' in s.comando(EXECUTAR_TAREFA2)
+    assert 'tarefa 2 iniciada' in s.comando(EXECUTAR_TAREFA2)          # liberada depois do voo real
     # outro processo lê o progresso do arquivo
     assert SeletorTarefa(arquivo_progresso=str(arquivo)).tarefa1_concluida_voo_real
 

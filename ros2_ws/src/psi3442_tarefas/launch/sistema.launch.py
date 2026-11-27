@@ -1,5 +1,5 @@
-"""Sobe a aplicação ROS 2 completa (nível 1): gerenciador, Tarefa 1, estimação, controle, supervisão, ponte DJI e
-registro. A interface do operador e o painel rodam em terminais próprios (precisam do teclado/tela):
+"""Sobe a aplicação ROS 2 completa (nível 1): gerenciador, Tarefas 1 e 2, estimação, controle, supervisão, visão
+computacional, mapeamento local, ponte DJI e registro. A interface do operador e o painel rodam em terminais próprios (precisam do teclado/tela):
 
     ros2 launch psi3442_tarefas sistema.launch.py                      # com o app ponte (adb forward tcp:5760)
     ros2 launch psi3442_tarefas sistema.launch.py host_ponte:=<IP>     # app ponte no celular, pelo Wi-Fi
@@ -37,6 +37,8 @@ def generate_launch_description():
         DeclareLaunchArgument('simulacao', default_value=simulador,
                               description='true: conclusões não contam como voo real (padrão: igual a simulador; '
                                           'o launch do Gazebo passa true)'),
+        DeclareLaunchArgument('liberar_tarefa2', default_value='false',
+                              description='true: aceita a Tarefa 2 sem a Tarefa 1 em voo real (só em simulação)'),
         DeclareLaunchArgument('registro', default_value='true', description='grava rosbag2 de todos os tópicos'),
         DeclareLaunchArgument('pasta_bags', default_value=os.path.expanduser('~/psi3442_bags')),
         DeclareLaunchArgument('simulador_args', default_value='',
@@ -47,8 +49,13 @@ def generate_launch_description():
 
         Node(package='psi3442_tarefas', executable='simulador_ponte', name='simulador_ponte', output='screen',
              arguments=[LaunchConfiguration('simulador_args')], condition=IfCondition(simulador)),
-        no('gerenciador_tarefas', [{'simulacao': ParameterValue(LaunchConfiguration('simulacao'), value_type=bool)}]),
+        no('gerenciador_tarefas', [{
+            'simulacao': ParameterValue(LaunchConfiguration('simulacao'), value_type=bool),
+            'liberar_tarefa2': ParameterValue(LaunchConfiguration('liberar_tarefa2'), value_type=bool)}]),
         no('tarefa1'),
+        no('tarefa2'),
+        no('visao_computacional'),
+        no('mapeamento_local'),
         no('estimacao_estado'),
         no('controle_voo'),
         no('supervisao'),

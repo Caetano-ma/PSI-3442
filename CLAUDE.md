@@ -21,8 +21,14 @@ demonstração em voo real **04/12/2026**. Equipe: Caetano Maciel Anibali (13681
 - **Notebook Linux com ROS 2 Jazzy** (Mint 22 / Ubuntu 24.04) roda toda a lógica em nós ROS 2 (Python/rclpy):
   interface do operador, gerenciador de tarefas, Tarefa 1, Tarefa 2, estimação de estado, controle de voo, supervisão
   e segurança, registro (rosbag2 + CSV), percepção visual (T2), mapeamento local grosseiro (T2), nó ponte ROS 2 ↔ DJI.
-- **Android emulado** no notebook roda o *app ponte* em Kotlin com o **DJI Mobile SDK v5**; fala com o ROS 2 por TCP
-  (adb forward, porta 5760, JSON por linha, heartbeat). Alternativa se o emulador falhar: o celular Android da equipe.
+- **App ponte** em Kotlin (`android_ponte/`) com o **DJI Mobile SDK v5.20.1** atrás da interface `Drone`; fala com o
+  ROS 2 por TCP (porta 5760, JSON por linha, heartbeat). Duas variantes: `emulador` (drone falso, sem SDK, roda no
+  Android emulado do notebook com `adb forward`) e `celular` (SDK real, ARM64).
+- **Verificado em 27/11** no manifesto do app de exemplo da DJI: o SDK fala com o controle pelo **modo acessório USB**
+  (o controle é o hospedeiro USB). Um emulador num notebook não consegue isso, então **o voo real usa o app no celular
+  ligado ao controle**, e o notebook se conecta a ele pelo Wi-Fi (`host_ponte:=<IP>` no launch). O emulador serve para
+  testar o app inteiro contra o ROS 2 sem drone. O modelo SysML e os diagramas ainda dizem "Android emulado": atualizar
+  quando o usuário confirmar.
 - O operador só envia `executar tarefa 1`, `executar tarefa 2` ou `interromper`; ninguém pilota.
 - **Controle remoto:** verificado nas notas do MSDK v5 que o Mini 4 Pro só funciona com **DJI RC N2 ou RC N3**
   (SDK ≥ 5.13.0; atual 5.20.1); DJI RC 2 não é suportado e não há conexão direta celular ↔ drone. O usuário diz não ter
@@ -44,9 +50,11 @@ demonstração em voo real **04/12/2026**. Equipe: Caetano Maciel Anibali (13681
 | `ensaios/roteiro_voo_tarefa1.md` | Procedimentos dos ensaios em voo T01–T04 |
 | `entregas/2026-11-27_intermediaria/` | `relatorio.md` → `gerar_pdf.py` → `relatorio.pdf` + ZIP do Moodle |
 | `ambiente/instalar_ambiente.sh` | Recria o ambiente conda `sysml` (kernel SysML v2 0.63.1, JupyterLab, weasyprint) |
-| `ros2_ws/` | Workspace ROS 2 (ciclo C2): `psi3442_interfaces` (10 mensagens) e `psi3442_tarefas` (nós, simulador, launch, CSV, testes). Ver `ros2_ws/README.md`, inclusive os **ajustes em relação ao modelo** ainda não refletidos no SysML |
+| `ros2_ws/` | Workspace ROS 2 (ciclo C2): `psi3442_interfaces` (10 mensagens) e `psi3442_tarefas` (nós, simulador, launch, CSV, testes). Ver `ros2_ws/README.md`; os 8 ajustes em relação ao modelo foram refletidos no SysML em 27/11 |
 | `ros2_ws/src/psi3442_gazebo/` + `ros2_ws/docker/simular_gazebo.ps1` | Tarefa 1 no Gazebo Harmonic (imagem `psi3442-gazebo`, `Dockerfile.gazebo`), janela via WSLg; drone caixa-preta com VelocityControl; app ponte simulado com o mesmo protocolo TCP |
 | `ros2_ws/docker/ensaio_t10.sh` | Compila e faz o ensaio T10 integrado (launch + simulador + bag + CSV) na imagem `ros:jazzy-ros-base` |
+| `android_ponte/` | App ponte (C3): variantes `emulador` e `celular`, testes JVM (protocolo, T09, integração), `ensaio_emulador.sh` (Tarefa 1 de ponta a ponta com o app no emulador e o ROS 2 real). Ver `android_ponte/README.md` |
+| `ensaios/teste_eixos.py` | T00: confere o eixo norte/leste do controle virtual com a aeronave real, antes do T01 |
 | `contexto_claude/memoria/` | Memórias do Claude da máquina anterior (ver `contexto_claude/LEIA-ME.md`) |
 
 ```bash
@@ -57,9 +65,13 @@ $PY diagramas/gerar_diagramas.py                                      # depois d
 $PY entregas/2026-11-27_intermediaria/gerar_pdf.py                    # regenera PDF e ZIP
 cd ros2_ws/src/psi3442_tarefas && python3 -m pytest -q test           # 76 testes da lógica, sem ROS 2
 docker run --rm -v "$(pwd):/repo:ro" ros:jazzy-ros-base bash /repo/ros2_ws/docker/ensaio_t10.sh   # da raiz
+cd android_ponte && ./gradlew testEmuladorDebugUnitTest assembleEmuladorDebug assembleCelularDebug
+bash android_ponte/ensaio_emulador.sh rapido                          # da raiz: emulador + ROS 2 + tarefa 1
 ```
 
-Máquinas: a anterior era Linux com ROS 2 Jazzy em `/opt/ros/jazzy`. A atual (desde 24/11) é Windows 11 sem ROS 2.
+Máquinas: **atual (27/11): notebook Linux Mint 22** com ROS 2 Jazzy nativo (`/opt/ros/jazzy`, sem `ros-jazzy-ros-gz`),
+conda `sysml` em `~/miniforge3`, JDK 21, Android SDK em `~/Android/Sdk` (plataformas 34/35, emulador, AVD `psi3442`
+x86_64 com KVM) e `gh` autenticado. O Windows 11 usado em 24/11 tinha:
 Nela, a lógica é testada com Python 3.12 + pytest, e a compilação e os nós rodam no Docker Desktop (imagem
 `ros:jazzy-ros-base`). O WSL tem Ubuntu 26.04, onde não há pacotes do Jazzy. Não há `gh`: o push usa o
 gerenciador de credenciais do Git para Windows.

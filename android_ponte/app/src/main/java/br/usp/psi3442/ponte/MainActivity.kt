@@ -56,6 +56,7 @@ class MainActivity : Activity() {
                 handler.postDelayed(this, 500)
             }
         })
+        intent?.getStringExtra("modo")?.takeIf { it in FabricaDrone.modos }?.let(::iniciar)
     }
 
     override fun onDestroy() {

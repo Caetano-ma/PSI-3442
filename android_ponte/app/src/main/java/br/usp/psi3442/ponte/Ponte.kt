@@ -64,16 +64,17 @@ class Ponte(
         cliente = origem
     }
 
+    /** Heartbeat e cmd_vel são carimbados na chegada (thread de leitura): um executor atrasado não pode simular
+     *  perda da ponte nem envelhecer comandos. Ações vão para o executor. */
     private fun aoReceber(mensagem: JSONObject) {
-        executor.execute { tratar(mensagem) }
-    }
-
-    private fun tratar(mensagem: JSONObject) {
         val agora = relogio()
         when (mensagem.getString("tipo")) {
             "heartbeat" -> emissor.aoHeartbeat(agora)
             "cmd_vel" -> emissor.aoCmdVel(Protocolo.comandoLocal(mensagem), agora)
-            "acao" -> executarAcao(mensagem.optString("comando"))
+            "acao" -> {
+                val comando = mensagem.optString("comando")
+                executor.execute { executarAcao(comando) }
+            }
         }
     }
 

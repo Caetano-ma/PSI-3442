@@ -1,6 +1,7 @@
 package br.usp.psi3442.ponte
 
 import dji.sdk.keyvalue.key.BatteryKey
+import dji.sdk.keyvalue.key.DJIActionKeyInfo
 import dji.sdk.keyvalue.key.DJIKeyInfo
 import dji.sdk.keyvalue.key.FlightAssistantKey
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -115,7 +116,7 @@ class DroneDji : Drone {
         )
     }
 
-    private fun acao(chave: DJIKeyInfo<EmptyMsg>, aoConcluir: AoConcluir) {
+    private fun acao(chave: DJIActionKeyInfo<EmptyMsg, EmptyMsg>, aoConcluir: AoConcluir) {
         KeyManager.getInstance().performAction(KeyTools.createKey(chave),
             object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
                 override fun onSuccess(t: EmptyMsg?) = aoConcluir(null)

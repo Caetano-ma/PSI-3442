@@ -1,6 +1,7 @@
 package br.usp.psi3442.ponte
 
 import android.content.Context
+import dji.open.pilot.client.manager.ServerState
 import dji.v5.common.error.IDJIError
 import dji.v5.common.register.DJISDKInitEvent
 import dji.v5.common.register.InitSettings
@@ -63,6 +64,12 @@ object ConexaoSdk {
 
             @Deprecated("Deprecated")
             override fun onDatabaseDownloadProgress(current: Long, total: Long) {}
+
+            override fun onRemoteServerStateUpdated(serverState: ServerState) {}
+
+            override fun onRemoteServerCompatibleError(error: IDJIError) {
+                log("servidor remoto do SDK incompatível: $error")
+            }
         })
     }
 

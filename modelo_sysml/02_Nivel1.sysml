@@ -20,9 +20,14 @@ package Nivel1 {
     }
 
     part def GerenciadorTarefas {
-        doc /* Carrega a configuração, ativa a tarefa pedida, mantém os modos globais e envia decolar/pousar. */
+        doc /* Carrega a configuração, ativa a tarefa pedida, mantém os modos globais e é o único que publica em
+               /dji/acao (decolar/pousar pedidos pela tarefa via SOLICITA_ACAO). Repassa as falhas à tarefa publicando
+               /tarefa/ativa = 0 e comandando o pouso. Assina telemetria e estado para aceitar comandos, montar o
+               painel e encerrar o término seguro. */
         port config : PortaConfiguracao;
         port subComando : ~TopicoComandoOperador;
+        port subTelemetria : ~TopicoTelemetria;
+        port subEstado : ~TopicoEstado;
         port subEvento : ~TopicoTarefaEvento;
         port subFalhas : ~TopicoFalhas;
         port pubAtiva : TopicoTarefaAtiva;
@@ -32,9 +37,11 @@ package Nivel1 {
     }
 
     part def Tarefa1VooFamiliarizacao {
-        doc /* Questão 1: quadrado A-B-C-D a 1,80 m, quatro permanências de 60 s, retorno e pouso. */
+        doc /* Questão 1: quadrado A-B-C-D a 1,80 m, quatro permanências de 60 s, retorno e pouso. Assina a
+               telemetria para as checagens da preparação e para emVoo/motoresLigados na decolagem e no pouso. */
         port subAtiva : ~TopicoTarefaAtiva;
         port subEstado : ~TopicoEstado;
+        port subTelemetria : ~TopicoTelemetria;
         port pubSetpoint : TopicoSetpoint;
         port pubEvento : TopicoTarefaEvento;
     }
@@ -151,6 +158,9 @@ package Nivel1 {
         connect supervisao.pubFalhas to registro.subFalhas;
         connect noPonte.pubTelemetria to estimacao.subTelemetria;
         connect noPonte.pubTelemetria to supervisao.subTelemetria;
+        connect noPonte.pubTelemetria to tarefa1.subTelemetria;
+        connect noPonte.pubTelemetria to gerenciador.subTelemetria;
+        connect estimacao.pubEstado to gerenciador.subEstado;
         connect noPonte.pubCamera to percepcao.subCamera;
     }
 

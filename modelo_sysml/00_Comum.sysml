@@ -87,6 +87,8 @@ package Comum {
         attribute bateriaPercentual : Real;
         attribute conectado : Boolean;
         attribute posicionamentoVisualAtivo : Boolean;
+        attribute controleVirtualAtivo : Boolean;   // confirma a preparação por leitura
+        attribute acaoPerdaSinal : String;          // idem: deve ser "pousar"
     }
 
     item def EstadoEstimado {
@@ -96,6 +98,8 @@ package Comum {
         attribute vy : SpeedValue;
         attribute vz : SpeedValue;
         attribute valido : Boolean;
+        attribute psi0 : Real;                      // guinada registrada na borda de subida de motoresLigados
+        attribute motivoInvalido : String;
     }
 
     attribute def VereditoTolerancia {
@@ -105,7 +109,10 @@ package Comum {
         attribute dentro : Boolean;
     }
 
-    item def Setpoint { attribute ponto : Ponto3D; }
+    item def Setpoint {
+        attribute ponto : Ponto3D;
+        attribute ativo : Boolean;    // falso durante a decolagem e o pouso automáticos
+    }
 
     item def ComandoVelocidade {
         doc /* Velocidade comandada (tópico /dji/cmd_vel) no ReferencialLocal; o app ponte converte para o solo. */
@@ -113,13 +120,18 @@ package Comum {
         attribute vy : SpeedValue;
         attribute vz : SpeedValue;
         attribute taxaGuinada : Real;
+        attribute psi0 : Real;        // para o app ponte converter ao referencial do solo
     }
 
     item def ComandoDiscreto { attribute tipo : TipoComando; }
     item def ComandoOperador { attribute acao : AcaoOperador; }
     item def TarefaAtiva { attribute numero : Integer; }
-    item def StatusTarefa { doc /* Estado da tarefa, vértice/alvo atual, cronômetro, falhas: alimenta o painel. */ }
-    item def EventoTarefa { doc /* Início, permanência concluída, conclusão ou aborto de tarefa. */ }
+    item def StatusTarefa { doc /* Estado da tarefa, vértice/alvo atual, cronômetro, falhas, telemetria resumida:
+                                   alimenta o painel e o CSV. */ }
+    item def EventoTarefa {
+        doc /* Início, permanência concluída, conclusão ou aborto de tarefa; também SOLICITA_ACAO: a tarefa pede
+               decolar/pousar ao gerenciador, único que publica em /dji/acao. */
+    }
     item def Falha { attribute tipo : TipoFalha; }
     item def Alvos { doc /* Questão 2: balões detectados, cor, posição na imagem e distância estimada. */ }
     item def Obstaculos {
@@ -149,9 +161,14 @@ package Comum {
         attribute vPairadoMax : SpeedValue;
         attribute vToqueMax : SpeedValue;
         attribute vDeslocamentoMax : SpeedValue;
-        attribute bateriaMinimaPercentual : Real;
+        attribute bateriaMinimaPercentual : Real;      // condição para iniciar
+        attribute bateriaCriticaPercentual : Real;     // em voo: abaixo disto, término seguro
         attribute tempoMaxTarefa : DurationValue;
         attribute tempoEstabilizacao : DurationValue;
+        attribute alturaMinDecolagem : LengthValue;    // DecolagemConcluida exige z acima disto
+        attribute tempoMaxPreparacao : DurationValue;
+        attribute tempoMaxDecolagem : DurationValue;
+        attribute persistenciaFalha : DurationValue;   // telemetria atrasada ou estimativa inválida
     }
 
     item def ConfiguracaoTarefa2 {

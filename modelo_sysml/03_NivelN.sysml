@@ -139,7 +139,7 @@ package NivelN {
     // ---------------------------------------------------------------- app ponte (Kotlin, Android emulado)
     part def GerenciadorConexaoSdk :> ModuloSoftware {
         doc /* Registra o app no SDK (chave de app, ativação online na primeira vez) e detecta a aeronave conectada. */
-        attribute :>> arquivoCodigo = "android_ponte/app/src/main/java/br/usp/psi3442/ponte/ConexaoSdk.kt";
+        attribute :>> arquivoCodigo = "android_ponte/app/src/celular/java/br/usp/psi3442/ponte/ConexaoSdk.kt";
     }
     part def LeitorTelemetria :> ModuloSoftware {
         doc /* Assina as chaves do SDK e monta amostras Telemetria a 10 Hz. */
@@ -222,6 +222,8 @@ package NivelN {
     part def EstimadorEstado :> ModuloSoftware {
         doc /* Algoritmo: x, y por integração trapezoidal das velocidades norte/leste (posicionamento visual da DJI),
                a partir de A, convertidas ao ReferencialLocal com psi0; z pela altura ToF (reserva: altitude relativa).
+               Origem e psi0 registrados na borda de subida de motoresLigados; no solo, com motores desligados, não há
+               integração.
                Estado inválido se a amostra estiver velha ou o posicionamento visual inativo. A deriva da integração
                é o principal risco: validar com medição externa. */
         attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_estimacao_estado.py";
@@ -241,10 +243,11 @@ package NivelN {
                perdaEnlace                 -> conectado = false             -> aeronave pousa sozinha (failsafe); registra
                perdaPonte                  -> sem heartbeat > 2 s           -> app ponte comanda pouso; registra
                telemetriaAtrasada          -> amostra > prazoTelemetria      -> velocidade zero; persistindo, término seguro
-               bateriaBaixa                -> carga < bateriaMinima          -> término seguro
+               bateriaBaixa                -> em voo, carga < bateriaCritica -> término seguro (bateriaMinima só para iniciar)
                estimativaInvalida          -> estimador marca inválido       -> velocidade zero; persistindo, término seguro
                posicionamentoVisualInativo -> chave do SDK = false           -> término seguro
-               desvioExcessivo             -> erro > desvioMaximo            -> término seguro
+               desvioExcessivo             -> distância horizontal ao contorno do quadrado (ou altura acima de 1,80 m)
+                                              > desvioMaximo                -> término seguro
                tempoTarefaExcedido         -> tempo > tempoMaxTarefa         -> término seguro
                comandoRejeitado            -> erro devolvido pelo SDK        -> antes do voo: volta a ocioso; em voo: término seguro
                Término seguro = pouso no local. Todos os eventos vão para /falhas e para o registro. */
@@ -253,7 +256,7 @@ package NivelN {
         attribute desvioMaximo : LengthValue = 0.6 [m];
     }
     part def GravadorRosbag :> ModuloSoftware {
-        doc /* ros2 bag record de todos os tópicos, um bag por tarefa. */
+        doc /* ros2 bag record de todos os tópicos, um bag por execução do launch. */
         attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/launch/registro.launch.py";
     }
     part def ExportadorCsv :> ModuloSoftware {
@@ -346,6 +349,11 @@ package NivelN {
         :>> vToqueMax = 0.50 [m/s];
         :>> vDeslocamentoMax = 0.30 [m/s];
         :>> bateriaMinimaPercentual = 30.0;
+        :>> bateriaCriticaPercentual = 15.0;
+        :>> alturaMinDecolagem = 0.50 [m];
+        :>> tempoMaxPreparacao = 10 [s];
+        :>> tempoMaxDecolagem = 20 [s];
+        :>> persistenciaFalha = 1 [s];
         :>> tempoMaxTarefa = 600 [s];
         :>> tempoEstabilizacao = 2 [s];
     }
@@ -466,6 +474,7 @@ package NivelN {
             do action monitorarToque;
         }
         transition pousou first pousando accept PousoConfirmado then concluida;
+        transition interrompidaNoPouso first pousando accept InterromperTarefa then pousoSeguro;
 
         state pousoSeguro {
             doc /* Falha ou interrupção: pouso no local (nunca retorno por GNSS). */

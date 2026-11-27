@@ -131,9 +131,10 @@ O simulador (`simulador_cinematico.py`) é a implementação de referência do l
 - 2 s sem heartbeat em voo: pouso automático;
 - a resposta `erro` quando o SDK rejeita um comando.
 
-## Ajustes de implementação em relação ao modelo SysML (a refletir no modelo)
+## Ajustes de implementação em relação ao modelo SysML
 
-O modelo ainda não foi atualizado. Ao alterá-lo, rodar `executar_modelo.py` e `gerar_matriz.py`.
+Refletidos no modelo em 27/11/2026 (`00_Comum`, `02_Nivel1`, `03_NivelN`), validado com `executar_modelo.py` e
+`gerar_matriz.py`.
 
 1. **Assinaturas a mais.** A Tarefa 1 também assina `/dji/telemetria`, para as checagens da preparação e para
    `emVoo`/`motoresLigados` em `DecolagemConcluida` e `PousoConfirmado`. O gerenciador assina `/dji/telemetria` e

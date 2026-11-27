@@ -2,6 +2,7 @@
 registro. A interface do operador e o painel rodam em terminais próprios (precisam do teclado/tela):
 
     ros2 launch psi3442_tarefas sistema.launch.py                      # com o app ponte (adb forward tcp:5760)
+    ros2 launch psi3442_tarefas sistema.launch.py host_ponte:=<IP>     # app ponte no celular, pelo Wi-Fi
     ros2 launch psi3442_tarefas sistema.launch.py simulador:=true      # com o simulador cinemático
     ros2 run psi3442_tarefas painel
     ros2 run psi3442_tarefas interface_operador
@@ -40,6 +41,9 @@ def generate_launch_description():
         DeclareLaunchArgument('pasta_bags', default_value=os.path.expanduser('~/psi3442_bags')),
         DeclareLaunchArgument('simulador_args', default_value='',
                               description='argumentos extras do simulador (ex.: "--vies-norte 0.01")'),
+        DeclareLaunchArgument('host_ponte', default_value='127.0.0.1',
+                              description='endereço do app ponte: 127.0.0.1 com adb forward (emulador) ou o IP do '
+                                          'celular ligado ao controle (Wi-Fi)'),
 
         Node(package='psi3442_tarefas', executable='simulador_ponte', name='simulador_ponte', output='screen',
              arguments=[LaunchConfiguration('simulador_args')], condition=IfCondition(simulador)),
@@ -48,7 +52,7 @@ def generate_launch_description():
         no('estimacao_estado'),
         no('controle_voo'),
         no('supervisao'),
-        no('ponte_dji'),
+        no('ponte_dji', [{'host': LaunchConfiguration('host_ponte')}]),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'registro.launch.py')),

@@ -13,10 +13,21 @@ antes da demonstração e não ampliados depois. Todos os ensaios usam o mesmo a
    no plano da câmera lateral.
 4. Posicionar duas câmeras de vídeo: lateral (régua e altura) e superior ou diagonal (marcas do piso). Iniciar as
    gravações e mostrar à câmera um cronômetro sincronizado com o relógio do notebook.
-5. Aeronave sobre A, nariz apontado para B. Ligar aeronave e rádio; iniciar o Android emulado com o app ponte e os nós
-   ROS 2; conferir no painel: ponte conectada, bateria ≥ 30 %, posicionamento visual ativo, ação em perda de sinal =
-   pousar.
-6. Ninguém dentro do volume de voo (2,5 m × 2,5 m × 2,5 m). Operador ao notebook, com o comando "interromper" pronto.
+5. Aeronave sobre A, nariz apontado para B. Ligar a aeronave e o controle (RC-N2/RC-N3). Ligar o celular ao controle
+   pelo cabo e abrir o app ponte (variante `celular`), modo "dji"; o celular e o notebook ficam na mesma rede Wi-Fi
+   (ou o notebook no ponto de acesso do celular). O app mostra o IP do celular.
+6. No notebook: `ros2 launch psi3442_tarefas sistema.launch.py host_ponte:=<IP do celular>`; conferir no painel:
+   ponte conectada, bateria ≥ 30 %, posicionamento visual ativo, ação em perda de sinal = pousar.
+7. Ninguém dentro do volume de voo (2,5 m × 2,5 m × 2,5 m). Operador ao notebook, com o comando "interromper" pronto.
+
+## T00 — Teste de eixos (antes do primeiro T01, e depois de qualquer mudança no app ponte)
+
+- Só o app ponte e o script, **sem** o sistema ROS 2: `python3 ensaios/teste_eixos.py --host <IP do celular>`.
+- O script decola, anda 0,2 m/s para a frente e depois para a esquerda (2 s cada) e pousa; Ctrl+C manda pousar.
+- Aceita se: o script indica telemetria coerente com o comando (diferença de rumo < 30°) **e** o operador viu a
+  aeronave ir para a frente (direção do nariz) e depois para a esquerda.
+- Se falhar: corrigir `DroneDji.ROLL_E_NORTE` (troca norte/leste no controle virtual) ou o referencial da velocidade
+  e repetir. Nenhum T01–T04 antes de o T00 passar.
 
 ## T01 — Altura de decolagem (P01)
 

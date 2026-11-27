@@ -1,0 +1,40 @@
+instante_s,origem,tipo,estado,vertice,permanencia_s,valor,detalhe
+20.452,operador,executar tarefa 2,,,,,
+20.700,tarefa2,TRANSICAO,preparando,,0.00,0.000,
+20.720,tarefa2,SOLICITA_ACAO:habilitar_controle_virtual,preparando,,0.00,0.000,
+20.884,tarefa2,TRANSICAO,decolando,,0.00,0.000,PreparacaoConcluida
+20.904,tarefa2,SOLICITA_ACAO:decolar,decolando,,0.00,0.000,
+24.551,tarefa2,TRANSICAO,subindo,,0.00,0.000,DecolagemConcluida
+24.673,tarefa2,TRANSICAO,girando,,0.00,0.000,altura de busca atingida
+28.726,tarefa2,ALVO_SELECIONADO,girando,vermelho#2,0.00,0.000,"centro estimado (1.01, 0.73, 1.92) m, incerteza 0.06 m"
+28.732,tarefa2,TRANSICAO,aproximando,vermelho#2,0.00,0.000,alvo confirmado no mapa
+31.739,tarefa2,TRANSICAO,confirmando,vermelho#2,0.00,0.000,ponto de espera atingido
+33.350,tarefa2,TRANSICAO,aproximacaoFinal,vermelho#2,0.00,0.000,"alvo confirmado de perto (3 medidas); centro (1.19, 0.83, 2.03) m"
+49.463,tarefa2,TRANSICAO,permanecendo,vermelho#2,0.00,0.000,faixa atingida: d = 4.9 cm
+49.590,tarefa2,PERMANENCIA_INICIADA,permanecendo,vermelho#2,0.00,0.047,d = 4.7 cm
+101.239,tarefa2,PERMANENCIA_INTERROMPIDA,permanecendo,vermelho#2,35.90,0.025,saiu da faixa ou perdeu a confirmação: d = 2.5 cm
+101.420,tarefa2,PERMANENCIA_INICIADA,permanecendo,vermelho#2,0.00,0.025,d = 2.5 cm
+188.797,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,vermelho#2,60.00,0.027,1 reinícios da contagem
+188.808,tarefa2,BALAO_DESTRUIDO,permanecendo,vermelho#2,0.00,2.000,vermelho #2: 60.0 s contínuos a 0 < d <= 5 cm
+188.813,tarefa2,TRANSICAO,afastando,vermelho#2,0.00,0.000,BalaoDestruido
+192.127,tarefa2,TRANSICAO,girando,,0.00,0.000,retoma a varredura
+232.269,tarefa2,TRANSICAO,deslocando,,0.00,0.000,ponto de busca 2
+262.673,tarefa2,TRANSICAO,girando,,0.00,0.000,ponto de busca 2 atingido
+287.224,tarefa2,ALVO_INALCANCAVEL,girando,vermelho#14,0.00,0.000,sem ponto de aproximação livre no volume permitido
+299.572,tarefa2,TRANSICAO,deslocando,,0.00,0.000,ponto de busca 3
+299.663,tarefa2,ALVO_INALCANCAVEL,deslocando,vermelho#14,0.00,0.000,sem ponto de aproximação livre no volume permitido
+316.443,tarefa2,TRANSICAO,girando,,0.00,0.000,ponto de busca 3 atingido
+333.695,tarefa2,ALVO_INALCANCAVEL,girando,vermelho#17,0.00,0.000,sem ponto de aproximação livre no volume permitido
+352.191,tarefa2,TRANSICAO,deslocando,,0.00,0.000,ponto de busca 4
+352.335,tarefa2,ALVO_INALCANCAVEL,deslocando,vermelho#17,0.00,0.000,sem ponto de aproximação livre no volume permitido
+352.459,tarefa2,ALVO_INALCANCAVEL,deslocando,vermelho#14,0.00,0.000,sem ponto de aproximação livre no volume permitido
+362.162,tarefa2,TRANSICAO,girando,,0.00,0.000,ponto de busca 4 atingido
+399.339,tarefa2,TRANSICAO,deslocando,,0.00,0.000,ponto de busca 5
+399.449,tarefa2,ALVO_INALCANCAVEL,deslocando,vermelho#17,0.00,0.000,sem ponto de aproximação livre no volume permitido
+410.704,tarefa2,TRANSICAO,girando,,0.00,0.000,ponto de busca 5 atingido
+450.936,tarefa2,TRANSICAO,retornando,,0.00,0.000,varredura completa
+469.128,tarefa2,TRANSICAO,pousando,,0.00,0.000,ponto de decolagem atingido
+475.092,tarefa2,SOLICITA_ACAO:pousar,pousando,,0.00,0.000,pouso automático a partir de 0.40 m
+476.836,tarefa2,POUSO_CONFIRMADO,pousando,,0.00,0.390,|vz| no toque = 0.39 m/s
+476.844,tarefa2,TRANSICAO,concluida,,0.00,0.000,PousoConfirmado
+476.858,tarefa2,TAREFA_CONCLUIDA,concluida,,0.00,0.390,"balões destruídos: vermelho#2 (60 s); descartados: nenhum; inalcançáveis: [14, 17]; |vz| no toque = 0.39 m/s"

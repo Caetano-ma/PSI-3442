@@ -1,0 +1,37 @@
+{
+  "tarefa1": null,
+  "tarefa2": {
+    "resultado": "TAREFA_CONCLUIDA",
+    "baloes": {
+      "vermelho#2": {
+        "continuo_s": 60.0,
+        "reinicios": 1,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "vermelho#14": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "vermelho#17": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      }
+    },
+    "falhas": [],
+    "d_real_contando_min_m": 0.0144,
+    "d_real_contando_max_m": 0.033,
+    "amostras_contando": 874,
+    "folga_min_nao_alvo_m": 0.364
+  }
+}

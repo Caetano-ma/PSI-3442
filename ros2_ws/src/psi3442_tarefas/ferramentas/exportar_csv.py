@@ -3,7 +3,7 @@
 
 Uma linha por amostra de /estado (10 Hz), com colunas:
     instante_s, tarefa, estado, vertice, x_m, y_m, z_m, vx_mps, vy_mps, vz_mps, dentro, permanencia_s,
-    cmd_vx_mps, cmd_vy_mps, cmd_vz_mps, bateria_pct, evento, tipo_falha
+    cmd_vx_mps, cmd_vy_mps, cmd_vz_mps, bateria_pct, evento, tipo_falha, d_estimada_m, d_real_m
 `evento` e `tipo_falha` listam (separados por "|") o que ocorreu desde a linha anterior. Também gera
 <saida>_eventos.csv com todos os eventos discretos e falhas, um por linha.
 
@@ -11,12 +11,13 @@ Uso (com o ROS 2 carregado):  python3 exportar_csv.py <pasta_do_bag> [-o saida.c
 """
 import argparse
 import csv
+import math
 import os
 import sys
 
 COLUNAS = ['instante_s', 'tarefa', 'estado', 'vertice', 'x_m', 'y_m', 'z_m', 'vx_mps', 'vy_mps', 'vz_mps',
            'dentro', 'permanencia_s', 'cmd_vx_mps', 'cmd_vy_mps', 'cmd_vz_mps', 'bateria_pct', 'evento',
-           'tipo_falha']
+           'tipo_falha', 'd_estimada_m', 'd_real_m']
 COLUNAS_EVENTOS = ['instante_s', 'origem', 'tipo', 'estado', 'vertice', 'permanencia_s', 'valor', 'detalhe']
 NOMES_ACAO = {1: 'decolar', 2: 'pousar', 3: 'habilitar_controle_virtual', 4: 'desabilitar_controle_virtual',
               5: 'parar_e_pairar'}
@@ -27,6 +28,7 @@ class MontadorCsv:
     """Monta as linhas a partir das mensagens em ordem de tempo (t em segundos). Sem dependência de ROS 2."""
 
     def __init__(self):
+        self.d_estimada = self.d_real = math.nan     # Tarefa 2: /tarefa2/distancia e /avaliador/distancia_m
         self.t0 = None
         self.linhas, self.eventos = [], []
         self.tarefa, self.estado, self.vertice = 0, '', ''
@@ -81,6 +83,12 @@ class MontadorCsv:
         self._rel(t)
         self.bateria = tel.bateria_pct
 
+    def ao_distancia(self, t, msg):
+        self.d_estimada = msg.data
+
+    def ao_distancia_real(self, t, msg):
+        self.d_real = msg.data
+
     def ao_estado(self, t, e):
         rel = self._rel(t)
         dentro = self.contando_desde is not None
@@ -93,6 +101,8 @@ class MontadorCsv:
             int(dentro), f'{permanencia:.2f}',
             f'{self.cmd[0]:.4f}', f'{self.cmd[1]:.4f}', f'{self.cmd[2]:.4f}', f'{self.bateria:.1f}',
             '|'.join(self.pendentes_evento), '|'.join(self.pendentes_falha),
+            f'{self.d_estimada:.4f}' if math.isfinite(self.d_estimada) else '',
+            f'{self.d_real:.4f}' if math.isfinite(self.d_real) else '',
         ])
         self.pendentes_evento, self.pendentes_falha = [], []
 
@@ -109,8 +119,9 @@ class MontadorCsv:
         return caminho, caminho_eventos
 
 
-def ler_bag(pasta):
-    """Gera (t_s, tópico, mensagem) em ordem de gravação."""
+def ler_bag(pasta, topicos=None):
+    """Gera (t_s, tópico, mensagem) em ordem de gravação, só dos `topicos` pedidos (os outros nem são
+    desserializados: um bag gravado com outra versão de uma mensagem não usada não impede a exportação)."""
     import rosbag2_py
     from rclpy.serialization import deserialize_message
     from rosidl_runtime_py.utilities import get_message
@@ -125,9 +136,19 @@ def ler_bag(pasta):
                              f'Recupere com: ros2 bag reindex {pasta} -s mcap') from erro
         raise
     tipos = {t.name: get_message(t.type) for t in leitor.get_all_topics_and_types()}
+    descartadas = 0
     while leitor.has_next():
         topico, dados, t_ns = leitor.read_next()
-        yield t_ns * 1e-9, topico, deserialize_message(dados, tipos[topico])
+        if topicos is not None and topico not in topicos:
+            continue
+        try:
+            msg = deserialize_message(dados, tipos[topico])
+        except Exception:
+            descartadas += 1
+            continue
+        yield t_ns * 1e-9, topico, msg
+    if descartadas:
+        print(f'aviso: {descartadas} mensagens ilegíveis ignoradas (definição diferente da gravada)')
 
 
 def main(argv=None):
@@ -138,8 +159,9 @@ def main(argv=None):
     montador = MontadorCsv()
     despacho = {'/estado': montador.ao_estado, '/tarefa/evento': montador.ao_evento,
                 '/falhas': montador.ao_falha, '/dji/cmd_vel': montador.ao_cmd_vel,
-                '/dji/telemetria': montador.ao_telemetria, '/operador/comando': montador.ao_comando_operador}
-    for t, topico, msg in ler_bag(args.bag):
+                '/dji/telemetria': montador.ao_telemetria, '/operador/comando': montador.ao_comando_operador,
+                '/tarefa2/distancia': montador.ao_distancia, '/avaliador/distancia_m': montador.ao_distancia_real}
+    for t, topico, msg in ler_bag(args.bag, set(despacho)):
         if topico in despacho:
             despacho[topico](t, msg)
     saida = args.saida or os.path.normpath(args.bag) + '.csv'

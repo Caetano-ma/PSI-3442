@@ -1,0 +1,47 @@
+semente: 2
+cores_alvo:
+- vermelho
+- azul
+baloes:
+- cor: azul
+  x: 2.659
+  y: 1.968
+  z: 1.074
+  raio: 0.13
+  alvo: true
+- cor: vermelho
+  x: 1.902
+  y: 1.349
+  z: 1.695
+  raio: 0.13
+  alvo: true
+- cor: vermelho
+  x: 4.328
+  y: 3.183
+  z: 1.499
+  raio: 0.13
+  alvo: true
+- cor: vermelho
+  x: 0.168
+  y: 1.584
+  z: 1.25
+  raio: 0.13
+  alvo: true
+- cor: vermelho
+  x: 1.684
+  y: 2.993
+  z: 1.478
+  raio: 0.13
+  alvo: true
+- cor: azul
+  x: 4.027
+  y: 1.703
+  z: 1.815
+  raio: 0.13
+  alvo: true
+- cor: verde
+  x: 0.374
+  y: 2.757
+  z: 1.699
+  raio: 0.13
+  alvo: false

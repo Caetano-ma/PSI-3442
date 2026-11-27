@@ -7,6 +7,7 @@ int16 vertice                   # índice na sequência de setpoints (T2: id do 
 string nome_vertice             # A, B, C, D
 float64 permanencia_s           # tempo contínuo dentro da tolerância no vértice atual
 bool dentro
+float64 distancia_alvo_m         # Tarefa 2: d estimada (m) entre a frente das hélices e o alvo atual; NaN se não há
 float64 x_m
 float64 y_m
 float64 z_m

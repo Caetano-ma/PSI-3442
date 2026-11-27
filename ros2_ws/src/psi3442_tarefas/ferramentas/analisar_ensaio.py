@@ -69,7 +69,7 @@ def metricas_tarefa1(linhas, eventos):
     }
 
 
-def metricas_tarefa2(eventos, avaliacao=None):
+def metricas_tarefa2(eventos, avaliacao=None, linhas=None):
     por_balao = {}
     for e in eventos:
         if e['origem'] != 'tarefa2' or not e['vertice']:
@@ -91,6 +91,13 @@ def metricas_tarefa2(eventos, avaliacao=None):
     resultado = next((e['tipo'] for e in eventos if e['tipo'] in ('TAREFA_CONCLUIDA', 'TAREFA_ABORTADA')), '—')
     saida = {'resultado': resultado, 'baloes': por_balao,
              'falhas': [e['tipo'] for e in eventos if e['origem'] == 'supervisao']}
+    pares = [(f(l['d_estimada_m']), f(l['d_real_m'])) for l in (linhas or [])
+             if l.get('d_estimada_m') and l.get('d_real_m')]
+    if pares:
+        erros = [abs(e - r) for e, r in pares]
+        saida['erro_estimacao_medio_m'] = sum(erros) / len(erros)
+        saida['erro_estimacao_max_m'] = max(erros)
+        saida['amostras_estimacao'] = len(erros)
     if avaliacao:
         contando = [f(l['d_real_alvo_m']) for l in avaliacao if l['contando'] == '1']
         saida['d_real_contando_min_m'] = min(contando, default=math.nan)
@@ -128,6 +135,10 @@ def markdown(titulo, m1, m2):
             linhas.append(f"Distância VERDADEIRA durante a contagem (avaliador): {m2['d_real_contando_min_m'] * 100:.1f} a "
                           f"{m2['d_real_contando_max_m'] * 100:.1f} cm em {m2['amostras_contando']} amostras; menor folga a "
                           f"balões não alvo: {m2['folga_min_nao_alvo_m']:.2f} m.")
+        if 'erro_estimacao_medio_m' in m2:
+            linhas.append(f"Erro de estimação de d (aproximação final e permanência, |estimada − real|): médio "
+                          f"{m2['erro_estimacao_medio_m'] * 100:.1f} cm, máximo {m2['erro_estimacao_max_m'] * 100:.1f} cm "
+                          f"em {m2['amostras_estimacao']} amostras.")
         linhas.append('')
     return '\n'.join(linhas)
 
@@ -144,7 +155,8 @@ def main():
     tarefas = {e['origem'] for e in eventos}
     m1 = metricas_tarefa1(linhas, [e for e in eventos if e['origem'] in ('tarefa1', 'supervisao', 'operador')]) \
         if 'tarefa1' in tarefas else None
-    m2 = metricas_tarefa2(eventos, ler_csv(a.avaliacao) if a.avaliacao else None) if 'tarefa2' in tarefas else None
+    m2 = metricas_tarefa2(eventos, ler_csv(a.avaliacao) if a.avaliacao else None, linhas) if 'tarefa2' in tarefas \
+        else None
     texto = markdown(a.titulo, m1, m2)
     print(texto)
     if a.saida:

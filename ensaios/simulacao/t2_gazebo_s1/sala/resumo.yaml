@@ -1,0 +1,59 @@
+permanencias:
+- alvo: azul#2
+  inicio_s: 39.6
+  d_min_m: 0.0263
+  d_max_m: 0.0463
+  amostras: 250
+  fim_s: 44.6
+  duracao_s: 5.0
+  resultado: concluida
+  dentro_da_faixa: true
+- alvo: vermelho#4
+  inicio_s: 62.3
+  d_min_m: 0.0274
+  d_max_m: 0.0439
+  amostras: 250
+  fim_s: 67.3
+  duracao_s: 5.0
+  resultado: concluida
+  dentro_da_faixa: true
+- alvo: vermelho#7
+  inicio_s: 89.5
+  d_min_m: 0.0253
+  d_max_m: 0.0408
+  amostras: 250
+  fim_s: 94.5
+  duracao_s: 5.0
+  resultado: concluida
+  dentro_da_faixa: true
+- alvo: azul#8
+  inicio_s: 112.72
+  d_min_m: 0.0265
+  d_max_m: 0.0394
+  amostras: 254
+  fim_s: 117.8
+  duracao_s: 5.1
+  resultado: concluida
+  dentro_da_faixa: true
+destruidos:
+- rotulo: azul#2
+  cor_real: azul
+  erro_centro_m: 0.018
+- rotulo: vermelho#4
+  cor_real: vermelho
+  erro_centro_m: 0.028
+- rotulo: vermelho#7
+  cor_real: vermelho
+  erro_centro_m: 0.026
+- rotulo: azul#8
+  cor_real: azul
+  erro_centro_m: 0.026
+colisoes: 0
+folga_min_nao_alvo_m: 0.6515
+alvos_reais:
+- azul
+- azul
+- vermelho
+- vermelho
+todos_os_alvos_destruidos: true
+resultado: TAREFA_CONCLUIDA

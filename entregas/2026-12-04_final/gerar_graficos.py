@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 
 import matplotlib
+import matplotlib.lines
+import matplotlib.patches
 import matplotlib.ticker
 
 matplotlib.use('Agg')
@@ -103,7 +105,8 @@ def tarefa2(pasta, sufixo=''):
     perms = resumo.get('permanencias', [])
     if perms:
         n = len(perms)
-        fig, eixos = plt.subplots(1, n, figsize=(min(2.3 * n + 0.6, 7.2), 2.6), sharey=True, squeeze=False)
+        fig, eixos = plt.subplots(1, n, figsize=(max(min(2.3 * n + 0.6, 7.2), 4.6), 3.0), sharey=True,
+                                  squeeze=False)
         for ax, p in zip(eixos[0], perms):
             ini, fim = p['inicio_s'] - 8, p.get('fim_s', p['inicio_s']) + 3
             idx = [k for k, tk in enumerate(t) if ini <= tk <= fim]
@@ -111,28 +114,33 @@ def tarefa2(pasta, sufixo=''):
             ax.plot([t[k] - p['inicio_s'] for k in idx], [d[k] for k in idx], color=AZUL, lw=1.4)
             cont = [k for k in idx if contando[k]]
             ax.plot([t[k] - p['inicio_s'] for k in cont], [d[k] for k in cont], color=LARANJA, lw=2.4)
-            ax.set(title=p['alvo'], xlabel='s desde o início da contagem', ylim=(0, 25))
+            ax.set(title=p['alvo'], ylim=(0, 25))
         eixos[0][0].set_ylabel('d real (cm)')
-        eixos[0][0].plot([], [], color=AZUL, label='aproximação')
-        eixos[0][0].plot([], [], color=LARANJA, lw=2.4, label='contando (0 < d ≤ 5 cm)')
-        eixos[0][0].legend(loc='upper right', fontsize=7)
-        fig.suptitle('Tarefa 2 no Gazebo — distância VERDADEIRA durante a aproximação e a permanência',
-                     fontsize=9.5, fontweight='bold', color=TEXTO)
-        salvar(fig, f't2_distancia{sufixo}.png')
+        fig.supxlabel('tempo desde o início da contagem (s, relógio do simulador)', fontsize=8.5, color=TEXTO)
+        fig.legend(handles=[matplotlib.lines.Line2D([], [], color=AZUL, label='aproximação e afastamento'),
+                            matplotlib.lines.Line2D([], [], color=LARANJA, lw=2.4, label='contando a permanência'),
+                            matplotlib.patches.Patch(color=FAIXA, label='faixa 0 < d ≤ 5 cm')],
+                   loc='upper center', ncol=3, fontsize=8, bbox_to_anchor=(0.5, 0.93))
+        fig.suptitle('Distância verdadeira à frente das hélices (avaliador do Gazebo)', fontsize=10,
+                     fontweight='bold', color=TEXTO)
+        fig.tight_layout(rect=(0, 0, 1, 0.86))
+        salvar(fig, f't2_distancia{sufixo}.png', ajustar=False)
 
     # vista de cima: balões reais e trajetória real
     fig, ax = plt.subplots(figsize=(4.6, 3.8))
     ax.plot([float(l['x_m']) for l in av], [float(l['y_m']) for l in av], color='#9c9c9c', lw=1, label='trajetória real')
     destruidas = [x['cor_real'] for x in resumo.get('destruidos', [])]
+    todos = resumo.get('todos_os_alvos_destruidos', False)
     for b in verdade['baloes']:
         cor = COR_BALAO[b['cor']]
         ax.scatter(b['x'], b['y'], s=150, color=cor, edgecolors='white', linewidths=2, zorder=3)
-        rot = b['cor'] + (' (alvo)' if b['alvo'] else '')
+        rot = b['cor'] + ((' — alvo, destruído' if todos else ' — alvo') if b['alvo'] else ' — não alvo')
         ax.annotate(rot, (b['x'], b['y']), xytext=(8, -3), textcoords='offset points', fontsize=7.5, color=TEXTO)
     ax.scatter(0, 0, marker='s', s=60, color=TEXTO, zorder=3)
-    ax.annotate('decolagem', (0, 0), xytext=(6, -10), textcoords='offset points', fontsize=7.5, color=TEXTO2)
+    ax.annotate('decolagem', (0, 0), xytext=(8, 4), textcoords='offset points', fontsize=7.5, color=TEXTO2)
     ax.set(xlabel='x (m)', ylabel='y (m)', aspect='equal',
-           title=f"Sala (semente {verdade['semente']}) — balões destruídos: {len(destruidas)}")
+           title=f"Sala da semente {verdade['semente']}: {len(destruidas)} de "
+                 f"{sum(1 for b in verdade['baloes'] if b['alvo'])} alvos destruídos")
     ax.legend(loc='upper right', fontsize=7)
     salvar(fig, f't2_sala{sufixo}.png')
 

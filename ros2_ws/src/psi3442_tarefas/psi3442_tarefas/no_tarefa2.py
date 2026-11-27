@@ -40,6 +40,7 @@ TEMPO_MAX_FORA_S = 15.0           # na permanência, sem voltar à faixa por mai
 TEMPO_REFINO_S = 1.0              # no ponto de espera: média das detecções de perto antes da aproximação final
 DISTANCIA_REFINO_M = 1.5          # só detecções mais próximas que isto refinam o centro do alvo
 ALFA_ANCORA = 0.5                 # filtro da reancoragem do centro pela medida de proximidade (por quadro)
+MEIA_DIAGONAL_ENVELOPE_M = math.hypot(0.298, 0.373) / 2   # 0,239 m: centro -> canto do envelope com hélices
 MARGEM_CANDIDATO_M = 0.15         # folga a um balão ainda candidato (além de raio + envelope)
 PESO_INCERTEZA = 3.0              # na escolha do alvo: 1 m de distância equivale a 0,33 m de incerteza
 DISTANCIA_DUPLICATA_M = 0.6       # mesma cor e mais perto que isto do alvo: duplicata dele no mapa
@@ -198,12 +199,13 @@ class MaquinaTarefa2:
     def _folga_balao(self, b):
         alvo_atual = self.alvo is not None and b.id == self.alvo['id']
         if alvo_atual:
-            margem = 0.0
-        elif getattr(b, 'situacao', CONFIRMADO) == CANDIDATO:
+            return self.cfg.raio_balao_m + self.cfg.raio_envelope_frontal_m
+        if getattr(b, 'situacao', CONFIRMADO) == CANDIDATO:
             margem = MARGEM_CANDIDATO_M       # ainda incerto (pode ser fantasma): bolha menor, mas nunca encostar
         else:
             margem = self.cfg.margem_obstaculos_m if b.alvo else self.cfg.margem_nao_alvo_m
-        return self.cfg.raio_balao_m + self.cfg.raio_envelope_frontal_m + margem
+        # margem do R06 entre superfícies: de lado ou na diagonal o envelope com hélices vai até a meia-diagonal
+        return self.cfg.raio_balao_m + MEIA_DIAGONAL_ENVELOPE_M + margem
 
     @staticmethod
     def _obstaculos_balao(mapa):
@@ -345,7 +347,9 @@ class MaquinaTarefa2:
             final = (balao.x_m + u[0] * (raio + c.d_alvo_m), balao.y_m + u[1] * (raio + c.d_alvo_m), z)
             if not (self._no_volume(espera) and self._no_volume(final)):
                 continue
-            if self._obstaculo(mapa, espera) or self._obstaculo(mapa, final):
+            # só o ponto de espera é testado contra a grade: o final fica colado ao balão, que o próprio sensor de
+            # distâncias também enxerga (e cuja posição no mapa pode ter erro maior que o filtro de células de balão)
+            if self._obstaculo(mapa, espera):
                 continue
             if self._bloqueio(espera, final, mapa, ignorar_id=balao.id) is not None:
                 continue
@@ -587,12 +591,43 @@ class MaquinaTarefa2:
             self._ir('aproximacaoFinal', agora, f'alvo confirmado de perto ({len(self._refino)} medidas); centro '
                                                 '({:.2f}, {:.2f}, {:.2f}) m'.format(*self.alvo['centro']))
         elif self._confirmado_s is None and agora - self.t_entrada > self.cfg.tempo_confirmacao_s:
+            remira = self._remirar(visao, agora, estado, mapa)
+            if remira is not None:
+                return remira
             self.descartados.add(self.alvo['id'])
             self.tentativas[self.alvo['id']] = self.tentativas.get(self.alvo['id'], 0) + 1
             self._evento('ALVO_DESCARTADO', detalhe='não confirmado pela visão no ponto de espera')
             self._decidir(agora, estado, mapa)
             return self._setpoint(*espera, guinada, 'descartado')
         return self._setpoint(*espera, guinada, f'confirmação {self._rotulo()}')
+
+    def _remirar(self, visao, agora, estado, mapa):
+        """Sem confirmação na direção esperada: o centro do mapa pode estar errado de longe. Procura, de perto (até
+        2,5 m, ±60°), uma detecção da cor do alvo a até 1,2 m do centro previsto; se houver, recentra e refaz a
+        aproximação (no máximo 2 vezes por alvo). None se não houver."""
+        if visao is None or agora - visao.t > self.cfg.tempo_sem_confirmacao_s or self._reaproximacoes >= 2:
+            return None
+        centro, guinada = self.alvo['centro'], self.alvo['guinada']
+        pontos = [ponto_da_deteccao(visao.x_m, visao.y_m, visao.z_m, visao.guinada_local_graus, d)
+                  for d in visao.deteccoes if d.cor == self.alvo['cor'] and not d.cortada
+                  and 0 < d.distancia_m < 2.5 and abs(normalizar_graus(d.azimute_graus - guinada)) <= 60.0]
+        pontos = [p for p in pontos if math.dist(p, centro) < DISTANCIA_CANDIDATO_MESMO_ALVO_M]
+        if not pontos:
+            return None
+        novo = min(pontos, key=lambda p: math.dist(p, centro))
+        if self._e_balao_destruido(novo, mapa):
+            return None
+        geo = self._geometria_aproximacao(PontoBalao(self.alvo['id'], self.alvo['cor'], *novo), estado, mapa)
+        rota = None if geo is None else self._planejar_rota((estado.x_m, estado.y_m, estado.z_m), geo['espera'],
+                                                            mapa, geo['id'])
+        if rota is None:
+            return None
+        self._reaproximacoes += 1
+        self.alvo.update(geo)
+        self.rota = rota
+        self._ir('aproximando', agora, 'alvo visto fora da direção esperada: recentrado em '
+                                       '({:.2f}, {:.2f}, {:.2f}) m'.format(*novo))
+        return self._setpoint(*self.rota[0], geo['guinada'], f'espera {self._rotulo()}')
 
     def _e_balao_destruido(self, centro, mapa):
         """Rótulo do balão já destruído (mesma cor, a menos de 0,6 m) que o centro medido de perto revela, ou ''."""
@@ -812,6 +847,7 @@ class MaquinaTarefa2:
 def main(args=None):
     import rclpy
     from rclpy.node import Node
+    from std_msgs.msg import Float64
     from psi3442_interfaces.msg import Alvos, EstadoEstimado, EventoTarefa, MapaLocal, Setpoint as SetpointMsg
     from psi3442_interfaces.msg import TarefaAtiva, Telemetria as TelemetriaMsg
 
@@ -865,6 +901,7 @@ def main(args=None):
             self.create_subscription(MapaLocal, '/mapa', self.ao_mapa, ros_util.QOS_CONFIAVEL)
             self.create_subscription(Alvos, '/alvos', self.ao_alvos, ros_util.QOS_FLUXO)
             self.create_timer(0.1, self.ao_temporizar)
+            self.pub_distancia = self.create_publisher(Float64, '/tarefa2/distancia', ros_util.QOS_FLUXO)
 
         def ao_ativa(self, msg):
             self.ativa = msg.numero
@@ -890,6 +927,9 @@ def main(args=None):
             setpoint, eventos = self.maquina.passo(agora, self.ativa, estado, tel, self.mapa, self.visao)
             if self.ativa == MaquinaTarefa2.NUMERO or setpoint.ativo:
                 self.pub_setpoint.publish(ros_util.carimbar(self, copiar_campos(setpoint, SetpointMsg())))
+            m = self.maquina
+            perto = m.estado in ('aproximacaoFinal', 'permanecendo') and math.isfinite(m.d_estimada)
+            self.pub_distancia.publish(Float64(data=float(m.d_estimada) if perto else math.nan))
             for ev in eventos:
                 msg = copiar_campos(ev, EventoTarefa())
                 msg.valor = float(ev.valor) if math.isfinite(ev.valor) else -1.0

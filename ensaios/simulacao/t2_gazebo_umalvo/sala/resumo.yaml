@@ -1,0 +1,29 @@
+permanencias:
+- alvo: vermelho#2
+  inicio_s: 31.9
+  d_min_m: 0.0144
+  d_max_m: 0.033
+  amostras: 1796
+  fim_s: 67.82
+  duracao_s: 35.9
+  resultado: interrompida
+  dentro_da_faixa: true
+- alvo: vermelho#2
+  inicio_s: 67.84
+  d_min_m: 0.0239
+  d_max_m: 0.0314
+  amostras: 3003
+  fim_s: 127.9
+  duracao_s: 60.0
+  resultado: concluida
+  dentro_da_faixa: true
+destruidos:
+- rotulo: vermelho#2
+  cor_real: vermelho
+  erro_centro_m: 0.022
+colisoes: 0
+folga_min_nao_alvo_m: 0.3633
+alvos_reais:
+- vermelho
+todos_os_alvos_destruidos: true
+resultado: TAREFA_CONCLUIDA

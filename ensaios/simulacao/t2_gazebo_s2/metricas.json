@@ -1,0 +1,101 @@
+{
+  "tarefa1": null,
+  "tarefa2": {
+    "resultado": "—",
+    "baloes": {
+      "vermelho#3": {
+        "continuo_s": 5.0,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "vermelho#8": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": true,
+        "inalcancavel": false
+      },
+      "azul#1": {
+        "continuo_s": 5.09,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "azul#7": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": true,
+        "inalcancavel": false
+      },
+      "vermelho#4": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": true,
+        "inalcancavel": true
+      },
+      "vermelho#15": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": true,
+        "inalcancavel": false
+      },
+      "vermelho#6": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "azul#13": {
+        "continuo_s": 5.0,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": true,
+        "inalcancavel": true
+      },
+      "vermelho#10": {
+        "continuo_s": 5.09,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "vermelho#26": {
+        "continuo_s": 5.11,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "azul#2": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      }
+    },
+    "falhas": [],
+    "d_real_contando_min_m": 0.0244,
+    "d_real_contando_max_m": 0.0426,
+    "amostras_contando": 230,
+    "folga_min_nao_alvo_m": 0.74
+  }
+}

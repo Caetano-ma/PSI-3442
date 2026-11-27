@@ -25,6 +25,7 @@ TAREFA_DO_MODO = {TAREFA1: 1, TAREFA2: 2}
 
 class SeletorTarefa:
     def __init__(self, simulacao=False, arquivo_progresso=None, prazo_telemetria_s=0.5, liberar_tarefa2=False):
+        self.distancia_alvo_m = float('nan')
         self.simulacao = simulacao
         self.liberar_tarefa2 = liberar_tarefa2 and simulacao
         self.arquivo_progresso = arquivo_progresso
@@ -170,6 +171,10 @@ class SeletorTarefa:
         if self.modo == TERMINO and not tel.em_voo and not tel.motores_ligados:
             self._ir_ocioso('pousado após término seguro')
 
+    def ao_distancia(self, distancia_m):
+        """/tarefa2/distancia: d estimada pela Tarefa 2 (NaN fora da aproximação final e da permanência)."""
+        self.distancia_alvo_m = distancia_m
+
     def ao_estado(self, estado):
         self.estado = estado
 
@@ -186,6 +191,7 @@ class SeletorTarefa:
             'nome_vertice': a['nome_vertice'],
             'permanencia_s': float(permanencia),
             'dentro': a['contando_desde'] is not None,
+            'distancia_alvo_m': float(self.distancia_alvo_m),
             'x_m': e.x_m if e else 0.0, 'y_m': e.y_m if e else 0.0, 'z_m': e.z_m if e else 0.0,
             'vx_mps': e.vx_mps if e else 0.0, 'vy_mps': e.vy_mps if e else 0.0, 'vz_mps': e.vz_mps if e else 0.0,
             'estado_valido': bool(e.valido) if e else False,
@@ -200,6 +206,7 @@ class SeletorTarefa:
 def main(args=None):
     import rclpy
     from rclpy.node import Node
+    from std_msgs.msg import Float64
     from psi3442_interfaces.msg import (ComandoDiscreto, ComandoOperador, EstadoEstimado, EventoTarefa,
                                         Falha as FalhaMsg, StatusTarefa, TarefaAtiva, Telemetria as TelemetriaMsg)
 
@@ -228,6 +235,8 @@ def main(args=None):
             self.create_subscription(FalhaMsg, '/falhas', self.ao_falha, ros_util.QOS_CONFIAVEL)
             self.create_subscription(TelemetriaMsg, '/dji/telemetria', self.ao_telemetria, ros_util.QOS_FLUXO)
             self.create_subscription(EstadoEstimado, '/estado', self.ao_estado, ros_util.QOS_FLUXO)
+            self.create_subscription(Float64, '/tarefa2/distancia', lambda m: self.seletor.ao_distancia(m.data),
+                                     ros_util.QOS_FLUXO)
             self.create_timer(0.5, self.publicar_status)
             self.pub_ativa.publish(ros_util.carimbar(self, TarefaAtiva(numero=0)))
 

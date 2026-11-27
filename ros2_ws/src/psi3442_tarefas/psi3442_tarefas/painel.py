@@ -1,9 +1,11 @@
-"""PainelTerminal (nível n): mostra tarefa, estado, vértice, cronômetro, x/y/z, velocidades, bateria e falhas.
+"""PainelTerminal (nível n): mostra tarefa, estado, vértice ou alvo, cronômetro, distância estimada ao balão (Tarefa 2),
+x/y/z, velocidades, bateria e falhas (R08).
 
 Assina /tarefa/status e /falhas; redesenha o terminal a 2 Hz.
 Uso: ros2 run psi3442_tarefas painel
 """
 from collections import deque
+import math
 
 LIMPAR_TELA = '\033[2J\033[H'
 
@@ -19,7 +21,9 @@ def formatar(status, falhas):
         'PSI3442 — Sistema de Missões Autônomas — DJI Mini 4 Pro',
         '=' * 60,
         f'modo: {s.modo:<14} tarefa: {s.tarefa or "—"}    estado: {s.estado or "—"}',
-        f'vértice: {vertice:<16} permanência: {s.permanencia_s:6.1f} s  [{dentro}]',
+        f'vértice/alvo: {vertice:<16} permanência: {s.permanencia_s:6.1f} s  [{dentro}]'
+        + (f'   d estimada: {s.distancia_alvo_m * 100:5.1f} cm'
+           if s.tarefa == 2 and math.isfinite(getattr(s, 'distancia_alvo_m', math.nan)) else ''),
         f'posição  x={s.x_m:+6.2f}  y={s.y_m:+6.2f}  z={s.z_m:+6.2f} m'
         f'   estimativa: {"válida" if s.estado_valido else "INVÁLIDA"}',
         f'velocid. vx={s.vx_mps:+6.2f} vy={s.vy_mps:+6.2f} vz={s.vz_mps:+6.2f} m/s',

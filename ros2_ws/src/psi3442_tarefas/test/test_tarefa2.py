@@ -44,7 +44,11 @@ def distancias_reais_contando(s, alvos=ALVOS):
 
 
 def cor_verdadeira_do_id(s, id_balao):
-    b = next(b for b in s.mapa.baloes if b.id == id_balao)
+    """Cor real do balão de um id do mapa (o balão pode ter sido fundido a outra entrada: usa o evento de destruição)."""
+    b = next((b for b in s.mapa.baloes if b.id == id_balao), None)
+    if b is None:
+        ev = next(ev for ev in destruidos(s) if int(ev.valor) == id_balao)
+        return s.balao_verdadeiro(ev.x_m, ev.y_m, ev.z_m).cor
     return s.balao_verdadeiro(b.x_m, b.y_m, b.z_m).cor
 
 
@@ -338,8 +342,7 @@ def test_sala_aleatoria_com_erro_de_tamanho_destroi_todos_uma_vez():
     reais = [(b.cor, b.x, b.y) for b in SALA_SEMENTE_2 if b.cor in ('vermelho', 'azul')]
     destruidos_reais = []
     for ev in destruidos(s):
-        b = next(m for m in s.mapa.baloes if m.id == int(ev.valor))
-        v = s.balao_verdadeiro(b.x_m, b.y_m, b.z_m)
+        v = s.balao_verdadeiro(ev.x_m, ev.y_m, ev.z_m)      # centro medido de perto, gravado no evento
         destruidos_reais.append((v.cor, v.x, v.y))
     assert sorted(destruidos_reais) == sorted(reais)
     alvos = [b for b in SALA_SEMENTE_2 if b.cor != 'verde']

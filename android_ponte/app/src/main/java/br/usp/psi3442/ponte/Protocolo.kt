@@ -5,10 +5,10 @@ import org.json.JSONObject
 
 /**
  * ContratoSocketPonte: JSON UTF-8, uma mensagem por linha, campo "tipo" em {telemetria, cmd_vel, acao, heartbeat,
- * erro}. Especificação no cabeçalho de ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_ponte_dji.py.
+ * erro, obstaculos}. Os quadros da câmera vão por um segundo socket (porta + 1, [ServidorVideo]). Especificação no cabeçalho de ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_ponte_dji.py.
  */
 object Protocolo {
-    val TIPOS = setOf("telemetria", "cmd_vel", "acao", "heartbeat", "erro")
+    val TIPOS = setOf("telemetria", "cmd_vel", "acao", "heartbeat", "erro", "obstaculos")
     const val TAMANHO_MAX_LINHA = 64 * 1024
 
     class ErroProtocolo(mensagem: String) : Exception(mensagem)
@@ -45,6 +45,24 @@ object Protocolo {
         .put("posicionamento_visual_ativo", tel.posicionamentoVisualAtivo)
         .put("controle_virtual_ativo", tel.controleVirtualAtivo)
         .put("acao_perda_sinal", tel.acaoPerdaSinal)
+
+    fun obstaculos(o: Obstaculos): JSONObject = JSONObject()
+        .put("tipo", "obstaculos")
+        .put("instante_s", o.instanteS)
+        .put("passo_graus", o.passoGraus)
+        .put("distancias_m", org.json.JSONArray(o.distanciasM.map { if (it.isFinite()) it else JSONObject.NULL }))
+
+    /** Cabeçalho de um quadro no canal de vídeo; os `bytes` do JPEG vêm logo depois da linha. */
+    fun cabecalhoQuadro(q: Quadro): JSONObject = JSONObject()
+        .put("tipo", "quadro")
+        .put("instante_s", q.instanteS)
+        .put("largura", q.largura)
+        .put("altura", q.altura)
+        .put("formato", "jpeg")
+        .put("bytes", q.jpeg.size)
+        .put("pitch_gimbal_graus", q.pitchGimbalGraus)
+
+    fun codificarCabecalho(q: Quadro): String = cabecalhoQuadro(q).toString() + "\n"
 
     fun heartbeat(instanteS: Double): JSONObject = JSONObject().put("tipo", "heartbeat").put("instante_s", instanteS)
 

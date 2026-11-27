@@ -37,6 +37,8 @@ def generate_launch_description():
         DeclareLaunchArgument('simulacao', default_value=simulador,
                               description='true: conclusões não contam como voo real (padrão: igual a simulador; '
                                           'o launch do Gazebo passa true)'),
+        DeclareLaunchArgument('video_ponte', default_value='true',
+                              description='false: câmera e distâncias vêm de outra fonte (Gazebo), não do app ponte'),
         DeclareLaunchArgument('liberar_tarefa2', default_value='false',
                               description='true: aceita a Tarefa 2 sem a Tarefa 1 em voo real (só em simulação)'),
         DeclareLaunchArgument('registro', default_value='true', description='grava rosbag2 de todos os tópicos'),
@@ -59,7 +61,8 @@ def generate_launch_description():
         no('estimacao_estado'),
         no('controle_voo'),
         no('supervisao'),
-        no('ponte_dji', [{'host': LaunchConfiguration('host_ponte')}]),
+        no('ponte_dji', [{'host': LaunchConfiguration('host_ponte'),
+                          'video': ParameterValue(LaunchConfiguration('video_ponte'), value_type=bool)}]),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'registro.launch.py')),

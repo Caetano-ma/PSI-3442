@@ -10,5 +10,6 @@ object FabricaDrone {
 
     fun estado(): String = "Variante emulador: sem DJI SDK."
 
-    fun criar(contexto: Context, modo: String): Drone = DroneFalso()
+    fun criar(contexto: Context, modo: String): Drone =
+        DroneFalso(cena = CenaFalsa.padrao(), codificarJpeg = JpegAndroid::deArgb)
 }

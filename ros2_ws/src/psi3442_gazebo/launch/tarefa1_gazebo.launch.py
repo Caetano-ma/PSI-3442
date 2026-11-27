@@ -7,6 +7,7 @@ Em outro terminal: ros2 run psi3442_tarefas painel  /  ros2 run psi3442_tarefas 
 As conclusões no Gazebo não contam como voo real (simulacao:=true no gerenciador).
 """
 import os
+import shutil
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -18,9 +19,20 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
+def copiar_sem_espacos(caminho):
+    if ' ' not in caminho:
+        return caminho
+    pasta = os.path.join(os.path.expanduser('~'), '.ros', 'psi3442_mundos')
+    os.makedirs(pasta, exist_ok=True)
+    destino = os.path.join(pasta, os.path.basename(caminho))
+    shutil.copy(caminho, destino)
+    return destino
+
+
 def _gazebo(context):
     share = get_package_share_directory('psi3442_gazebo')
-    mundo = os.path.join(share, 'worlds', 'sala_tarefa1.sdf')
+    # gz_args é partido em espaços: o mundo vai para um caminho sem espaços (o repositório pode ter, ex.: "PSI 3442")
+    mundo = copiar_sem_espacos(os.path.join(share, 'worlds', 'sala_tarefa1.sdf'))
     gui = LaunchConfiguration('gui').perform(context).lower() in ('true', '1')
     gz_args = f'-r {mundo}' if gui else f'-r -s {mundo}'
     return [IncludeLaunchDescription(
@@ -49,7 +61,7 @@ def generate_launch_description():
              arguments=[LaunchConfiguration('app_args')]),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(share_tarefas, 'launch', 'sistema.launch.py')),
-            launch_arguments={'simulador': 'false', 'simulacao': 'true', 'config': LaunchConfiguration('config'),
+            launch_arguments={'simulador': 'false', 'simulacao': 'true', 'video_ponte': 'false', 'config': LaunchConfiguration('config'),
                               'registro': LaunchConfiguration('registro'),
                               'pasta_bags': LaunchConfiguration('pasta_bags')}.items()),
         TimerAction(period=LaunchConfiguration('atraso_comando'), condition=IfCondition(

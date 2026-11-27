@@ -205,7 +205,8 @@ def main(args=None):
             v = cfg.visao
             self.cfg = v
             self.cores = cfg.tarefa2.cores_conhecidas
-            self.geometria = GeometriaCamera(v.hfov_graus, v.largura_px, v.altura_px, cfg.tarefa2.raio_balao_m)
+            self.raio_balao_m = cfg.tarefa2.raio_balao_m
+            self.geometria = GeometriaCamera(v.hfov_graus, v.largura_px, v.altura_px, self.raio_balao_m)
             caminho = v.modelo_onnx or caminho_modelo_padrao()
             self.detector = None
             if os.path.exists(caminho):
@@ -231,6 +232,10 @@ def main(args=None):
             if msg.encoding == 'rgb8':
                 imagem = imagem[..., ::-1]
             imagem = np.ascontiguousarray(imagem[..., :3])
+            if (msg.width, msg.height) != (self.geometria.largura, self.geometria.altura):
+                # resolução real do quadro (o fluxo da DJI é 16:9); o campo de visão horizontal vem da config
+                self.geometria = GeometriaCamera(self.cfg.hfov_graus, msg.width, msg.height, self.raio_balao_m)
+                self.get_logger().info(f'quadros de {msg.width}x{msg.height} px')
             e = self.estado
             saida = Alvos(x_m=e.x_m, y_m=e.y_m, z_m=e.z_m, guinada_local_graus=e.guinada_local_graus)
             if self.detector is not None:

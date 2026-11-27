@@ -207,12 +207,19 @@ class MapeamentoLocal:
                 if idx is not None:
                     self.grade.acertos[idx] += 1
 
+    def _de_balao(self, x, y):
+        """Célula ocupada por um balão já mapeado (o sensor de distâncias também vê os balões; eles são tratados
+        pelas margens próprias da Tarefa 2, não como obstáculo fixo)."""
+        folga = self.cfg.raio_balao_m + self.grade.resolucao
+        return any(math.hypot(x - b.x_m, y - b.y_m) <= folga for b in self.baloes)
+
     def obstaculo_perto(self, x, y, margem):
         r = self.grade.resolucao
         n = int(math.ceil(margem / r))
         for i in range(-n, n + 1):
             for j in range(-n, n + 1):
-                if math.hypot(i * r, j * r) <= margem and self.grade.ocupado(x + i * r, y + j * r):
+                px, py = x + i * r, y + j * r
+                if math.hypot(i * r, j * r) <= margem and self.grade.ocupado(px, py) and not self._de_balao(px, py):
                     return True
         return False
 
@@ -262,8 +269,13 @@ def main(args=None):
 
         def publicar(self):
             g = self.mapa.grade
+            ocupacao = g.ocupacao()
+            for k, valor in enumerate(ocupacao):            # células de balões não são obstáculo fixo
+                if valor == 100 and self.mapa._de_balao(g.x0 + (k % g.largura + 0.5) * g.resolucao,
+                                                         g.y0 + (k // g.largura + 0.5) * g.resolucao):
+                    ocupacao[k] = 0
             msg = MapaLocal(resolucao_m=g.resolucao, largura=g.largura, altura=g.altura, origem_x_m=g.x0,
-                            origem_y_m=g.y0, ocupacao=g.ocupacao())
+                            origem_y_m=g.y0, ocupacao=ocupacao)
             msg.baloes = [BalaoMapa(id=b.id, cor=b.cor, alvo=b.alvo, x_m=b.x_m, y_m=b.y_m, z_m=b.z_m,
                                     incerteza_m=b.incerteza_m, observacoes=min(b.observacoes, 65535),
                                     situacao=b.situacao) for b in self.mapa.baloes]

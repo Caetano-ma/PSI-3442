@@ -10,5 +10,6 @@ object FabricaDrone {
 
     fun estado(): String = ConexaoSdk.resumo()
 
-    fun criar(contexto: Context, modo: String): Drone = if (modo == "dji") DroneDji() else DroneFalso()
+    fun criar(contexto: Context, modo: String): Drone = if (modo == "dji") DroneDji()
+        else DroneFalso(cena = CenaFalsa.padrao(), codificarJpeg = JpegAndroid::deArgb)
 }

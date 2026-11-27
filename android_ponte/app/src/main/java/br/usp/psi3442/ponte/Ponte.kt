@@ -26,17 +26,29 @@ class Ponte(
     private val servidor = ServidorSocket(porta, ::aoReceber, ::aoMudarCliente, log)
     private val leitor = LeitorTelemetria(drone, servidor)
     private val configurador = ConfiguradorSeguranca(drone, log)
+    private val video = ServidorVideo(if (porta == 0) 0 else porta + 1, log)   // 0 = porta livre (testes)
+    @Volatile private var tObstaculos = -1.0
     private var tAnterior = 0.0
 
     @Volatile var cliente: String? = null
         private set
     val porta: Int get() = servidor.portaLocal
+    val portaVideo: Int get() = video.portaLocal
+    val videoConectado: Boolean get() = video.clienteConectado
+    val quadrosEnviados: Long get() = video.enviados
     val telemetria: Telemetria? get() = leitor.ultima
     val descricaoDrone: String get() = drone.descricao
 
     fun iniciar() {
         drone.iniciar(log)
         servidor.iniciar()
+        video.iniciar()
+        drone.iniciarSensores(relogio, video::enviar) { obstaculos ->
+            if (obstaculos.instanteS - tObstaculos >= 0.19) {         // no máximo 5 Hz no canal de comandos
+                tObstaculos = obstaculos.instanteS
+                servidor.enviar(Protocolo.obstaculos(obstaculos))
+            }
+        }
         tAnterior = relogio()
         agendar(20) { val t = relogio(); drone.passo(t - tAnterior, t); tAnterior = t }
         agendar(50, ::cicloEmissor)
@@ -47,6 +59,7 @@ class Ponte(
     fun parar() {
         executor.shutdownNow()
         servidor.parar()
+        video.parar()
         drone.encerrar()
     }
 

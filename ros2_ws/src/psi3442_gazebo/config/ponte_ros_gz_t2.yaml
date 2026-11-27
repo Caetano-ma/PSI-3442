@@ -1,0 +1,27 @@
+# ros_gz_bridge da Tarefa 2: os tópicos da Tarefa 1 mais a câmera e o sensor de distâncias. No voo real, a câmera
+# chega pelo app ponte (quadros repassados pelo celular) e as distâncias pela percepção de obstáculos da DJI.
+- ros_topic_name: /gazebo/mini4pro/odometria
+  gz_topic_name: /model/mini4pro/odometry
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS
+- ros_topic_name: /gazebo/mini4pro/cmd_vel
+  gz_topic_name: /model/mini4pro/cmd_vel
+  ros_type_name: geometry_msgs/msg/Twist
+  gz_type_name: gz.msgs.Twist
+  direction: ROS_TO_GZ
+- ros_topic_name: /clock
+  gz_topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: gz.msgs.Clock
+  direction: GZ_TO_ROS
+- ros_topic_name: /dji/camera
+  gz_topic_name: /mini4pro/camera
+  ros_type_name: sensor_msgs/msg/Image
+  gz_type_name: gz.msgs.Image
+  direction: GZ_TO_ROS
+- ros_topic_name: /dji/obstaculos
+  gz_topic_name: /mini4pro/obstaculos
+  ros_type_name: sensor_msgs/msg/LaserScan
+  gz_type_name: gz.msgs.LaserScan
+  direction: GZ_TO_ROS

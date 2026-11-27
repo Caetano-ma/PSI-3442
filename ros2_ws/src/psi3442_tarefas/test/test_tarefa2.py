@@ -197,3 +197,44 @@ def test_mapeamento_ignora_deteccoes_no_solo():
     mapa.atualizar_deteccoes(type('A', (), {'x_m': 0, 'y_m': 0, 'z_m': 0.05, 'guinada_local_graus': 0,
                                             'deteccoes': [det]}), 0.0)
     assert not mapa.baloes
+
+
+def test_balao_em_movimento_mantem_a_faixa():
+    """R04: "o controle deverá manter a posição relativa à bexiga caso ela se movimente". O balão-alvo deriva
+    a 1 cm/s durante a permanência; a reancoragem pela visão segue o balão."""
+    alvo = BalaoVerdadeiro('vermelho', 3.0, 1.0, 1.6)
+    s = SistemaSimuladoT2([alvo], cfg=cfg_rapida(tempo_permanencia_s=30.0))
+    s.comando(EXECUTAR_TAREFA2)
+    assert s.rodar_ate(lambda s: s.tarefa2.estado == 'permanecendo', 300)
+    inicio = (alvo.x, alvo.y)
+    reais = []                                # distância verdadeira no instante de cada passo com contagem
+    while not destruidos(s) and s.t < 600:
+        alvo.x += 0.007 * 0.1                 # ~1 cm/s, na diagonal
+        alvo.y += 0.007 * 0.1
+        s.passo()
+        if s.registro[-1][3]:
+            reais.append(s.distancia_real(alvo))
+    assert destruidos(s)
+    assert math.dist(inicio, (alvo.x, alvo.y)) > 0.25
+    assert reais and all(0.0 < d <= 0.05 for d in reais), (min(reais), max(reais))
+
+
+def test_mapa_nao_trata_balao_como_obstaculo_fixo():
+    cfg = carregador_config.carregar(CONFIG)
+    mapa = MapeamentoLocal(cfg.tarefa2)
+    r_px = GeometriaCamera(cfg.visao.hfov_graus, 640, 480, 0.13)
+    geo = r_px
+    raio = geo.f * math.tan(math.asin(0.13 / 2.03))
+    for k in range(4):
+        det = geo.completar(Deteccao('vermelho', 0.9, 320, 240, int(2 * raio), int(2 * raio)), 0.0)
+        mapa.atualizar_deteccoes(type('A', (), {'x_m': 0.0, 'y_m': 0.0, 'z_m': 1.5, 'guinada_local_graus': 0.0,
+                                                'deteccoes': [det]}), float(k))
+    b = mapa.baloes[0]
+    # o sensor de distâncias acerta a superfície do balão várias vezes
+    for _ in range(5):
+        mapa.atualizar_obstaculos(0.0, 0.0, 0.0, -0.01, 0.01, [b.x_m - 0.13] * 3, 8.0)
+    assert not mapa.obstaculo_perto(b.x_m - 0.4, b.y_m, 0.4)
+    # uma parede de verdade continua sendo obstáculo
+    for _ in range(5):
+        mapa.atualizar_obstaculos(0.0, 0.0, 180.0, -0.01, 0.01, [1.0] * 3, 8.0)
+    assert mapa.obstaculo_perto(-0.8, 0.0, 0.4)

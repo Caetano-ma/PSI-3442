@@ -1,6 +1,7 @@
 """ConversorMensagens (nível n) e nó ROS 2 ponte ROS 2 <-> app ponte DJI.
 
-JSON <-> mensagens psi3442_interfaces: publica /dji/telemetria; assina /dji/cmd_vel e /dji/acao.
+JSON <-> mensagens psi3442_interfaces: publica /dji/telemetria, /dji/obstaculos (sensor_msgs/LaserScan) e
+/dji/camera (sensor_msgs/Image, do canal de vídeo na porta + 1); assina /dji/cmd_vel e /dji/acao.
 - cmd_vel: o último comando é reenviado a 20 Hz enquanto tiver no máximo `IDADE_MAX_CMD_S`; depois disso nada é
   enviado e o watchdog do app ponte zera a velocidade em 0,2 s.
 - heartbeat a 1 Hz; sem heartbeat por 2 s o app ponte comanda pouso automático (perdaPonte).
@@ -14,6 +15,9 @@ Mensagens trocadas (uma por linha):
                "controle_virtual_ativo":..,"acao_perda_sinal":"pousar"}
               {"tipo":"heartbeat","instante_s":..}
               {"tipo":"erro","comando":"decolar","mensagem":".."}
+              {"tipo":"obstaculos","instante_s":..,"passo_graus":..,"distancias_m":[..|null]}   (horário, do nariz)
+  app -> ROS, canal de vídeo (porta + 1): {"tipo":"quadro","instante_s":..,"largura":..,"altura":..,
+              "formato":"jpeg","bytes":N,"pitch_gimbal_graus":..}\n + N bytes de JPEG (só o quadro mais recente)
   ROS -> app  {"tipo":"cmd_vel","vx_mps":..,"vy_mps":..,"vz_mps":..,"taxa_guinada_grausps":..,"psi0_graus":..}
               {"tipo":"acao","comando":"decolar|pousar|habilitar_controle_virtual|desabilitar_controle_virtual|parar_e_pairar"}
               {"tipo":"heartbeat","instante_s":..}
@@ -60,6 +64,16 @@ def json_de_telemetria(tel):
     return mensagem
 
 
+def scan_de_obstaculos(mensagem, alcance_max_m=40.0):
+    """obstaculos (horário a partir do nariz) -> campos de um LaserScan (anti-horário, radianos): o ângulo k é
+    -k * passo. Sem leitura = +inf (nada até o alcance)."""
+    passo = math.radians(float(mensagem['passo_graus']))
+    distancias = [math.inf if d is None or not math.isfinite(float(d)) else float(d)
+                  for d in mensagem['distancias_m']]
+    return {'angle_min': 0.0, 'angle_max': -passo * (len(distancias) - 1), 'angle_increment': -passo,
+            'range_min': 0.05, 'range_max': alcance_max_m, 'ranges': distancias}
+
+
 def json_de_cmd_vel(cmd):
     return {'tipo': 'cmd_vel', 'vx_mps': cmd.vx_mps, 'vy_mps': cmd.vy_mps, 'vz_mps': cmd.vz_mps,
             'taxa_guinada_grausps': cmd.taxa_guinada_grausps, 'psi0_graus': cmd.psi0_graus}
@@ -78,11 +92,12 @@ def acao_de_json(mensagem):
 def main(args=None):
     import rclpy
     from rclpy.node import Node
+    from sensor_msgs.msg import Image, LaserScan
     from psi3442_interfaces.msg import ComandoDiscreto, ComandoVelocidade as ComandoVelocidadeMsg
     from psi3442_interfaces.msg import Falha as FalhaMsg, Telemetria as TelemetriaMsg
 
     from . import ros_util
-    from .cliente_socket_ponte import ClienteSocketPonte
+    from .cliente_socket_ponte import ClienteSocketPonte, ClienteVideo
     from .tipos import (COMANDO_REJEITADO, NOMES_FALHA, TERMINO_SEGURO, VOLTAR_OCIOSO, ComandoVelocidade,
                         copiar_campos, de_mensagem)
 
@@ -92,6 +107,7 @@ def main(args=None):
             cfg = ros_util.carregar_config(self).ponte
             self.declare_parameter('host', cfg.host)
             self.declare_parameter('porta', cfg.porta)
+            self.declare_parameter('video', True)      # false no Gazebo: câmera e distâncias vêm do ros_gz_bridge
             host = self.get_parameter('host').get_parameter_value().string_value
             porta = self.get_parameter('porta').get_parameter_value().integer_value
             self.cmd, self.t_cmd, self.em_voo = None, None, False
@@ -99,6 +115,15 @@ def main(args=None):
             self.pub_falha = self.create_publisher(FalhaMsg, '/falhas', ros_util.QOS_CONFIAVEL)
             self.create_subscription(ComandoVelocidadeMsg, '/dji/cmd_vel', self.ao_cmd_vel, ros_util.QOS_FLUXO)
             self.create_subscription(ComandoDiscreto, '/dji/acao', self.ao_acao, ros_util.QOS_CONFIAVEL)
+            self.pub_obstaculos = self.create_publisher(LaserScan, '/dji/obstaculos', ros_util.QOS_FLUXO)
+            self.pub_camera = self.create_publisher(Image, '/dji/camera', ros_util.QOS_FLUXO)
+            self.video = None
+            if self.get_parameter('video').get_parameter_value().bool_value:
+                self.video = ClienteVideo(host, porta + 1, self.ao_quadro,
+                                          lambda texto: self.get_logger().warn(f'vídeo: {texto}'))
+                self.video.iniciar()
+                self.get_logger().info(f'canal de vídeo em {host}:{porta + 1}')
+            self.aviso_gimbal = 0.0
             self.cliente = ClienteSocketPonte(host, porta, self.ao_receber, self.ao_mudar_conexao,
                                               lambda texto: self.get_logger().warn(f'socket: {texto}'))
             self.create_timer(1.0 / cfg.taxa_cmd_vel_hz, self.enviar_cmd_vel)
@@ -119,6 +144,17 @@ def main(args=None):
                     return
                 self.em_voo = tel.em_voo or tel.motores_ligados
                 self.pub_tel.publish(ros_util.carimbar(self, copiar_campos(tel, TelemetriaMsg())))
+            elif tipo == 'obstaculos':
+                try:
+                    campos = scan_de_obstaculos(mensagem)
+                except (KeyError, TypeError, ValueError) as erro:
+                    self.get_logger().warn(f'obstáculos inválidos: {erro}')
+                    return
+                scan = LaserScan(**{k: v for k, v in campos.items() if k != 'ranges'})
+                scan.ranges = campos['ranges']
+                scan.header.frame_id = 'mini4pro'
+                scan.header.stamp = self.get_clock().now().to_msg()
+                self.pub_obstaculos.publish(scan)
             elif tipo == 'erro':
                 reacao = TERMINO_SEGURO if self.em_voo else VOLTAR_OCIOSO
                 detalhe = f"{mensagem.get('comando', '?')}: {mensagem.get('mensagem', '')}"
@@ -126,6 +162,24 @@ def main(args=None):
                                  reacao=reacao, detalhe=detalhe)
                 self.pub_falha.publish(ros_util.carimbar(self, falha))
                 self.get_logger().error(f'comando rejeitado pelo SDK: {detalhe}')
+
+        def ao_quadro(self, cabecalho, jpeg):
+            import cv2
+            import numpy as np
+
+            imagem = cv2.imdecode(np.frombuffer(jpeg, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if imagem is None:
+                self.get_logger().warn('quadro JPEG inválido')
+                return
+            pitch = cabecalho.get('pitch_gimbal_graus')
+            if pitch is not None and math.isfinite(pitch) and abs(pitch) > 3.0 and ros_util.agora() - self.aviso_gimbal > 5:
+                self.aviso_gimbal = ros_util.agora()
+                self.get_logger().warn(f'gimbal com pitch {pitch:.1f}°: a visão supõe câmera nivelada')
+            msg = Image(height=imagem.shape[0], width=imagem.shape[1], encoding='bgr8', is_bigendian=0,
+                        step=imagem.shape[1] * 3, data=imagem.tobytes())
+            msg.header.frame_id = 'camera'
+            msg.header.stamp = self.get_clock().now().to_msg()
+            self.pub_camera.publish(msg)
 
         def ao_cmd_vel(self, msg):
             self.cmd, self.t_cmd = de_mensagem(ComandoVelocidade, msg), ros_util.agora()
@@ -143,6 +197,8 @@ def main(args=None):
 
         def destroy_node(self):
             self.cliente.parar()
+            if self.video is not None:
+                self.video.parar()
             return super().destroy_node()
 
     rclpy.init(args=args)

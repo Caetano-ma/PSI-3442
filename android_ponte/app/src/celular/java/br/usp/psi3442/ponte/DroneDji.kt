@@ -5,8 +5,10 @@ import dji.sdk.keyvalue.key.DJIActionKeyInfo
 import dji.sdk.keyvalue.key.DJIKeyInfo
 import dji.sdk.keyvalue.key.FlightAssistantKey
 import dji.sdk.keyvalue.key.FlightControllerKey
+import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.key.KeyTools
 import dji.sdk.keyvalue.value.common.Attitude
+import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.sdk.keyvalue.value.flightcontroller.FailsafeAction
@@ -17,12 +19,19 @@ import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VerticalControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VirtualStickFlightControlParam
 import dji.sdk.keyvalue.value.flightcontroller.YawControlMode
+import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
+import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotationMode
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 import dji.v5.manager.KeyManager
+import dji.v5.manager.aircraft.perception.PerceptionManager
+import dji.v5.manager.aircraft.perception.data.ObstacleData
+import dji.v5.manager.aircraft.perception.listener.ObstacleDataListener
 import dji.v5.manager.aircraft.virtualstick.VirtualStickManager
 import dji.v5.manager.aircraft.virtualstick.VirtualStickState
 import dji.v5.manager.aircraft.virtualstick.VirtualStickStateListener
+import dji.v5.manager.datacenter.MediaDataCenter
+import dji.v5.manager.interfaces.ICameraStreamManager
 
 /**
  * DJI Mini 4 Pro pelo DJI Mobile SDK v5 (caixa-preta explorada só pelas chaves e gerenciadores do SDK).
@@ -34,11 +43,21 @@ import dji.v5.manager.aircraft.virtualstick.VirtualStickStateListener
  *   altitude relativa (KeyAltitude), como prevê o nível n.
  * O posicionamento visual é considerado ativo quando está habilitado e a aeronave não está em ATTI (sem
  * posicionamento a aeronave entra em ATTI).
+ *
+ * Tarefa 2 (também a verificar em solo antes do voo):
+ * - quadros: CameraStreamManager.addFrameListener(LEFT_OR_MAIN, NV21) — resolução do fluxo ao vivo (assumida
+ *   16:9) e campo de visão horizontal correspondente (config visao.hfov_graus);
+ * - ObstacleData.horizontalObstacleDistance em milímetros, a partir do nariz e no sentido horário, com passo
+ *   horizontalAngleInterval (graus) — confirmar unidade, origem e sentido com um anteparo a distância conhecida;
+ * - gimbal levado a pitch 0° (absoluto) ao habilitar o controle virtual: a geometria da visão supõe câmera nivelada.
  */
 class DroneDji : Drone {
     companion object {
         const val ROLL_E_NORTE = true
         val FATOR_ULTRASSOM_PARA_METROS: Double? = null
+        const val LARGURA_MAX_QUADRO = 640
+        const val PERIODO_QUADRO_S = 0.2
+        const val OBSTACULO_MM_MAX = 40_000       // leituras acima disto (ou <= 0) = sem obstáculo
     }
 
     override val descricao = "DJI Mini 4 Pro (Mobile SDK v5)"
@@ -57,6 +76,10 @@ class DroneDji : Drone {
     @Volatile private var visaoHabilitada: Boolean? = null
     @Volatile private var acaoPerdaSinal: FailsafeAction? = null
     @Volatile private var controleVirtual = false
+    @Volatile private var atitudeGimbal: Attitude? = null
+    @Volatile private var tQuadro = -1.0
+    private var ouvinteQuadro: ICameraStreamManager.CameraFrameListener? = null
+    private var ouvinteObstaculos: ObstacleDataListener? = null
 
     override fun iniciar(log: (String) -> Unit) {
         this.log = log
@@ -72,6 +95,7 @@ class DroneDji : Drone {
         ouvir(FlightControllerKey.KeyFailsafeAction) { acaoPerdaSinal = it }
         ouvir(BatteryKey.KeyChargeRemainingInPercent) { bateria = it }
         ouvir(FlightAssistantKey.KeyVisionPositioningEnabled) { visaoHabilitada = it }
+        ouvir(GimbalKey.KeyGimbalAttitude) { atitudeGimbal = it }
         VirtualStickManager.getInstance().setVirtualStickStateListener(object : VirtualStickStateListener {
             override fun onVirtualStickStateUpdate(stickState: VirtualStickState) {
                 controleVirtual = stickState.isVirtualStickEnable
@@ -135,9 +159,54 @@ class DroneDji : Drone {
 
     override fun habilitarControleVirtual(aoConcluir: AoConcluir) {
         VirtualStickManager.getInstance().enableVirtualStick(callback { erro ->
-            if (erro == null) VirtualStickManager.getInstance().setVirtualStickAdvancedModeEnabled(true)
+            if (erro == null) {
+                VirtualStickManager.getInstance().setVirtualStickAdvancedModeEnabled(true)
+                nivelarCamera()
+            }
             aoConcluir(erro)
         })
+    }
+
+    /** Gimbal em pitch 0° (absoluto): a visão supõe o eixo óptico horizontal. Falha só é registrada no log. */
+    private fun nivelarCamera() {
+        val rotacao = GimbalAngleRotation().apply {
+            mode = GimbalAngleRotationMode.ABSOLUTE_ANGLE
+            pitch = 0.0
+            duration = 1.0
+        }
+        KeyManager.getInstance().performAction(KeyTools.createKey(GimbalKey.KeyRotateByAngle), rotacao,
+            object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
+                override fun onSuccess(t: EmptyMsg?) = log("gimbal nivelado (pitch 0°)")
+                override fun onFailure(error: IDJIError) = log("falha ao nivelar o gimbal: $error")
+            })
+    }
+
+    override fun iniciarSensores(relogio: () -> Double, aoQuadro: (Quadro) -> Unit, aoObstaculos: (Obstaculos) -> Unit) {
+        val quadros = ICameraStreamManager.CameraFrameListener { dados, deslocamento, _, largura, altura, _ ->
+            val agora = relogio()
+            if (agora - tQuadro < PERIODO_QUADRO_S) return@CameraFrameListener
+            tQuadro = agora
+            try {
+                val fator = Nv21.fatorPara(largura, LARGURA_MAX_QUADRO)
+                val (nv21, l2, a2) = Nv21.reduzir(dados, deslocamento, largura, altura, fator)
+                aoQuadro(Quadro(agora, l2, a2, JpegAndroid.deNv21(nv21, l2, a2), atitudeGimbal?.pitch ?: Double.NaN))
+            } catch (e: Exception) {
+                log("quadro descartado: $e")
+            }
+        }
+        MediaDataCenter.getInstance().cameraStreamManager.addFrameListener(
+            ComponentIndexType.LEFT_OR_MAIN, ICameraStreamManager.FrameFormat.NV21, quadros)
+        ouvinteQuadro = quadros
+        val obstaculos = ObstacleDataListener { dado: ObstacleData ->
+            val passo = dado.horizontalAngleInterval.toDouble()
+            val distancias = (dado.horizontalObstacleDistance ?: emptyList()).map { mm ->
+                if (mm == null || mm <= 0 || mm >= OBSTACULO_MM_MAX) Double.NaN else mm / 1000.0
+            }
+            if (passo > 0 && distancias.isNotEmpty()) aoObstaculos(Obstaculos(relogio(), passo, distancias))
+        }
+        PerceptionManager.getInstance().addObstacleDataListener(obstaculos)
+        ouvinteObstaculos = obstaculos
+        log("câmera (NV21 -> JPEG ${LARGURA_MAX_QUADRO} px, 5 Hz) e percepção de obstáculos ligadas")
     }
 
     override fun desabilitarControleVirtual(aoConcluir: AoConcluir) {
@@ -166,5 +235,7 @@ class DroneDji : Drone {
 
     override fun encerrar() {
         KeyManager.getInstance().cancelListen(dono)
+        ouvinteQuadro?.let { MediaDataCenter.getInstance().cameraStreamManager.removeFrameListener(it) }
+        ouvinteObstaculos?.let { PerceptionManager.getInstance().removeObstacleDataListener(it) }
     }
 }

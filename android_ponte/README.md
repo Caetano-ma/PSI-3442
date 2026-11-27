@@ -45,6 +45,19 @@ DJI_API_KEY=sua-chave
 
 ## Emulador (sem drone)
 
+Use uma imagem **AOSP sem os apps do Google** (`default`): com a imagem `google_apis` e 2 GB, os apps do Google
+disputam CPU e memória e o agendamento do app ponte atrasa centenas de milissegundos.
+
+```bash
+sdkmanager "platform-tools" "emulator" "system-images;android-34;default;x86_64"
+avdmanager create avd -n psi3442 -k "system-images;android-34;default;x86_64" -d pixel_6
+sed -i 's/^hw.ramSize=.*/hw.ramSize=3072/' ~/.android/avd/psi3442.avd/config.ini
+```
+
+Ensaio automático (da raiz do repositório): `bash android_ponte/ensaio_emulador.sh rapido` — sobe o emulador, instala
+o app, inicia o drone falso, sobe o sistema ROS 2 com `simulacao:=true`, envia `executar tarefa 1` e exporta o CSV
+para `simulacoes/`. Passo a passo manual:
+
 ```bash
 # terminal 1: emulador e app
 emulator -avd psi3442 &                       # AVD x86_64, Android 14

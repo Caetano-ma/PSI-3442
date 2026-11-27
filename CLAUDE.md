@@ -142,18 +142,22 @@ Dependem do usuário:
 - o cadastro de desenvolvedor DJI e a App Key, que fica ligada ao nome do pacote do app;
 - a confirmação de `bateria_critica_pct` = 15 %.
 
-## Pendências (em 24/11/2026)
+## Pendências (em 27/11/2026)
 
-1. Confirmar com os docentes se o kit tem controle RC-N2/RC-N3 (H7). Sem ele a arquitetura precisa ser revista.
-2. Enviar a entrega intermediária (PDF + ZIP) no Moodle; acrescentar outros integrantes se houver.
-3. Ciclo C1 (até 29/11): prova de viabilidade da ponte — Android emulado + MSDK (bibliotecas ARM) + controle por USB
-   passthrough + ativação da chave do SDK; decidir pela alternativa com celular físico se falhar.
-4. Ciclo C2 — **feito em 24/11**: workspace, nós da Tarefa 1, simulador cinemático, testes T05, T07, T08 e T10
-   (76 testes; T10 também no ROS real via Docker). Falta: refletir no modelo SysML e na matriz os ajustes listados
-   em `ros2_ws/README.md` (exige o ambiente conda `sysml`) e a decisão do usuário sobre `bateria_critica_pct` (15 %).
-5. Ciclo C3 (**não iniciado**: não há código Android/Kotlin nem SDK Android instalado): app ponte Kotlin (ConexaoSdk, LeitorTelemetria, EmissorComandos, ConfiguradorSeguranca, ServidorSocket),
-   testes em solo, T09, latência. Seguir o protocolo do cabeçalho de `no_ponte_dji.py`; o simulador é a referência
-   de comportamento (conversão com psi0, watchdog de 0,2 s, pouso após 2 s sem heartbeat, resposta `erro`).
-6. Ciclo C4: voos T01–T04, ajuste do controlador, demonstração da Tarefa 1.
-7. Ciclo C5: nível n e implementação da Tarefa 2 (percepção, mapeamento, aproximação), vídeo ≤ 2 min 30 s, README,
-   relatório final com 2 páginas de justificativa técnico-econômica e registro do uso de IA.
+Feito em 27/11 (Linux Mint): workspace ROS 2 revalidado nativo (76 testes); 8 ajustes refletidos no SysML; app ponte
+(C3) com 16 testes JVM; variante `celular` compila e empacota com o SDK 5.20.1; Tarefa 1 completa de ponta a ponta
+com o app no emulador (AOSP, drone falso) e o ROS 2 real: concluída, telemetria a 10 Hz, erro vertical máx. 0,069 m.
+
+Para voar a Tarefa 1 no drone físico, depende do usuário:
+1. Controle RC-N2 ou RC-N3 do kit (H7) — sem ele o SDK não alcança o Mini 4 Pro.
+2. Celular Android ARM64 (Android 7+) e cabo para o controle.
+3. Conta de desenvolvedor DJI e App Key do tipo Mobile SDK com o pacote `br.usp.psi3442.ponte`, em
+   `~/.gradle/gradle.properties` como `DJI_API_KEY=…`; internet no celular na 1ª execução (registro).
+4. Confirmar `bateria_critica_pct` = 15 %.
+5. Autorizar a atualização do modelo SysML e dos diagramas de "Android emulado" para "celular ligado ao controle"
+   (o emulador fica como ambiente de teste).
+
+Depois, em ordem: instalar `app-celular-debug.apk` (adb por USB), modo "falso" no celular com o ROS 2 pelo Wi-Fi
+(`host_ponte:=<IP>`), testes em solo (registro do SDK, telemetria, ação em perda de sinal = pousar, comando rejeitado,
+perda da ponte), **T00** (`ensaios/teste_eixos.py`), T01–T04 (`ensaios/roteiro_voo_tarefa1.md`), ajuste de kp e
+latência, demonstração. Ciclo C5 (Tarefa 2), vídeo, README final e relatório continuam pendentes.

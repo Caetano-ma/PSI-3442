@@ -1,17 +1,17 @@
 ---
 name: project-estado-e-proximos-passos
-description: "State of PSI3442 work at 2026-11-24 (C2 + Gazebo done on Windows) and the handoff plan — user will move Claude to a Linux Mint machine and wants Claude to do \"todo o restante\""
+description: "State of PSI3442 work at 2026-11-27 (Linux Mint): Android bridge app built and verified end to end in the emulator; what blocks flying Task 1 on the real drone"
 metadata:
   node_type: memory
   type: project
-  originSessionId: 62df1d49-aea6-42ee-931f-ae3b4e2778f5
-  modified: 2026-11-24T18:07:20.150Z
+  originSessionId: 3724ddc4-cd94-4220-813d-07b961a51983
+  modified: 2026-11-27T15:31:39.576Z
 ---
 
-On 2026-11-24 (Windows 11 machine, Docker Desktop) Claude finished cycle C2 (ROS 2 workspace, Tarefa 1 nodes, kinematic simulator, tests T05/T07/T08/T10) and the Tarefa 1 simulation in Gazebo Harmonic (package psi3442_gazebo). Both verified end to end and pushed.
+On 2026-11-27, on the Linux Mint notebook (this machine), Claude built `android_ponte/` (Kotlin bridge app, DJI MSDK 5.20.1 behind a `Drone` interface; variants `emulador` = fake drone, `celular` = real SDK). The celular variant compiles and packages against the real SDK. Task 1 ran end to end in an AOSP emulator through the app with the real ROS 2 system (concluded, 10 Hz telemetry, max vertical error 0.069 m). The 8 implementation adjustments are now in the SysML model.
 
-The user then said they will soon put Claude on a **Linux Mint** machine and want Claude to do **all the remaining work** there. Nothing Android/Kotlin exists yet: no app, no Android SDK/emulator/adb installed, C1 feasibility not tested.
+Verified fact: the MSDK talks to the RC in USB accessory mode, so an emulator on a laptop cannot reach the RC. Real flight = app on a phone cabled to the RC, notebook connected over Wi-Fi (`host_ponte:=<IP>`). The SysML model and diagrams still say "Android emulado": update them only after the user confirms.
 
-**Why:** the user wants continuity across machines; this conversation's history is not in the (public) repo, so this memory + CLAUDE.md are the bridge.
+**Why:** the user asked (2026-11-27) to work on the emulation module and close Task 1 on the physical drone.
 
-**How to apply:** on the Linux Mint machine, start from the "Plano para a máquina Linux Mint" section of CLAUDE.md: install ROS 2 Jazzy + ros-jazzy-ros-gz natively, re-run tests and the Gazebo sim, update the SysML model with the adjustments in ros2_ws/README.md, then C1 (Android emulator + MSDK v5 feasibility) and C3 (Kotlin bridge app with the DJI SDK behind an interface and a fake implementation, tested against the ROS 2 side). Still waiting on the user: RC-N2/N3 from the kit (H7), DJI developer account + App Key, confirmation of bateria_critica_pct = 15 %. Related: [[project-arquitetura-ros2]], [[feedback-push-github]], [[feedback-instrucoes-terminais]].
+**How to apply:** next steps and what depends on the user are in the "Pendências" section of CLAUDE.md: RC-N2/N3 (H7), an ARM64 Android phone, DJI App Key for package br.usp.psi3442.ponte, the 15 % critical battery value, and approval for the model update. Before T01, run T00 (`ensaios/teste_eixos.py`): the roll/pitch-to-north/east mapping (`DroneDji.ROLL_E_NORTE`) is not documented by DJI. Use an AOSP (not google_apis) emulator image. Related: [[project-arquitetura-ros2]], [[feedback-push-github]].

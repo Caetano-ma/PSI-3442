@@ -267,6 +267,7 @@ class ServidorSimulado:
         inicio = anterior = time.monotonic()
         proxima_tel = proximo_hb = inicio
         em_voo_antes = False
+        ultimo_instante = None
         while True:
             time.sleep(0.01)
             agora = time.monotonic()
@@ -280,7 +281,10 @@ class ServidorSimulado:
             calado = self.silencio is not None and 0 <= agora - inicio - self.silencio[0] < self.silencio[1]
             if agora >= proxima_tel:
                 proxima_tel += 0.1
-                if not calado:
+                # no Gazebo o instante é o do simulador: se ele atrasou, não há medida nova (o app real usa relógio
+                # monotônico e nunca repete o instante); repetir a amostra invalidaria a estimação
+                if not calado and tel.instante_android_s != ultimo_instante:
+                    ultimo_instante = tel.instante_android_s
                     self._enviar(json_de_telemetria(tel))
             if agora >= proximo_hb:
                 proximo_hb += 1.0

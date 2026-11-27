@@ -121,6 +121,7 @@ class MaquinaTarefa2:
         self._ramp = None
         self._confirmado_s = None
         self._refino = []
+        self._reaproximacoes = 0
         self._ancora = None
         self._t_medida = -math.inf        # última medida de proximidade do alvo (reancoragem)
 
@@ -334,6 +335,7 @@ class MaquinaTarefa2:
             self.alvo = None
             return False
         self.alvo, self.rota = geo, rota
+        self._reaproximacoes = 0
         self.tentativas.setdefault(balao.id, 0)
         self._evento('ALVO_SELECIONADO', detalhe=f'centro estimado ({balao.x_m:.2f}, {balao.y_m:.2f}, '
                                                  f'{balao.z_m:.2f}) m, incerteza {balao.incerteza_m:.2f} m')
@@ -506,8 +508,19 @@ class MaquinaTarefa2:
                 self.alvo['centro'] = tuple(sum(c) / len(pontos) for c in zip(*pontos))
             geo = self._geometria_aproximacao(PontoBalao(self.alvo['id'], self.alvo['cor'], *self.alvo['centro']),
                                               estado, mapa)
-            if geo is not None and math.dist(geo['espera'], espera) < 0.5:
-                self.alvo.update(final=geo['final'], centro=geo['centro'], direcao=geo['direcao'])
+            if geo is not None and math.dist(geo['espera'], espera) >= 0.25 and self._reaproximacoes < 2:
+                # o centro medido de perto mudou bastante: refaz a aproximação até a nova posição de espera
+                rota = self._planejar_rota((estado.x_m, estado.y_m, estado.z_m), geo['espera'], mapa, geo['id'])
+                if rota is not None:
+                    self._reaproximacoes += 1
+                    self.alvo.update(geo)
+                    self.rota = rota
+                    self._ir('aproximando', agora, 'centro corrigido de perto: nova posição de espera '
+                                                   '({:.2f}, {:.2f}, {:.2f}) m'.format(*geo['centro']))
+                    return self._setpoint(*self.rota[0], geo['guinada'], f'espera {self._rotulo()}')
+            if geo is not None:
+                self.alvo.update(final=geo['final'], centro=geo['centro'], direcao=geo['direcao'],
+                                 guinada=geo['guinada'], espera=geo['espera'])
             self._ramp = espera
             self._ir('aproximacaoFinal', agora, f'alvo confirmado de perto ({len(self._refino)} medidas); centro '
                                                 '({:.2f}, {:.2f}, {:.2f}) m'.format(*self.alvo['centro']))
@@ -532,29 +545,38 @@ class MaquinaTarefa2:
                 self._refino.append((visao, p))
 
     def _medida_proxima(self, visao, agora):
-        """Centro do alvo medido neste quadro, no referencial estimado: pela proximidade (bordas na linha central) ou,
-        sem ela, pela detecção de perto (caixa inteira) mais próxima do centro atual. None se não há medida."""
+        """Centro do alvo medido neste quadro, no referencial estimado: pela proximidade (linha mais larga do balão:
+        distância, azimute e elevação) ou, sem ela, pela detecção de perto (caixa inteira) mais próxima do centro
+        atual. Um limite superior (balão cortado pela borda) só corrige o lado que ele garante. None se não há medida."""
         if visao is None or agora - visao.t > self.cfg.tempo_sem_confirmacao_s:
             return None
         centro = self.alvo['centro']
-        d, az = getattr(visao, 'distancia_central_m', math.nan), getattr(visao, 'azimute_central_graus', math.nan)
-        if visao.cor_central == self.alvo['cor'] and math.isfinite(d) and (d < 0 or math.isfinite(az)) \
-                and d < DISTANCIA_REFINO_M:
+        d = getattr(visao, 'distancia_central_m', math.nan)
+        az = getattr(visao, 'azimute_central_graus', math.nan)
+        el = getattr(visao, 'elevacao_central_graus', math.nan)
+        if visao.cor_central == self.alvo['cor'] and math.isfinite(d) and abs(d) < DISTANCIA_REFINO_M:
             cx, cy, cz = posicao_camera(visao.x_m, visao.y_m, visao.z_m, visao.guinada_local_graus)
+            if d > 0 and math.isfinite(az):
+                self._t_medida = agora
+                e = math.radians(el) if math.isfinite(el) else math.asin(max(-1.0, min(1.0, (centro[2] - cz) / d)))
+                h = d * math.cos(e)
+                return (cx + h * math.cos(math.radians(az)), cy + h * math.sin(math.radians(az)), cz + d * math.sin(e))
             if d < 0:
-                # balão cortado pela borda da imagem: só se sabe que a distância é no máximo |d|. Restrição de um
-                # lado só: corrige o centro apenas se a previsão está mais longe que isso (afasta a aeronave)
-                previsto = math.dist((cx, cy, cz), centro)
+                limite = -d
                 # o limite só vale para a contagem se ele mesmo garante d <= d_max (câmera atrás da frente)
-                if -d - self.cfg.raio_balao_m - (self.cfg.raio_envelope_frontal_m - DESLOCAMENTO_CAMERA[0]) \
+                if limite - self.cfg.raio_balao_m - (self.cfg.raio_envelope_frontal_m - DESLOCAMENTO_CAMERA[0]) \
                         <= self.cfg.d_max_m:
                     self._t_medida = agora
-                if previsto <= -d:
-                    return None
-                return tuple(c + (p - c) * (-d) / previsto for c, p in zip((cx, cy, cz), centro))
-            h = math.sqrt(max(d * d - (centro[2] - cz) ** 2, 0.0))
-            self._t_medida = agora
-            return cx + h * math.cos(math.radians(az)), cy + h * math.sin(math.radians(az)), centro[2]
+                p = list(centro)
+                if math.isfinite(az) and math.isfinite(el):
+                    # cortado na vertical: o centro está além da elevação da borda (acima se el > 0)
+                    z_borda = cz + math.hypot(p[0] - cx, p[1] - cy) * math.tan(math.radians(el))
+                    if (el > 0 and p[2] < z_borda) or (el < 0 and p[2] > z_borda):
+                        p[2] = z_borda
+                previsto = math.dist((cx, cy, cz), p)
+                if previsto > limite:
+                    p = [c + (q - c) * limite / previsto for c, q in zip((cx, cy, cz), p)]
+                return tuple(p) if math.dist(p, centro) > 1e-4 else None
         pontos = [ponto_da_deteccao(visao.x_m, visao.y_m, visao.z_m, visao.guinada_local_graus, det)
                   for det in visao.deteccoes if det.cor == self.alvo['cor'] and not det.cortada
                   and 0 < det.distancia_m < DISTANCIA_REFINO_M]
@@ -572,11 +594,11 @@ class MaquinaTarefa2:
         centro = tuple((1 - ALFA_ANCORA) * c + ALFA_ANCORA * m for c, m in zip(self.alvo['centro'], medido))
         u, c = self.alvo['direcao'], self.cfg
         raio = c.raio_balao_m + c.raio_envelope_frontal_m
+        z = min(max(centro[2], c.volume_z_min_m), c.volume_z_max_m)
         self.alvo['centro'] = centro
-        self.alvo['final'] = (centro[0] + u[0] * (raio + c.d_alvo_m), centro[1] + u[1] * (raio + c.d_alvo_m),
-                              self.alvo['final'][2])
+        self.alvo['final'] = (centro[0] + u[0] * (raio + c.d_alvo_m), centro[1] + u[1] * (raio + c.d_alvo_m), z)
         self.alvo['espera'] = (centro[0] + u[0] * (raio + c.distancia_aproximacao_m),
-                               centro[1] + u[1] * (raio + c.distancia_aproximacao_m), self.alvo['espera'][2])
+                               centro[1] + u[1] * (raio + c.distancia_aproximacao_m), z)
 
     def _em_aproximacaoFinal(self, agora, estado, tel, mapa, visao):
         self._reancorar(visao, agora)

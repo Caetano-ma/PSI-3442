@@ -9,4 +9,5 @@ string cor_central              # cor dominante no centro da imagem (curta dist�
 float32 fracao_cor_central      # fração dos pixels do centro com essa cor
 float32 distancia_central_m         # câmera -> centro do balão da cor central, pela largura; NaN se não mensurável;
                                     # negativa (-D) se cortado pela borda: a distância é no máximo D
-float32 azimute_central_graus       # azimute desse centro no ReferencialLocal
+float32 azimute_central_graus       # azimute desse centro no ReferencialLocal (NaN se cortado na lateral)
+float32 elevacao_central_graus      # elevação da linha mais larga (se cortado na vertical: a da borda; o centro está além)

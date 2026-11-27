@@ -238,3 +238,27 @@ def test_mapa_nao_trata_balao_como_obstaculo_fixo():
     for _ in range(5):
         mapa.atualizar_obstaculos(0.0, 0.0, 180.0, -0.01, 0.01, [1.0] * 3, 8.0)
     assert mapa.obstaculo_perto(-0.8, 0.0, 0.4)
+
+
+def test_proximidade_pela_linha_mais_larga_numa_imagem():
+    """bordas_centrais + GeometriaCamera numa imagem desenhada: balão vermelho acima e à direita do centro."""
+    import cv2
+    import numpy as np
+
+    from psi3442_tarefas.no_visao_computacional import bordas_centrais
+
+    geo = GeometriaCamera(82.1, 640, 480, 0.13)
+    img = np.full((480, 640, 3), 200, np.uint8)
+    cu, cv, r_px = 350, 190, 150                       # centro 50 px acima e 30 px à direita do centro da imagem
+    cv2.circle(img, (cu, cv), r_px, (20, 20, 220), -1)
+    u0, u1, v, cortado_h, cortado_v = bordas_centrais(img, 'vermelho')
+    assert not cortado_h and not cortado_v and abs(v - cv) <= 1
+    d, az = geo.proximidade(u0, u1, 0.0)
+    esperado = 0.13 / math.sin(math.atan(r_px / geo.f))
+    assert abs(d - esperado) / esperado < 0.03
+    assert az < 0                                       # à direita = azimute negativo
+    assert abs(geo.elevacao(v, (u0 + u1) / 2) - math.degrees(math.atan2(240 - cv, math.hypot(geo.f, 320 - cu)))) < 0.5
+    # balão maior que a imagem: limite superior
+    img2 = np.full((480, 640, 3), 200, np.uint8)
+    cv2.circle(img2, (320, 240), 400, (20, 20, 220), -1)
+    assert bordas_centrais(img2, 'vermelho')[3]

@@ -1,15 +1,19 @@
 """Visão computacional (Tarefa 2, R02): detecta e classifica balões por cor nos quadros da câmera do drone.
 
 - DetectorYolo: modelo YOLOv8 nano treinado com imagens sintéticas (ferramentas/treinar_yolo.py), exportado em ONNX e
-  executado pelo módulo dnn do OpenCV (sem PyTorch em tempo de voo). Uma classe por cor.
+  executado pelo ONNX Runtime (ou, sem ele, pelo dnn do OpenCV >= 4.7; o 4.6 do Ubuntu 24.04 não aceita a cabeça do
+  YOLOv8). Sem PyTorch em tempo de voo. Uma classe por cor.
 - GeometriaCamera: câmera pinhole com o campo de visão horizontal do Mini 4 Pro (a verificar). A direção vem do
-  centro da caixa; a distância, do diâmetro aparente e do raio nominal do balão (estimativa: pouco confiável quando
-  a caixa toca a borda da imagem).
+  centro da caixa; a distância, da LARGURA aparente e do raio horizontal nominal do balão (a altura da caixa inclui o
+  alongamento do balão e o nó). Pouco confiável quando a caixa toca a borda da imagem.
 - cor_central: a curta distância o balão ocupa a imagem inteira e o detector não o enquadra; a confirmação passa a
   ser a cor dominante no centro da imagem (limiares HSV).
-- Proximidade: de perto, a linha central da imagem ainda mostra as duas bordas laterais do balão (até ~2 cm do
-  envelope, com o campo de visão nominal); a largura angular dá a distância câmera -> centro com precisão de
-  milímetros. É o que mantém 0 < d <= 5 cm por 60 s apesar da deriva da posição integrada (R04).
+- Proximidade: de perto, o balão da cor central ainda mostra as duas bordas laterais (até ~2 cm do envelope, com o
+  campo de visão nominal). Entre as linhas que cruzam a coluna central, a de trecho MAIS LARGO passa pelo centro do
+  balão: sua largura angular dá a distância câmera -> centro (precisão de milímetros), as bordas dão o azimute e a
+  linha dá a elevação. É o que mantém 0 < d <= 5 cm por 60 s apesar da deriva da posição integrada (R04). Se o trecho
+  toca a borda da imagem, a largura vista é uma corda menor que o diâmetro: a distância calculada é só um limite
+  SUPERIOR (publicada com sinal negativo).
 
 Assina /dji/camera (sensor_msgs/Image) e /estado; publica /alvos (no máximo `taxa_max_hz`).
 """
@@ -59,15 +63,15 @@ class GeometriaCamera:
         det.azimute_graus = (guinada_local_graus + az_rel + 180.0) % 360.0 - 180.0
         # elevação do raio (f, du, dv) em relação ao plano horizontal: não é atan(dv / f) fora do eixo óptico
         det.elevacao_graus = math.degrees(math.atan2(self.altura / 2.0 - det.v, math.hypot(self.f, self.largura / 2.0 - det.u)))
-        # raio angular pela maior dimensão (a menor pode estar cortada)
-        r_px = max(det.largura_px, det.altura_px) / 2.0
+        # raio angular pela largura (a altura inclui alongamento e nó); se a largura está cortada, pela altura
+        cortada_h = x0 <= margem_px or x1 >= self.largura - margem_px
+        r_px = (max(det.largura_px, det.altura_px) if cortada_h else det.largura_px) / 2.0
         alfa = math.atan2(r_px, self.f)
         det.distancia_m = self.raio_balao_m / math.sin(alfa) if alfa > 0 else math.nan
         return det
 
     def proximidade(self, u0, u1, guinada_local_graus):
-        """Bordas esquerda/direita (px) do balão numa linha da imagem -> (distância câmera -> centro, azimute local).
-        Exato para uma esfera vista no plano horizontal da câmera."""
+        """Bordas esquerda/direita (px) do balão na linha do centro -> (distância câmera -> centro, azimute local)."""
         a0 = math.atan2(self.largura / 2.0 - u0, self.f)
         a1 = math.atan2(self.largura / 2.0 - u1, self.f)
         meia = abs(a0 - a1) / 2.0
@@ -75,6 +79,11 @@ class GeometriaCamera:
             return math.nan, math.nan
         azimute = (guinada_local_graus + math.degrees((a0 + a1) / 2.0) + 180.0) % 360.0 - 180.0
         return self.raio_balao_m / math.sin(meia), azimute
+
+    def elevacao(self, v, u=None):
+        """Elevação (graus) do raio que passa pela linha v (e coluna u; padrão: centro)."""
+        du = 0.0 if u is None else self.largura / 2.0 - u
+        return math.degrees(math.atan2(self.altura / 2.0 - v, math.hypot(self.f, du)))
 
     def distancia_minima_mensuravel(self):
         """Distância câmera -> centro em que o balão ocupa exatamente a largura da imagem."""
@@ -113,23 +122,34 @@ def mascara_cor(hsv, cor):
     return mascara & (sat >= S_MIN) & (val >= V_MIN)
 
 
-def bordas_centrais(imagem_bgr, cor, faixa_linhas=5):
-    """Trecho contínuo da cor que contém o centro, na faixa de linhas central: (u0, u1, cortado) em px; se o trecho
-    toca a borda da imagem, a ponta correspondente é a borda e `cortado` é True. None se a cor não está no centro."""
+def bordas_centrais(imagem_bgr, cor):
+    """Linha do centro do balão da cor `cor` que cruza a coluna central: entre as linhas em que o pixel central tem a
+    cor, a de trecho contínuo mais largo (passa pelo centro de uma esfera). Devolve (u0, u1, v, cortado_h, cortado_v):
+    bordas em px, a linha, e se o trecho toca a borda lateral (largura subestimada) ou se a linha mais larga está na
+    borda superior/inferior (centro fora da imagem). None se a cor não está na coluna central."""
     import cv2
 
     h, w = imagem_bgr.shape[:2]
-    faixa = imagem_bgr[h // 2 - faixa_linhas // 2:h // 2 + faixa_linhas // 2 + 1]
-    linha = np.count_nonzero(mascara_cor(cv2.cvtColor(faixa, cv2.COLOR_BGR2HSV), cor), axis=0) > faixa.shape[0] // 2
+    mascara = mascara_cor(cv2.cvtColor(imagem_bgr, cv2.COLOR_BGR2HSV), cor)
     centro = w // 2
-    if not linha[centro]:
+    linhas = np.flatnonzero(mascara[:, centro])
+    if not len(linhas):
         return None
-    fora = np.flatnonzero(~linha)
-    esquerda = fora[fora < centro]
-    direita = fora[fora > centro]
-    u0 = float(esquerda[-1]) + 0.5 if len(esquerda) else 0.0
-    u1 = float(direita[0]) - 0.5 if len(direita) else float(w)
-    return u0, u1, not len(esquerda) or not len(direita)
+    # só o trecho vertical contínuo que contém o centro da imagem (ou o mais próximo dele)
+    quebras = np.flatnonzero(np.diff(linhas) > 1)
+    grupos = np.split(linhas, quebras + 1)
+    grupo = min(grupos, key=lambda g: 0 if g[0] <= h // 2 <= g[-1] else min(abs(g[0] - h // 2), abs(g[-1] - h // 2)))
+    melhor = None
+    for v in grupo:
+        fora = np.flatnonzero(~mascara[v])
+        esquerda, direita = fora[fora < centro], fora[fora > centro]
+        u0 = float(esquerda[-1]) + 0.5 if len(esquerda) else 0.0
+        u1 = float(direita[0]) - 0.5 if len(direita) else float(w)
+        if melhor is None or u1 - u0 > melhor[1] - melhor[0]:
+            melhor = (u0, u1, float(v), not len(esquerda) or not len(direita))
+    u0, u1, v, cortado_h = melhor
+    cortado_v = v <= grupo[0] + 1 and grupo[0] <= 1 or v >= grupo[-1] - 1 and grupo[-1] >= h - 2
+    return u0, u1, v, cortado_h, bool(cortado_v)
 
 
 class DetectorYolo:
@@ -139,7 +159,16 @@ class DetectorYolo:
         import cv2
 
         self.cv2 = cv2
-        self.rede = cv2.dnn.readNetFromONNX(caminho_onnx)
+        try:
+            import onnxruntime
+
+            self.sessao = onnxruntime.InferenceSession(caminho_onnx, providers=['CPUExecutionProvider'])
+            self.entrada = self.sessao.get_inputs()[0].name
+            self.motor = f'onnxruntime {onnxruntime.__version__}'
+        except ImportError:
+            self.sessao = None
+            self.rede = cv2.dnn.readNetFromONNX(caminho_onnx)
+            self.motor = f'opencv dnn {cv2.__version__}'
         self.classes = tuple(classes)
         self.tamanho = tamanho_entrada
         self.limiar_confianca = limiar_confianca
@@ -157,8 +186,11 @@ class DetectorYolo:
     def detectar(self, imagem_bgr):
         quadro, escala, dx, dy = self._letterbox(imagem_bgr)
         blob = self.cv2.dnn.blobFromImage(quadro, 1 / 255.0, (self.tamanho, self.tamanho), swapRB=True)
-        self.rede.setInput(blob)
-        saida = self.rede.forward()[0]                 # (4 + nc, N)
+        if self.sessao is not None:
+            saida = self.sessao.run(None, {self.entrada: blob})[0][0]     # (4 + nc, N)
+        else:
+            self.rede.setInput(blob)
+            saida = self.rede.forward()[0]
         saida = saida.T
         pontuacoes = saida[:, 4:4 + len(self.classes)]
         classe = np.argmax(pontuacoes, axis=1)
@@ -211,7 +243,7 @@ def main(args=None):
             self.detector = None
             if os.path.exists(caminho):
                 self.detector = DetectorYolo(caminho, v.classes, v.tamanho_entrada, v.limiar_confianca, v.limiar_nms)
-                self.get_logger().info(f'modelo de visão carregado: {caminho}')
+                self.get_logger().info(f'modelo de visão carregado: {caminho} ({self.detector.motor})')
             else:
                 self.get_logger().error(f'modelo de visão ausente ({caminho}): só a cor central será publicada')
             self.estado = None
@@ -248,13 +280,19 @@ def main(args=None):
                         altura_px=det.altura_px, azimute_graus=det.azimute_graus, elevacao_graus=det.elevacao_graus,
                         distancia_m=det.distancia_m, cortada=det.cortada))
             saida.cor_central, saida.fracao_cor_central = cor_central(imagem, self.cores)
-            saida.distancia_central_m = saida.azimute_central_graus = math.nan
+            saida.distancia_central_m = saida.azimute_central_graus = saida.elevacao_central_graus = math.nan
             bordas = bordas_centrais(imagem, saida.cor_central) if saida.cor_central else None
             if bordas is not None:
-                u0, u1, cortado = bordas
+                u0, u1, v, cortado_h, cortado_v = bordas
                 d, az = self.geometria.proximidade(u0, u1, e.guinada_local_graus)
-                # cortado: a largura vista é menor que a real, então d é um limite superior (sinal negativo)
-                saida.distancia_central_m, saida.azimute_central_graus = (-d, math.nan) if cortado else (d, az)
+                saida.elevacao_central_graus = self.geometria.elevacao(v, (u0 + u1) / 2)
+                # cortado: a largura vista é uma corda menor que o diâmetro -> d é um limite superior (sinal negativo);
+                # com a linha mais larga na borda vertical, a elevação é a da borda (o centro está além dela)
+                if cortado_h or cortado_v:
+                    saida.distancia_central_m = -d
+                    saida.azimute_central_graus = math.nan if cortado_h else az
+                else:
+                    saida.distancia_central_m, saida.azimute_central_graus = d, az
             self.pub.publish(ros_util.carimbar(self, saida))
 
     rclpy.init(args=args)

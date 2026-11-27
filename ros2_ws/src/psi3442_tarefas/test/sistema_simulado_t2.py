@@ -63,7 +63,7 @@ class VisaoSintetica:
             candidatos.append((d, b, frente, esquerda, dz))
         candidatos.sort(key=lambda c: c[0])
         deteccoes, ocupados = [], []
-        cor_central, fracao, proximidade = '', 0.0, (math.nan, math.nan)
+        cor_central, fracao, proximidade = '', 0.0, (math.nan, math.nan, math.nan)
         for d, b, frente, esquerda, cima in candidatos:
             if d <= b.raio:
                 continue
@@ -94,22 +94,36 @@ class VisaoSintetica:
         return [d for d in deteccoes if d.cor in cores], cor_central, fracao, proximidade
 
     def _proximidade(self, b, frente, esquerda, cima, guinada_estimada):
-        """Bordas do balão na linha central (plano z = 0 da câmera), com ruído, -> GeometriaCamera.proximidade."""
-        if abs(cima) >= b.raio:
-            return math.nan, math.nan
-        raio_corte = math.sqrt(b.raio ** 2 - cima ** 2)
-        d_h = math.hypot(frente, esquerda)
+        """Como bordas_centrais + GeometriaCamera no nó: linha mais larga do balão (passa pelo centro) -> (distância,
+        azimute, elevação), com ruído de 0,5 px nas bordas. Cortado pela borda -> limite superior (negativo)."""
+        geo = self.geometria
+        w, h, f = geo.largura, geo.altura, geo.f
+        d3 = math.sqrt(frente * frente + esquerda * esquerda + cima * cima)
+        if d3 <= b.raio or frente <= 0:
+            return math.nan, math.nan, math.nan
         a = math.atan2(esquerda, frente)
-        meia = math.asin(min(1.0, raio_corte / d_h))
+        el = math.atan2(cima, math.hypot(frente, esquerda))
+        v = h / 2 - f * cima / frente
+        if v < 0 or v > h:                       # centro fora da imagem na vertical: linha mais larga na borda
+            v_borda = 0.0 if v < 0 else float(h)
+            el_borda = math.atan2(h / 2 - v_borda, f)
+            corda2 = b.raio ** 2 - (d3 * math.sin(el - el_borda)) ** 2
+            if corda2 <= 0:
+                return math.nan, math.nan, math.nan
+            meia = math.asin(min(1.0, math.sqrt(corda2) / d3))
+            return -b.raio / math.sin(meia), math.degrees(a) + guinada_estimada, math.degrees(el_borda)
+        meia = math.asin(min(1.0, b.raio / d3))
         if abs(a) + meia >= math.radians(89):
-            return -self.geometria.distancia_minima_mensuravel(), math.nan
-        w, f = self.geometria.largura, self.geometria.f
+            return -geo.distancia_minima_mensuravel(), math.nan, math.nan
         u0 = w / 2 - f * math.tan(a + meia) + self.rng.gauss(0, 0.5)
         u1 = w / 2 - f * math.tan(a - meia) + self.rng.gauss(0, 0.5)
-        if u0 <= 0 or u1 >= w:                   # cortado pela borda: só um limite superior da distância
-            d, _ = self.geometria.proximidade(max(u0, 0.0), min(u1, float(w)), guinada_estimada)
-            return -d, math.nan
-        return self.geometria.proximidade(u0, u1, guinada_estimada)
+        v_med = v + self.rng.gauss(0, 0.5)
+        elev = geo.elevacao(v_med, (u0 + u1) / 2)
+        if u0 <= 0 or u1 >= w:                   # cortado na lateral: só um limite superior da distância
+            d, _ = geo.proximidade(max(u0, 0.0), min(u1, float(w)), guinada_estimada)
+            return -d, math.nan, elev
+        d, az = geo.proximidade(u0, u1, guinada_estimada)
+        return d, az, elev
 
 
 class SistemaSimuladoT2:
@@ -187,10 +201,11 @@ class SistemaSimuladoT2:
         self._despachar()
 
         if round(self.t * 10) % 2 == 0 and estado.valido:                  # visão a 5 Hz
-            deteccoes, cor, fracao, (d_c, az_c) = self.visao_sintetica.observar(
+            deteccoes, cor, fracao, (d_c, az_c, el_c) = self.visao_sintetica.observar(
                 self.pose_real(), estado.guinada_local_graus, self.cfg.tarefa2.cores_conhecidas)
             self.visao = SimpleNamespace(t=self.t, deteccoes=deteccoes, cor_central=cor, fracao_cor_central=fracao,
                                          distancia_central_m=d_c, azimute_central_graus=az_c,
+                                         elevacao_central_graus=el_c,
                                          x_m=estado.x_m, y_m=estado.y_m, z_m=estado.z_m,
                                          guinada_local_graus=estado.guinada_local_graus)
             self.mapa.atualizar_deteccoes(self.visao, self.t)

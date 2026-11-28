@@ -271,7 +271,83 @@ observado durante a contagem ficou abaixo de 1,5 cm (seção 7).
 
 ## 7. Verificação e resultados
 
-<!-- RESULTADOS -->
+Os critérios de aprovação foram declarados antes dos ensaios: P05 para a Tarefa 1; R04 e as margens do R06 para a
+Tarefa 2. **Todos os resultados abaixo são de simulação ou de testes sem voo.** Os resultados de voo real serão
+acrescentados após os ensaios T00–T04 e S1–S4 (`ensaios/roteiro_voo_tarefa1.md`). Os dados de cada ensaio estão em
+`ensaios/simulacao/<ensaio>/`: CSV de evidência, eventos, métricas, verdade e avaliação.
+
+### 7.1 Tarefa 1 — Gazebo, 60 s por vértice (relógio do simulador)
+
+| Critério (P05) | Limite | Resultado |
+|---|---|---|
+| Altura nas permanências e deslocamentos | ±0,10 m | erro máx. 0,076 m (RMS 0,003 m) |
+| Trajetória (distância ao quadrado) | ±0,30 m | máx. 0,005 m (estimado); erro da estimativa contra a verdade: máx. 0,137 m |
+| Permanências contínuas | 4 × 60 s | A 60,0 s · B 60,0 s · C 60,0 s · D 60,0 s, 0 reinícios |
+| Pairado durante a contagem | ≤ 0,15 m/s | máx. 0,131 m/s |
+| Fechamento do quadrado (toque × decolagem) | ≤ 0,30 m | 0,002 m (estimado), **0,057 m (real)** |
+| Velocidade vertical no toque | ≤ 0,50 m/s | 0,40 m/s |
+| Duração / falhas | — | 327 s; nenhuma falha |
+
+O reinício da contagem é verificado pelo teste T05 (sequência sintética de vereditos) e aparece em simulação na
+Tarefa 2 (alvo único, 7.2), que usa o mesmo cronômetro. A Tarefa 1 também foi executada de ponta a ponta com o app
+ponte real no **emulador Android** (drone falso, `simulacoes/emulador_*`): concluída, com telemetria a 10 Hz e erro
+vertical máx. de 0,069 m.
+
+![Tarefa 1 — altura e permanências](figuras/t1_altura.png)
+
+### 7.2 Tarefa 2 — Gazebo (relógio do simulador; distância real pelo avaliador)
+
+| Cenário (seção 7) | Sala | Alvos destruídos | d real durante as contagens | Erro de estimação de d na contagem | Menor folga a não alvo | Colisões |
+|---|---|---|---|---|---|---|
+| Um único alvo, cores não alvo, **60 s** | semente 3 (1 alvo, 2 não alvo) | 1/1 (1 reinício aos 35,9 s; depois 60,0 s contínuos) | 1,4 – 3,3 cm | — (antes da gravação de d estimada) | 0,36 m ⚠ | 0 |
+| Múltiplos alvos e cores não alvo | semente 1 (4 alvos, 2 não alvo) | **4/4**, cada um uma vez | 2,6 – 4,3 cm | mediana 0,3 cm, máx. 0,8 cm | 0,79 m | 0 |
+| Múltiplos alvos, sala densa | semente 2 (6 alvos, 1 não alvo) | <!-- S2 --> | <!-- S2D --> | <!-- S2E --> | <!-- S2F --> | <!-- S2C --> |
+
+O centro de cada balão destruído ficou a 1,2–7 cm do real. A identificação no evento e no painel corresponde
+sempre à cor real.
+
+Na sala da semente 3, a folga de 0,36 m a um não alvo foi medida antes da correção da margem lateral (seção 9). A
+regra passou a usar a meia-diagonal do envelope, e as salas 1 e 2, rodadas depois da correção, ficaram acima de
+0,5 m.
+
+![Tarefa 2 — distância verdadeira nas permanências, semente 1](figuras/t2_distancia_s1.png)
+
+![Tarefa 2 — alvo único: reinício e 60 s contínuos](figuras/t2_distancia_umalvo.png)
+
+![Tarefa 2 — sala da semente 1](figuras/t2_sala_s1.png)
+
+### 7.3 Testes sem voo (malha fechada sintética e unitários)
+
+São **110 testes pytest** (lógica das duas tarefas e serviços comuns), **7 testes** do pacote Gazebo e **22 testes
+JVM** do app ponte, todos passando. Com o ROS 2 do sistema, o `colcon test` deu 114 testes sem falha. Os cenários da
+seção 7 que não cabem no Gazebo ou não devem ser feitos em voo:
+
+| Cenário | Teste | Resultado |
+|---|---|---|
+| Ausência de alvos | `test_sem_alvos_varre_e_pousa` | varre a sala, pousa, nenhuma seleção |
+| Perda de detecção na permanência (3 s) | `test_perda_de_deteccao_na_permanencia_reinicia` | interrompe, reinicia, conclui |
+| Reinício após sair da faixa (rajada) | `test_reinicia_contagem_ao_sair_da_faixa` | interrupção registrada após > 2 s; nova contagem completa |
+| Alvo junto de obstáculo | `test_alvo_perto_de_obstaculo_aproxima_pelo_lado_livre` | aproxima pelo lado livre |
+| Tempo de missão excedido | `test_tempo_de_missao_excedido_pousa_no_local` | falha `tempoTarefaExcedido`, pouso no local |
+| Interrupção pelo operador | `test_interromper_pousa_no_local` | pouso no local, tarefa abortada |
+| Deriva da posição 0,5 / 2 cm/s, 60 s | `test_permanencia_de_60s_com_deriva_da_posicao`, `test_deriva_extrema_…` | d real sempre em 0 < d ≤ 5 cm |
+| Balão em movimento (1 cm/s) | `test_balao_em_movimento_mantem_a_faixa` | segue > 25 cm, sempre na faixa |
+| Erro de 10 % no tamanho aparente | `test_sala_aleatoria_com_erro_de_tamanho_…` | 6/6 alvos, cada um uma vez |
+| Fantasma junto de balão destruído | `test_fantasma_perto_de_balao_destruido_…` | descartado, sem recontagem |
+| Perda da ponte e watchdog | T07/T09 (Tarefa 1, reutilizados) | velocidade zero em 0,2 s; pouso após 2 s |
+
+### 7.4 Percepção
+
+O detector foi avaliado nas 400 imagens sintéticas de validação, com o mesmo código do voo
+(`modelos/metricas_detector.json`):
+- **precisão 0,92** e **revocação 0,87**;
+- revocação ≥ 0,91 para diâmetro aparente ≥ 60 px e 0,69 abaixo de 20 px (balões a mais de ~5 m);
+- 27 trocas de cor em 936 balões (2,9 %).
+
+No Gazebo, todas as destruições foram da cor certa. A confirmação de perto (cor central em HSV) e a fusão de
+observações no mapa filtram trocas isoladas.
+
+![Detector](figuras/detector_revocacao.png)
 
 ## 8. Justificativa técnico-econômica
 
@@ -350,6 +426,28 @@ campo de visão). A missão, a simulação e os testes não mudam.
   substitui a percepção 360° da DJI, que no Mini 4 Pro pode ter alcance e cobertura diferentes.
 - **Envelope frontal de 0,149 m e campo de visão de 82,1°:** valores a verificar. Um erro de 1 cm no envelope é
   1 cm em d.
+- **Margens do R06:** a primeira versão media a folga lateral pelo raio frontal do envelope (0,149 m). Na sala da
+  semente 3, isso deixou 0,36 m até um não alvo. A regra foi corrigida para a meia-diagonal do envelope com hélices
+  (0,239 m), entre superfícies:
+  - 0,50 m a cores não alvo;
+  - 0,30 m a outros balões de cor-alvo;
+  - 0,15 m a candidatos ainda não confirmados (podem ser falsos).
+- **Fantasmas no mapa:** a distância de longe pelo tamanho aparente erra ~15 % e gera entradas falsas. Contra elas
+  há quatro salvaguardas, todas exercitadas no Gazebo:
+  - confirmação de perto;
+  - descarte de entradas coladas a balões destruídos;
+  - fusão de duplicatas;
+  - contagem só com medida de perto que concorda com o alvo (a até 0,10 m do centro).
+  A última foi acrescentada depois que um ensaio da semente 2 contou um fantasma vendo de perto o balão vermelho
+  real ao lado. Os ensaios das sementes 1 e 3 são anteriores a essa correção, que só torna a contagem mais
+  restritiva; em ambos, todas as destruições tiveram centro a ≤ 7 cm do balão real.
+- **Não alvos fora do plano do sensor de distâncias:** um balão acima ou abaixo do plano da percepção de obstáculos
+  só é evitado se estiver no mapa pela câmera. Num ensaio da semente 2, o drone passou a 6,5 cm de um balão verde a
+  caminho de um ponto de busca. Mitigação prevista: margem maior a candidatos e varredura com câmera antes de cada
+  deslocamento.
+- **Sala densa:** em salas com muitos alvos a ~1 m uns dos outros e perto das paredes, alguns podem ficar
+  inalcançáveis com essas margens. A missão termina com segurança e os registra; reduzir margens é decisão a tomar
+  antes do ensaio, nunca depois.
 
 ## 10. Uso de inteligência artificial
 

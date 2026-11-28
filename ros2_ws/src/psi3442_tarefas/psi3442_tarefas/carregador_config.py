@@ -88,7 +88,8 @@ class ConfigTarefa2:
     distancia_aproximacao_m: float = 0.60    # distância de superfície do ponto de espera antes da aproximação final
     v_aproximacao_final_mps: float = 0.08
     margem_obstaculos_m: float = 0.40        # paredes e mobiliário (R06)
-    margem_nao_alvo_m: float = 0.50          # balões não selecionados (R06)
+    margem_nao_alvo_m: float = 0.50          # balões de cor não alvo (R06)
+    margem_outros_alvos_m: float = 0.30      # outros balões de cor-alvo, ainda não selecionados ou já destruídos (R06)
     observacoes_min: int = 3
     tempo_confirmacao_s: float = 4.0
     fracao_cor_central_min: float = 0.5

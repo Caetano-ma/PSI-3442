@@ -20,6 +20,7 @@ DERIVA_MAX_CORRIGIDA_M = 1.0                  # correção de deriva maior que i
 OBSERVACOES_MARCO = 20                        # balão com mais observações que isto vira marco (posição fixa)
 DISTANCIA_MAX_MARCO_M = 2.5                   # só detecções de perto realinham o mapa pelo marco
 GANHO_MARCO = 0.05                            # fração do resíduo aplicada ao mapa inteiro a cada detecção
+FOLGA_FILTRO_BALAO_M = 0.45                   # células a menos disto + raio de um balão mapeado não são parede
 DISTANCIA_FUSAO_M = 0.6                       # mesma cor mais perto que isto = o mesmo balão (hipótese: balões da
                                               # mesma cor ficam a mais de 0,6 m entre centros)
 
@@ -212,7 +213,7 @@ class MapeamentoLocal:
     def _de_balao(self, x, y):
         """Célula ocupada por um balão já mapeado (o sensor de distâncias também vê os balões; eles são tratados
         pelas margens próprias da Tarefa 2, não como obstáculo fixo)."""
-        folga = self.cfg.raio_balao_m + self.grade.resolucao
+        folga = self.cfg.raio_balao_m + FOLGA_FILTRO_BALAO_M      # a posição do balão no mapa pode errar dm
         return any(math.hypot(x - b.x_m, y - b.y_m) <= folga for b in self.baloes)
 
     def obstaculo_perto(self, x, y, margem):

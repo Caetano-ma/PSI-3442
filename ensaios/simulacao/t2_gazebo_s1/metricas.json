@@ -4,7 +4,7 @@
     "resultado": "TAREFA_CONCLUIDA",
     "baloes": {
       "azul#2": {
-        "continuo_s": 5.0,
+        "continuo_s": 5.09,
         "reinicios": 0,
         "destruido": true,
         "contato_estimado": 0,
@@ -12,6 +12,22 @@
         "inalcancavel": false
       },
       "vermelho#4": {
+        "continuo_s": 5.03,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "vermelho#9": {
+        "continuo_s": 5.04,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "azul#11": {
         "continuo_s": 5.0,
         "reinicios": 0,
         "destruido": true,
@@ -19,31 +35,7 @@
         "descartado": false,
         "inalcancavel": false
       },
-      "vermelho#7": {
-        "continuo_s": 5.0,
-        "reinicios": 0,
-        "destruido": true,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": false
-      },
-      "azul#8": {
-        "continuo_s": 5.1,
-        "reinicios": 0,
-        "destruido": true,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": false
-      },
-      "azul#14": {
-        "continuo_s": 0.0,
-        "reinicios": 0,
-        "destruido": false,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": true
-      },
-      "azul#17": {
+      "azul#16": {
         "continuo_s": 0.0,
         "reinicios": 0,
         "destruido": false,
@@ -53,9 +45,14 @@
       }
     },
     "falhas": [],
-    "d_real_contando_min_m": 0.0254,
-    "d_real_contando_max_m": 0.0458,
+    "erro_estimacao_mediana_m": 0.006199999999999983,
+    "erro_estimacao_p95_m": 0.026599999999999957,
+    "erro_estimacao_contando_mediana_m": 0.0029,
+    "erro_estimacao_contando_max_m": 0.008100000000000003,
+    "amostras_estimacao": 800,
+    "d_real_contando_min_m": 0.026,
+    "d_real_contando_max_m": 0.0431,
     "amostras_contando": 184,
-    "folga_min_nao_alvo_m": 0.652
+    "folga_min_nao_alvo_m": 0.786
   }
 }

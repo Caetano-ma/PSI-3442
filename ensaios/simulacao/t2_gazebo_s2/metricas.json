@@ -1,82 +1,34 @@
 {
   "tarefa1": null,
   "tarefa2": {
-    "resultado": "—",
+    "resultado": "TAREFA_CONCLUIDA",
     "baloes": {
       "vermelho#3": {
-        "continuo_s": 5.0,
+        "continuo_s": 5.1,
         "reinicios": 0,
         "destruido": true,
         "contato_estimado": 0,
         "descartado": false,
-        "inalcancavel": false
-      },
-      "vermelho#8": {
-        "continuo_s": 0.0,
-        "reinicios": 0,
-        "destruido": false,
-        "contato_estimado": 0,
-        "descartado": true,
-        "inalcancavel": false
-      },
-      "azul#1": {
-        "continuo_s": 5.09,
-        "reinicios": 0,
-        "destruido": true,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": false
-      },
-      "azul#7": {
-        "continuo_s": 0.0,
-        "reinicios": 0,
-        "destruido": false,
-        "contato_estimado": 0,
-        "descartado": true,
-        "inalcancavel": false
-      },
-      "vermelho#4": {
-        "continuo_s": 0.0,
-        "reinicios": 0,
-        "destruido": false,
-        "contato_estimado": 0,
-        "descartado": true,
-        "inalcancavel": true
-      },
-      "vermelho#15": {
-        "continuo_s": 0.0,
-        "reinicios": 0,
-        "destruido": false,
-        "contato_estimado": 0,
-        "descartado": true,
         "inalcancavel": false
       },
       "vermelho#6": {
-        "continuo_s": 0.0,
-        "reinicios": 0,
-        "destruido": false,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": true
-      },
-      "azul#13": {
-        "continuo_s": 5.0,
-        "reinicios": 0,
-        "destruido": true,
-        "contato_estimado": 0,
-        "descartado": true,
-        "inalcancavel": true
-      },
-      "vermelho#10": {
-        "continuo_s": 5.09,
+        "continuo_s": 5.1,
         "reinicios": 0,
         "destruido": true,
         "contato_estimado": 0,
         "descartado": false,
         "inalcancavel": false
       },
-      "vermelho#26": {
-        "continuo_s": 5.11,
+      "azul#8": {
+        "continuo_s": 5.0,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "azul#1": {
+        "continuo_s": 5.0,
         "reinicios": 0,
         "destruido": true,
         "contato_estimado": 0,
@@ -90,12 +42,49 @@
         "contato_estimado": 0,
         "descartado": false,
         "inalcancavel": true
+      },
+      "vermelho#9": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "vermelho#7": {
+        "continuo_s": 5.0,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "vermelho#4": {
+        "continuo_s": 5.0,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": false
+      },
+      "vermelho#19": {
+        "continuo_s": 5.01,
+        "reinicios": 0,
+        "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
       }
     },
     "falhas": [],
-    "d_real_contando_min_m": 0.0244,
-    "d_real_contando_max_m": 0.0426,
-    "amostras_contando": 230,
-    "folga_min_nao_alvo_m": 0.74
+    "erro_estimacao_mediana_m": 0.005800000000000027,
+    "erro_estimacao_p95_m": 0.7293,
+    "erro_estimacao_contando_mediana_m": 0.0030999999999999986,
+    "erro_estimacao_contando_max_m": 0.7393,
+    "amostras_estimacao": 1403,
+    "d_real_contando_min_m": 0.0249,
+    "d_real_contando_max_m": 0.7773,
+    "amostras_contando": 319,
+    "folga_min_nao_alvo_m": 0.065
   }
 }

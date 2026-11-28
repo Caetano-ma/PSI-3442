@@ -559,7 +559,8 @@ package NivelN {
     }
     part def PlanejadorRotas :> ModuloSoftware {
         doc /* R06. Menor rota num grafo de visibilidade (Dijkstra): nós em 8 direções em volta de cada balão do mapa,
-               arestas onde nenhum balão bloqueia o segmento (folga = r + rEnvelope + margem); replanejada a cada passo
+               arestas onde nenhum balão bloqueia o segmento (folga = r + meia-diagonal do envelope 0,239 m + margem:
+               0,50 m cor não alvo, 0,30 m outra cor-alvo, 0,15 m candidato ainda não confirmado); replanejada a cada passo
                se um balão recém-mapeado bloqueia o trecho restante. Ponto de aproximação: 8 direções em volta do alvo,
                livres de obstáculos e de outros balões. */
         attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_tarefa2.py";
@@ -569,7 +570,9 @@ package NivelN {
                alvo é (1) refinado no ponto de espera pela média das detecções de perto e (2) reancorado a cada quadro
                pela medida de proximidade (filtro 0,5; salto máx. 0,40 m), junto com os pontos de espera e final.
                Assim a permanência segue o balão (inclusive em movimento) e não a posição integrada, que deriva.
-               A contagem só corre com medida direta recente; um limite superior só vale se garantir d <= 5 cm. */
+               A contagem só corre com medida direta recente QUE CONCORDA com o alvo (a até 0,10 m do centro; perto
+               de um fantasma do mapa a câmera pode estar vendo outro balão da mesma cor); um limite superior só vale
+               se garantir d <= 5 cm. */
         attribute :>> arquivoCodigo = "ros2_ws/src/psi3442_tarefas/psi3442_tarefas/no_tarefa2.py";
     }
     part def SupervisorTarefa2 :> ModuloSoftware {
@@ -624,6 +627,7 @@ package NivelN {
         :>> vAproximacaoFinal = 0.08 [m/s];
         :>> margemObstaculos = 0.40 [m];
         :>> margemNaoAlvo = 0.50 [m];
+        :>> margemOutrosAlvos = 0.30 [m];
         :>> observacoesMin = 3;
         :>> tempoConfirmacao = 4 [s];
         :>> tempoSemConfirmacao = 1 [s];

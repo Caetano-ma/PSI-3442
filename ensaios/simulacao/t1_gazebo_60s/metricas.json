@@ -1,0 +1,33 @@
+{
+  "tarefa1": {
+    "resultado": "TAREFA_CONCLUIDA",
+    "erro_altura_max_m": 0.0757000000000001,
+    "erro_altura_rms_m": 0.00278651550061553,
+    "desvio_trajetoria_max_m": 0.005300000000000082,
+    "velocidade_horizontal_max_pairado_mps": 0.1310233948575597,
+    "permanencias_concluidas": [
+      [
+        "A",
+        60.0
+      ],
+      [
+        "B",
+        60.0
+      ],
+      [
+        "C",
+        60.0
+      ],
+      [
+        "D",
+        60.01
+      ]
+    ],
+    "reinicios_contagem": 0,
+    "fechamento_toque_m": 0.0016031219541881398,
+    "vz_toque_mps": 0.4,
+    "tempo_missao_s": 326.617,
+    "falhas": []
+  },
+  "tarefa2": null
+}

@@ -1,0 +1,28 @@
+instante_s,origem,tipo,estado,vertice,permanencia_s,valor,detalhe
+13.543,tarefa1,TRANSICAO,preparando,,0.00,0.000,
+13.546,tarefa1,SOLICITA_ACAO:habilitar_controle_virtual,preparando,,0.00,0.000,
+13.656,tarefa1,TRANSICAO,decolando,,0.00,0.000,PreparacaoConcluida
+13.659,tarefa1,SOLICITA_ACAO:decolar,decolando,,0.00,0.000,
+16.228,tarefa1,TRANSICAO,subindo,,0.00,0.000,DecolagemConcluida
+18.045,tarefa1,TRANSICAO,pairando,A,0.00,0.000,AlturaAtingida
+18.165,tarefa1,PERMANENCIA_INICIADA,pairando,A,0.00,0.000,
+86.976,tarefa1,PERMANENCIA_CONCLUIDA,pairando,A,60.00,0.000,0 reinícios da contagem
+86.987,tarefa1,TRANSICAO,deslocando,B,0.00,0.000,PermanenciaConcluida
+93.361,tarefa1,TRANSICAO,pairando,B,0.00,0.000,VerticeAtingido
+93.489,tarefa1,PERMANENCIA_INICIADA,pairando,B,0.00,0.000,
+164.573,tarefa1,PERMANENCIA_CONCLUIDA,pairando,B,60.00,0.000,0 reinícios da contagem
+164.575,tarefa1,TRANSICAO,deslocando,C,0.00,0.000,PermanenciaConcluida
+170.948,tarefa1,TRANSICAO,pairando,C,0.00,0.000,VerticeAtingido
+171.046,tarefa1,PERMANENCIA_INICIADA,pairando,C,0.00,0.000,
+240.159,tarefa1,PERMANENCIA_CONCLUIDA,pairando,C,60.00,0.000,0 reinícios da contagem
+240.191,tarefa1,TRANSICAO,deslocando,D,0.00,0.000,PermanenciaConcluida
+247.087,tarefa1,TRANSICAO,pairando,D,0.00,0.000,VerticeAtingido
+247.229,tarefa1,PERMANENCIA_INICIADA,pairando,D,0.00,0.000,
+322.842,tarefa1,PERMANENCIA_CONCLUIDA,pairando,D,60.01,0.000,0 reinícios da contagem
+322.847,tarefa1,TRANSICAO,retornando,A,0.00,0.000,PermanenciaConcluida (último vértice)
+329.270,tarefa1,TRANSICAO,estabilizandoEmA,A,0.00,0.000,VerticeAtingido (retorno)
+331.824,tarefa1,TRANSICAO,pousando,A,0.00,0.000,Estabilizado
+338.733,tarefa1,SOLICITA_ACAO:pousar,pousando,A,0.00,0.000,pouso automático a partir de 0.38 m
+340.244,tarefa1,POUSO_CONFIRMADO,pousando,A,0.00,0.400,|vz| no toque = 0.40 m/s (dentro do limite de 0.50 m/s)
+340.259,tarefa1,TRANSICAO,concluida,A,0.00,0.000,PousoConfirmado
+340.273,tarefa1,TAREFA_CONCLUIDA,concluida,A,0.00,0.400,"permanências: A=60.0s/0 reinícios, B=60.0s/0 reinícios, C=60.0s/0 reinícios, D=60.0s/0 reinícios; |vz| no toque = 0.40 m/s"

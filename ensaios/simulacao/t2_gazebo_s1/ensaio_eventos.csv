@@ -1,56 +1,58 @@
 instante_s,origem,tipo,estado,vertice,permanencia_s,valor,detalhe
-21.334,tarefa2,TRANSICAO,preparando,,0.00,0.000,
-21.347,tarefa2,SOLICITA_ACAO:habilitar_controle_virtual,preparando,,0.00,0.000,
-21.448,tarefa2,TRANSICAO,decolando,,0.00,0.000,PreparacaoConcluida
-21.448,tarefa2,SOLICITA_ACAO:decolar,decolando,,0.00,0.000,
-24.565,tarefa2,TRANSICAO,subindo,,0.00,0.000,DecolagemConcluida
-24.751,tarefa2,TRANSICAO,girando,,0.00,0.000,altura de busca atingida
-24.984,tarefa2,ALVO_SELECIONADO,girando,azul#2,0.00,0.000,"centro estimado (3.18, 1.28, 1.66) m, incerteza 0.05 m"
-25.035,tarefa2,TRANSICAO,aproximando,azul#2,0.00,0.000,alvo confirmado no mapa
-36.669,tarefa2,TRANSICAO,confirmando,azul#2,0.00,0.000,ponto de espera atingido
-38.207,tarefa2,TRANSICAO,aproximando,azul#2,0.00,0.000,"centro corrigido de perto: nova posição de espera (3.66, 1.47, 1.74) m"
-41.125,tarefa2,TRANSICAO,confirmando,azul#2,0.00,0.000,ponto de espera atingido
-42.842,tarefa2,TRANSICAO,aproximacaoFinal,azul#2,0.00,0.000,"alvo confirmado de perto (5 medidas); centro (3.65, 1.47, 1.74) m"
-55.354,tarefa2,TRANSICAO,permanecendo,azul#2,0.00,0.000,faixa atingida: d = 4.8 cm
-55.506,tarefa2,PERMANENCIA_INICIADA,permanecendo,azul#2,0.00,0.045,d = 4.5 cm
-63.273,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,azul#2,5.00,0.028,0 reinícios da contagem
-63.281,tarefa2,BALAO_DESTRUIDO,permanecendo,azul#2,0.00,2.000,azul #2: 5.0 s contínuos a 0 < d <= 5 cm
-63.281,tarefa2,TRANSICAO,afastando,azul#2,0.00,0.000,BalaoDestruido
-66.819,tarefa2,ALVO_SELECIONADO,afastando,vermelho#4,0.00,0.000,"centro estimado (1.93, 1.57, 1.23) m, incerteza 0.17 m"
-66.828,tarefa2,TRANSICAO,aproximando,vermelho#4,0.00,0.000,alvo confirmado no mapa
-74.033,tarefa2,TRANSICAO,confirmando,vermelho#4,0.00,0.000,ponto de espera atingido
-75.737,tarefa2,TRANSICAO,aproximacaoFinal,vermelho#4,0.00,0.000,"alvo confirmado de perto (5 medidas); centro (1.91, 1.64, 1.16) m"
-89.080,tarefa2,TRANSICAO,permanecendo,vermelho#4,0.00,0.000,faixa atingida: d = 5.0 cm
-89.239,tarefa2,PERMANENCIA_INICIADA,permanecendo,vermelho#4,0.00,0.046,d = 4.6 cm
-97.291,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,vermelho#4,5.00,0.023,0 reinícios da contagem
-97.295,tarefa2,BALAO_DESTRUIDO,permanecendo,vermelho#4,0.00,4.000,vermelho #4: 5.0 s contínuos a 0 < d <= 5 cm
-97.325,tarefa2,TRANSICAO,afastando,vermelho#4,0.00,0.000,BalaoDestruido
-101.086,tarefa2,ALVO_SELECIONADO,afastando,vermelho#7,0.00,0.000,"centro estimado (1.27, 2.87, 1.84) m, incerteza 0.20 m"
-101.111,tarefa2,TRANSICAO,aproximando,vermelho#7,0.00,0.000,alvo confirmado no mapa
-111.194,tarefa2,TRANSICAO,confirmando,vermelho#7,0.00,0.000,ponto de espera atingido
-113.155,tarefa2,TRANSICAO,aproximando,vermelho#7,0.00,0.000,"centro corrigido de perto: nova posição de espera (0.99, 3.17, 1.89) m"
-116.376,tarefa2,TRANSICAO,confirmando,vermelho#7,0.00,0.000,ponto de espera atingido
-118.155,tarefa2,TRANSICAO,aproximacaoFinal,vermelho#7,0.00,0.000,"alvo confirmado de perto (5 medidas); centro (1.00, 3.16, 1.89) m"
-131.191,tarefa2,TRANSICAO,permanecendo,vermelho#7,0.00,0.000,faixa atingida: d = 4.9 cm
-131.338,tarefa2,PERMANENCIA_INICIADA,permanecendo,vermelho#7,0.00,0.044,d = 4.4 cm
-139.182,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,vermelho#7,5.00,0.024,0 reinícios da contagem
-139.182,tarefa2,BALAO_DESTRUIDO,permanecendo,vermelho#7,0.00,7.000,vermelho #7: 5.0 s contínuos a 0 < d <= 5 cm
-139.193,tarefa2,TRANSICAO,afastando,vermelho#7,0.00,0.000,BalaoDestruido
-142.977,tarefa2,ALVO_SELECIONADO,afastando,azul#8,0.00,0.000,"centro estimado (0.13, 1.79, 1.62) m, incerteza 0.16 m"
-142.981,tarefa2,TRANSICAO,aproximando,azul#8,0.00,0.000,alvo confirmado no mapa
-147.562,tarefa2,TRANSICAO,confirmando,azul#8,0.00,0.000,ponto de espera atingido
-149.663,tarefa2,TRANSICAO,aproximacaoFinal,azul#8,0.00,0.000,"alvo confirmado de perto (5 medidas); centro (0.07, 1.54, 1.69) m"
-167.009,tarefa2,TRANSICAO,permanecendo,azul#8,0.00,0.000,faixa atingida: d = 4.7 cm
-167.155,tarefa2,PERMANENCIA_INICIADA,permanecendo,azul#8,0.00,0.042,d = 4.2 cm
-174.491,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,azul#8,5.10,0.024,0 reinícios da contagem
-174.491,tarefa2,BALAO_DESTRUIDO,permanecendo,azul#8,0.00,8.000,azul #8: 5.1 s contínuos a 0 < d <= 5 cm
-174.530,tarefa2,TRANSICAO,afastando,azul#8,0.00,0.000,BalaoDestruido
-178.039,tarefa2,TRANSICAO,girando,,0.00,0.000,retoma a varredura
-180.685,tarefa2,ALVO_INALCANCAVEL,girando,azul#14,0.00,0.000,sem ponto de aproximação livre no volume permitido
-190.500,tarefa2,ALVO_INALCANCAVEL,girando,azul#17,0.00,0.000,caminho bloqueado
-228.913,tarefa2,TRANSICAO,retornando,,0.00,0.000,varredura completa
-228.981,tarefa2,TRANSICAO,pousando,,0.00,0.000,ponto de decolagem atingido
-235.242,tarefa2,SOLICITA_ACAO:pousar,pousando,,0.00,0.000,pouso automático a partir de 0.39 m
-237.019,tarefa2,POUSO_CONFIRMADO,pousando,,0.00,0.383,|vz| no toque = 0.38 m/s
-237.019,tarefa2,TRANSICAO,concluida,,0.00,0.000,PousoConfirmado
-237.043,tarefa2,TAREFA_CONCLUIDA,concluida,,0.00,0.383,"balões destruídos: azul#2 (5 s), vermelho#4 (5 s), vermelho#7 (5 s), azul#8 (5 s); descartados: nenhum; inalcançáveis: nenhum; |vz| no toque = 0.38 m/s"
+20.475,operador,executar tarefa 2,,,,,
+20.595,tarefa2,TRANSICAO,preparando,,0.00,0.000,
+20.608,tarefa2,SOLICITA_ACAO:habilitar_controle_virtual,preparando,,0.00,0.000,
+20.738,tarefa2,TRANSICAO,decolando,,0.00,0.000,PreparacaoConcluida
+20.744,tarefa2,SOLICITA_ACAO:decolar,decolando,,0.00,0.000,
+23.815,tarefa2,TRANSICAO,subindo,,0.00,0.000,DecolagemConcluida
+23.949,tarefa2,TRANSICAO,girando,,0.00,0.000,altura de busca atingida
+24.072,tarefa2,ALVO_SELECIONADO,girando,azul#2,0.00,0.000,"centro estimado (3.16, 1.28, 1.67) m, incerteza 0.08 m"
+24.080,tarefa2,TRANSICAO,aproximando,azul#2,0.00,0.000,alvo confirmado no mapa
+37.759,tarefa2,TRANSICAO,confirmando,azul#2,0.00,0.000,ponto de espera atingido
+39.815,tarefa2,TRANSICAO,aproximando,azul#2,0.00,0.000,"centro corrigido de perto: nova posição de espera (3.65, 1.48, 1.74) m"
+43.332,tarefa2,TRANSICAO,confirmando,azul#2,0.00,0.000,ponto de espera atingido
+45.110,tarefa2,TRANSICAO,aproximacaoFinal,azul#2,0.00,0.000,"alvo confirmado de perto (5 medidas); centro (3.66, 1.48, 1.74) m"
+56.648,tarefa2,TRANSICAO,permanecendo,azul#2,0.00,0.000,faixa atingida: d = 4.9 cm
+56.805,tarefa2,PERMANENCIA_INICIADA,permanecendo,azul#2,0.00,0.047,d = 4.7 cm
+63.753,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,azul#2,5.09,0.024,0 reinícios da contagem
+63.767,tarefa2,BALAO_DESTRUIDO,permanecendo,azul#2,0.00,2.000,azul #2: 5.1 s contínuos a 0 < d <= 5 cm
+63.783,tarefa2,TRANSICAO,afastando,azul#2,0.00,0.000,BalaoDestruido
+67.042,tarefa2,ALVO_SELECIONADO,afastando,vermelho#4,0.00,0.000,"centro estimado (1.72, 1.50, 1.26) m, incerteza 0.15 m"
+67.047,tarefa2,TRANSICAO,aproximando,vermelho#4,0.00,0.000,alvo confirmado no mapa
+74.287,tarefa2,TRANSICAO,confirmando,vermelho#4,0.00,0.000,ponto de espera atingido
+76.149,tarefa2,TRANSICAO,aproximando,vermelho#4,0.00,0.000,"centro corrigido de perto: nova posição de espera (1.97, 1.65, 1.16) m"
+82.967,tarefa2,TRANSICAO,confirmando,vermelho#4,0.00,0.000,ponto de espera atingido
+84.413,tarefa2,TRANSICAO,aproximacaoFinal,vermelho#4,0.00,0.000,"alvo confirmado de perto (3 medidas); centro (1.93, 1.69, 1.16) m"
+98.627,tarefa2,TRANSICAO,permanecendo,vermelho#4,0.00,0.000,faixa atingida: d = 5.0 cm
+98.770,tarefa2,PERMANENCIA_INICIADA,permanecendo,vermelho#4,0.00,0.044,d = 4.4 cm
+106.842,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,vermelho#4,5.03,0.027,0 reinícios da contagem
+106.854,tarefa2,BALAO_DESTRUIDO,permanecendo,vermelho#4,0.00,4.000,vermelho #4: 5.0 s contínuos a 0 < d <= 5 cm
+106.872,tarefa2,TRANSICAO,afastando,vermelho#4,0.00,0.000,BalaoDestruido
+110.580,tarefa2,ALVO_SELECIONADO,afastando,vermelho#9,0.00,0.000,"centro estimado (1.29, 2.92, 1.77) m, incerteza 0.29 m"
+110.584,tarefa2,TRANSICAO,aproximando,vermelho#9,0.00,0.000,alvo confirmado no mapa
+118.270,tarefa2,TRANSICAO,confirmando,vermelho#9,0.00,0.000,ponto de espera atingido
+120.138,tarefa2,TRANSICAO,aproximando,vermelho#9,0.00,0.000,"centro corrigido de perto: nova posição de espera (1.01, 3.18, 1.90) m"
+123.701,tarefa2,TRANSICAO,confirmando,vermelho#9,0.00,0.000,ponto de espera atingido
+125.658,tarefa2,TRANSICAO,aproximacaoFinal,vermelho#9,0.00,0.000,"alvo confirmado de perto (4 medidas); centro (1.00, 3.20, 1.90) m"
+138.733,tarefa2,TRANSICAO,permanecendo,vermelho#9,0.00,0.000,faixa atingida: d = 3.8 cm
+138.851,tarefa2,PERMANENCIA_INICIADA,permanecendo,vermelho#9,0.00,0.034,d = 3.4 cm
+145.496,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,vermelho#9,5.04,0.024,0 reinícios da contagem
+145.535,tarefa2,BALAO_DESTRUIDO,permanecendo,vermelho#9,0.00,9.000,vermelho #9: 5.0 s contínuos a 0 < d <= 5 cm
+145.543,tarefa2,TRANSICAO,afastando,vermelho#9,0.00,0.000,BalaoDestruido
+149.387,tarefa2,ALVO_SELECIONADO,afastando,azul#11,0.00,0.000,"centro estimado (-0.16, 1.81, 1.70) m, incerteza 0.28 m"
+149.413,tarefa2,TRANSICAO,aproximando,azul#11,0.00,0.000,alvo confirmado no mapa
+156.738,tarefa2,TRANSICAO,confirmando,azul#11,0.00,0.000,ponto de espera atingido
+158.676,tarefa2,TRANSICAO,aproximacaoFinal,azul#11,0.00,0.000,"alvo confirmado de perto (5 medidas); centro (0.13, 1.61, 1.70) m"
+170.765,tarefa2,TRANSICAO,permanecendo,azul#11,0.00,0.000,faixa atingida: d = 4.9 cm
+170.895,tarefa2,PERMANENCIA_INICIADA,permanecendo,azul#11,0.00,0.046,d = 4.6 cm
+178.451,tarefa2,PERMANENCIA_CONCLUIDA,permanecendo,azul#11,5.00,0.027,0 reinícios da contagem
+178.475,tarefa2,BALAO_DESTRUIDO,permanecendo,azul#11,0.00,11.000,azul #11: 5.0 s contínuos a 0 < d <= 5 cm
+178.516,tarefa2,TRANSICAO,afastando,azul#11,0.00,0.000,BalaoDestruido
+181.758,tarefa2,TRANSICAO,girando,,0.00,0.000,retoma a varredura
+194.484,tarefa2,ALVO_INALCANCAVEL,girando,azul#16,0.00,0.000,caminho bloqueado
+232.858,tarefa2,TRANSICAO,retornando,,0.00,0.000,varredura completa
+232.966,tarefa2,TRANSICAO,pousando,,0.00,0.000,ponto de decolagem atingido
+239.692,tarefa2,SOLICITA_ACAO:pousar,pousando,,0.00,0.000,pouso automático a partir de 0.40 m
+241.529,tarefa2,POUSO_CONFIRMADO,pousando,,0.00,0.404,|vz| no toque = 0.40 m/s
+241.535,tarefa2,TRANSICAO,concluida,,0.00,0.000,PousoConfirmado
+241.545,tarefa2,TAREFA_CONCLUIDA,concluida,,0.00,0.404,"balões destruídos: azul#2 (5 s), vermelho#4 (5 s), vermelho#9 (5 s), azul#11 (5 s); descartados: nenhum; inalcançáveis: nenhum; |vz| no toque = 0.40 m/s"

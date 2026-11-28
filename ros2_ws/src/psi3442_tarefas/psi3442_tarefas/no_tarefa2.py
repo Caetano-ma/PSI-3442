@@ -39,6 +39,7 @@ REPESCAGENS_MAX = 2               # rodadas extras sobre alvos descartados/inalc
 TEMPO_MAX_FORA_S = 15.0           # na permanência, sem voltar à faixa por mais que isto: nova tentativa
 TEMPO_REFINO_S = 1.0              # no ponto de espera: média das detecções de perto antes da aproximação final
 DISTANCIA_REFINO_M = 1.5          # só detecções mais próximas que isto refinam o centro do alvo
+CONCORDANCIA_MEDIDA_M = 0.10      # medida de perto a até isto do centro do alvo vale como medida direta do alvo
 ALFA_ANCORA = 0.5                 # filtro da reancoragem do centro pela medida de proximidade (por quadro)
 MEIA_DIAGONAL_ENVELOPE_M = math.hypot(0.298, 0.373) / 2   # 0,239 m: centro -> canto do envelope com hélices
 MARGEM_CANDIDATO_M = 0.15         # folga a um balão ainda candidato (além de raio + envelope)
@@ -131,6 +132,7 @@ class MaquinaTarefa2:
         self._reaproximacoes = 0
         self._repescagens = 0
         self._ancora = None
+        self._limite_garante = False
         self._t_medida = -math.inf        # última medida de proximidade do alvo (reancoragem)
 
     # ------------------------------------------------------------------ auxiliares
@@ -203,7 +205,7 @@ class MaquinaTarefa2:
         if getattr(b, 'situacao', CONFIRMADO) == CANDIDATO:
             margem = MARGEM_CANDIDATO_M       # ainda incerto (pode ser fantasma): bolha menor, mas nunca encostar
         else:
-            margem = self.cfg.margem_obstaculos_m if b.alvo else self.cfg.margem_nao_alvo_m
+            margem = self.cfg.margem_outros_alvos_m if b.alvo else self.cfg.margem_nao_alvo_m
         # margem do R06 entre superfícies: de lado ou na diagonal o envelope com hélices vai até a meia-diagonal
         return self.cfg.raio_balao_m + MEIA_DIAGONAL_ENVELOPE_M + margem
 
@@ -305,6 +307,11 @@ class MaquinaTarefa2:
         self.rota = rota
         return True
 
+    def _livre_de_baloes(self, ponto, mapa, ignorar_id):
+        """O ponto está fora da folga de todo balão do mapa, exceto o alvo e suas duplicatas."""
+        return not any(math.dist((b.x_m, b.y_m, b.z_m), ponto) < self._folga_balao(b)
+                       for b in self._obstaculos_balao(mapa) if not self._mesmo_alvo(b, ignorar_id, mapa))
+
     def _destino_livre(self, destino, mapa):
         return not self._obstaculo(mapa, destino) and not any(
             math.dist((b.x_m, b.y_m, b.z_m), destino) < self._folga_balao(b) for b in self._obstaculos_balao(mapa))
@@ -322,7 +329,7 @@ class MaquinaTarefa2:
         ja_tratados = [b for b in baloes if b.situacao == DESTRUIDO or b.id in ignorar]
         c = self.cfg
         opcoes = [b for b in baloes if b.alvo and b.situacao == CONFIRMADO and b.id not in ignorar
-                  and c.volume_z_min_m - 0.3 <= b.z_m <= c.volume_z_max_m + 0.3
+                  and c.volume_z_min_m - 0.1 <= b.z_m <= c.volume_z_max_m + 0.3
                   and not any(t.cor == b.cor and t.id != b.id and math.dist((t.x_m, t.y_m, t.z_m), (b.x_m, b.y_m, b.z_m))
                               < DISTANCIA_DUPLICATA_M for t in ja_tratados)]
         if not opcoes or estado is None or not estado.valido:
@@ -349,7 +356,7 @@ class MaquinaTarefa2:
                 continue
             # só o ponto de espera é testado contra a grade: o final fica colado ao balão, que o próprio sensor de
             # distâncias também enxerga (e cuja posição no mapa pode ter erro maior que o filtro de células de balão)
-            if self._obstaculo(mapa, espera):
+            if self._obstaculo(mapa, espera) or not self._livre_de_baloes(espera, mapa, balao.id):
                 continue
             if self._bloqueio(espera, final, mapa, ignorar_id=balao.id) is not None:
                 continue
@@ -673,16 +680,15 @@ class MaquinaTarefa2:
         if visao.cor_central == self.alvo['cor'] and math.isfinite(d) and abs(d) < DISTANCIA_REFINO_M:
             cx, cy, cz = posicao_camera(visao.x_m, visao.y_m, visao.z_m, visao.guinada_local_graus)
             if d > 0 and math.isfinite(az):
-                self._t_medida = agora
                 e = math.radians(el) if math.isfinite(el) else math.asin(max(-1.0, min(1.0, (centro[2] - cz) / d)))
                 h = d * math.cos(e)
                 return (cx + h * math.cos(math.radians(az)), cy + h * math.sin(math.radians(az)), cz + d * math.sin(e))
             if d < 0:
                 limite = -d
                 # o limite só vale para a contagem se ele mesmo garante d <= d_max (câmera atrás da frente)
-                if limite - self.cfg.raio_balao_m - (self.cfg.raio_envelope_frontal_m - DESLOCAMENTO_CAMERA[0]) \
-                        <= self.cfg.d_max_m:
-                    self._t_medida = agora
+                self._limite_garante = (limite - self.cfg.raio_balao_m
+                                        - (self.cfg.raio_envelope_frontal_m - DESLOCAMENTO_CAMERA[0])
+                                        <= self.cfg.d_max_m)
                 p = list(centro)
                 if math.isfinite(az) and math.isfinite(el):
                     # cortado na vertical: o centro está além da elevação da borda (acima se el > 0)
@@ -704,9 +710,19 @@ class MaquinaTarefa2:
         if visao is None or self._ancora is visao:
             return
         self._ancora = visao
+        self._limite_garante = False
         medido = self._medida_proxima(visao, agora)
-        if medido is None or math.dist(medido, self.alvo['centro']) > SALTO_MAX_ANCORA_M:
+        if medido is None:
+            if self._limite_garante:              # limite superior coerente com o alvo e que garante d <= 5 cm
+                self._t_medida = agora
             return
+        desvio = math.dist(medido, self.alvo['centro'])
+        if desvio > SALTO_MAX_ANCORA_M:
+            return                                # outro balão (ou fantasma no mapa): não vale para o alvo
+        if desvio <= CONCORDANCIA_MEDIDA_M or self._limite_garante:
+            # só uma medida que concorda com o alvo vale para a contagem (R04): perto de um fantasma do mapa,
+            # a câmera pode estar medindo outro balão da mesma cor
+            self._t_medida = agora
         centro = tuple((1 - ALFA_ANCORA) * c + ALFA_ANCORA * m for c, m in zip(self.alvo['centro'], medido))
         u, c = self.alvo['direcao'], self.cfg
         raio = c.raio_balao_m + c.raio_envelope_frontal_m

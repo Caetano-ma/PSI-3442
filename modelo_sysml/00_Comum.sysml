@@ -188,7 +188,8 @@ package Comum {
         attribute distanciaAproximacao : LengthValue;  // ponto de espera
         attribute vAproximacaoFinal : SpeedValue;
         attribute margemObstaculos : LengthValue;      // paredes e mobiliário (R06)
-        attribute margemNaoAlvo : LengthValue;         // balões não selecionados (R06)
+        attribute margemNaoAlvo : LengthValue;         // balões de cor não alvo (R06)
+        attribute margemOutrosAlvos : LengthValue;     // outros balões de cor-alvo, não selecionados ou destruídos (R06)
         attribute observacoesMin : Integer;
         attribute tempoConfirmacao : DurationValue;
         attribute tempoSemConfirmacao : DurationValue;

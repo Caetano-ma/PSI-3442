@@ -1,0 +1,23 @@
+[ros2-13] [INFO] [1795819744.528060400] [rosbag2_recorder]: Subscribed to topic '/falhas'
+[tarefa1-5] [0m[INFO] [1795819758.277276300] [tarefa1]: TRANSICAO [preparando ] [0m
+[tarefa1-5] [0m[INFO] [1795819758.389332811] [tarefa1]: TRANSICAO [decolando ] PreparacaoConcluida[0m
+[tarefa1-5] [0m[INFO] [1795819760.961413538] [tarefa1]: TRANSICAO [subindo ] DecolagemConcluida[0m
+[tarefa1-5] [0m[INFO] [1795819762.786410227] [tarefa1]: TRANSICAO [pairando A] AlturaAtingida[0m
+[tarefa1-5] [0m[INFO] [1795819762.900367731] [tarefa1]: PERMANENCIA_INICIADA [pairando A] [0m
+[tarefa1-5] [0m[INFO] [1795819831.709465960] [tarefa1]: PERMANENCIA_CONCLUIDA [pairando A] 0 reinícios da contagem[0m
+[tarefa1-5] [0m[INFO] [1795819831.720220955] [tarefa1]: TRANSICAO [deslocando B] PermanenciaConcluida[0m
+[tarefa1-5] [0m[INFO] [1795819838.100502359] [tarefa1]: TRANSICAO [pairando B] VerticeAtingido[0m
+[tarefa1-5] [0m[INFO] [1795819838.231932075] [tarefa1]: PERMANENCIA_INICIADA [pairando B] [0m
+[tarefa1-5] [0m[INFO] [1795819909.306072086] [tarefa1]: PERMANENCIA_CONCLUIDA [pairando B] 0 reinícios da contagem[0m
+[tarefa1-5] [0m[INFO] [1795819909.314239102] [tarefa1]: TRANSICAO [deslocando C] PermanenciaConcluida[0m
+[tarefa1-5] [0m[INFO] [1795819915.691255002] [tarefa1]: TRANSICAO [pairando C] VerticeAtingido[0m
+[tarefa1-5] [0m[INFO] [1795819915.785825734] [tarefa1]: PERMANENCIA_INICIADA [pairando C] [0m
+[tarefa1-5] [0m[INFO] [1795819984.895517024] [tarefa1]: PERMANENCIA_CONCLUIDA [pairando C] 0 reinícios da contagem[0m
+[tarefa1-5] [0m[INFO] [1795819984.908676141] [tarefa1]: TRANSICAO [deslocando D] PermanenciaConcluida[0m
+[tarefa1-5] [0m[INFO] [1795819991.823541761] [tarefa1]: TRANSICAO [pairando D] VerticeAtingido[0m
+[tarefa1-5] [0m[INFO] [1795819991.958671713] [tarefa1]: PERMANENCIA_INICIADA [pairando D] [0m
+[tarefa1-5] [0m[INFO] [1795820067.575055619] [tarefa1]: PERMANENCIA_CONCLUIDA [pairando D] 0 reinícios da contagem[0m
+[tarefa1-5] [0m[INFO] [1795820067.579205147] [tarefa1]: TRANSICAO [retornando A] PermanenciaConcluida (último vértice)[0m
+[tarefa1-5] [0m[INFO] [1795820074.003053286] [tarefa1]: TRANSICAO [estabilizandoEmA A] VerticeAtingido (retorno)[0m
+[tarefa1-5] [0m[INFO] [1795820076.552811041] [tarefa1]: TRANSICAO [pousando A] Estabilizado[0m
+[tarefa1-5] [0m[INFO] [1795820084.995208020] [tarefa1]: TRANSICAO [concluida A] PousoConfirmado[0m

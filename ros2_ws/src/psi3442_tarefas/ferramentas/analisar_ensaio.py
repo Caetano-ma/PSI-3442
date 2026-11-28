@@ -91,12 +91,19 @@ def metricas_tarefa2(eventos, avaliacao=None, linhas=None):
     resultado = next((e['tipo'] for e in eventos if e['tipo'] in ('TAREFA_CONCLUIDA', 'TAREFA_ABORTADA')), '—')
     saida = {'resultado': resultado, 'baloes': por_balao,
              'falhas': [e['tipo'] for e in eventos if e['origem'] == 'supervisao']}
-    pares = [(f(l['d_estimada_m']), f(l['d_real_m'])) for l in (linhas or [])
+    def percentil(valores, q):
+        v = sorted(valores)
+        return v[min(len(v) - 1, int(q * (len(v) - 1) + 0.5))] if v else math.nan
+
+    pares = [(f(l['d_estimada_m']), f(l['d_real_m']), l['dentro'] in ('1', 'True', 'true')) for l in (linhas or [])
              if l.get('d_estimada_m') and l.get('d_real_m')]
     if pares:
-        erros = [abs(e - r) for e, r in pares]
-        saida['erro_estimacao_medio_m'] = sum(erros) / len(erros)
-        saida['erro_estimacao_max_m'] = max(erros)
+        erros = [abs(e - r) for e, r, _ in pares]
+        contando = [abs(e - r) for e, r, c in pares if c]
+        saida['erro_estimacao_mediana_m'] = percentil(erros, 0.5)
+        saida['erro_estimacao_p95_m'] = percentil(erros, 0.95)
+        saida['erro_estimacao_contando_mediana_m'] = percentil(contando, 0.5)
+        saida['erro_estimacao_contando_max_m'] = max(contando, default=math.nan)
         saida['amostras_estimacao'] = len(erros)
     if avaliacao:
         contando = [f(l['d_real_alvo_m']) for l in avaliacao if l['contando'] == '1']
@@ -135,10 +142,12 @@ def markdown(titulo, m1, m2):
             linhas.append(f"Distância VERDADEIRA durante a contagem (avaliador): {m2['d_real_contando_min_m'] * 100:.1f} a "
                           f"{m2['d_real_contando_max_m'] * 100:.1f} cm em {m2['amostras_contando']} amostras; menor folga a "
                           f"balões não alvo: {m2['folga_min_nao_alvo_m']:.2f} m.")
-        if 'erro_estimacao_medio_m' in m2:
-            linhas.append(f"Erro de estimação de d (aproximação final e permanência, |estimada − real|): médio "
-                          f"{m2['erro_estimacao_medio_m'] * 100:.1f} cm, máximo {m2['erro_estimacao_max_m'] * 100:.1f} cm "
-                          f"em {m2['amostras_estimacao']} amostras.")
+        if 'erro_estimacao_mediana_m' in m2:
+            linhas.append(f"Erro de estimação de d, |estimada − real|, na aproximação final e na permanência "
+                          f"({m2['amostras_estimacao']} amostras): mediana {m2['erro_estimacao_mediana_m'] * 100:.1f} cm, "
+                          f"percentil 95 {m2['erro_estimacao_p95_m'] * 100:.1f} cm; durante a contagem: mediana "
+                          f"{m2['erro_estimacao_contando_mediana_m'] * 100:.1f} cm, máximo "
+                          f"{m2['erro_estimacao_contando_max_m'] * 100:.1f} cm.")
         linhas.append('')
     return '\n'.join(linhas)
 

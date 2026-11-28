@@ -60,11 +60,11 @@ def tarefa1(pasta):
     fig, ax = plt.subplots(figsize=(6.4, 2.6))
     ax.axhspan(1.70, 1.90, color=FAIXA, lw=0, label='tolerância P05 (±0,10 m)')
     verdade = pasta / 'verdade.csv'
+    ax.plot(t, z, color=AZUL, lw=3, label='altura estimada (ToF)')
     if verdade.exists():
         v = ler_csv(verdade)
-        ax.plot([float(l['t_s']) for l in v], [float(l['z_real_m']) for l in v], color=LARANJA, lw=1.2,
-                label='altura real (simulador)')
-    ax.plot(t, z, color=AZUL, label='altura estimada (ToF)')
+        ax.plot([float(l['t_s']) for l in v], [float(l['z_real_m']) for l in v], color=LARANJA, lw=1.1,
+                label='altura real (coincide: ToF ideal na simulação)')
     for e in ler_csv(pasta / 'ensaio_eventos.csv'):
         if e['tipo'] == 'PERMANENCIA_CONCLUIDA':
             ax.annotate(f"{e['vertice']}: {float(e['permanencia_s']):.0f} s", (float(e['instante_s']), 1.93),
@@ -105,7 +105,7 @@ def tarefa2(pasta, sufixo=''):
     perms = resumo.get('permanencias', [])
     if perms:
         n = len(perms)
-        fig, eixos = plt.subplots(1, n, figsize=(max(min(2.3 * n + 0.6, 7.2), 4.6), 3.0), sharey=True,
+        fig, eixos = plt.subplots(1, n, figsize=(max(min(2.3 * n + 0.6, 7.2), 6.4), 3.0), sharey=True,
                                   squeeze=False)
         for ax, p in zip(eixos[0], perms):
             ini, fim = p['inicio_s'] - 8, p.get('fim_s', p['inicio_s']) + 3
@@ -114,7 +114,9 @@ def tarefa2(pasta, sufixo=''):
             ax.plot([t[k] - p['inicio_s'] for k in idx], [d[k] for k in idx], color=AZUL, lw=1.4)
             cont = [k for k in idx if contando[k]]
             ax.plot([t[k] - p['inicio_s'] for k in cont], [d[k] for k in cont], color=LARANJA, lw=2.4)
-            ax.set(title=p['alvo'], ylim=(0, 25))
+            duracao = str(p.get('duracao_s', '')).replace('.', ',')
+            rotulo = {'concluida': 'concluída', 'interrompida': 'interrompida'}.get(p.get('resultado', ''), '')
+            ax.set(title=f"{p['alvo']}: {rotulo} ({duracao} s)", ylim=(0, 25))
         eixos[0][0].set_ylabel('d real (cm)')
         fig.supxlabel('tempo desde o início da contagem (s, relógio do simulador)', fontsize=8.5, color=TEXTO)
         fig.legend(handles=[matplotlib.lines.Line2D([], [], color=AZUL, label='aproximação e afastamento'),

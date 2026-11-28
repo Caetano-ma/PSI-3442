@@ -347,3 +347,22 @@ def test_sala_aleatoria_com_erro_de_tamanho_destroi_todos_uma_vez():
     assert sorted(destruidos_reais) == sorted(reais)
     alvos = [b for b in SALA_SEMENTE_2 if b.cor != 'verde']
     assert all(0.0 < d <= 0.05 for _, d in distancias_reais_contando(s, alvos))
+
+
+def test_fantasma_perto_de_balao_real_nao_vira_destruicao():
+    """Salvaguarda: com um fantasma confirmado no mapa a ~0,8 m de um balão real da mesma cor, toda destruição tem o
+    centro medido sobre o balão real. (O caso do Gazebo, semente 2 — cor central do balão real vista de perto do
+    fantasma — não se reproduz nesta visão sintética; a correção foi validada no Gazebo.)"""
+    from types import SimpleNamespace
+    real = BalaoVerdadeiro('vermelho', 3.0, 1.0, 1.6)
+    s = SistemaSimuladoT2([real], cfg=cfg_rapida())
+    s.passo()
+    fantasma = SimpleNamespace(id=900, cor='vermelho', alvo=True, x_m=2.45, y_m=0.45, z_m=1.5, peso=50.0,
+                               soma_quadrados=0.0, observacoes=10, situacao=CONFIRMADO, t_ultima=0.0, incerteza_m=0.05)
+    s.mapa.baloes.append(s.mapa.baloes[0].__class__(**fantasma.__dict__) if s.mapa.baloes else
+                         __import__('psi3442_tarefas.no_mapeamento_local', fromlist=['Balao']).Balao(**fantasma.__dict__))
+    s.comando(EXECUTAR_TAREFA2)
+    assert s.rodar_ate(pousado, 1500)
+    for ev in destruidos(s):
+        assert math.dist((ev.x_m, ev.y_m, ev.z_m), (real.x, real.y, real.z)) < 0.15, ev.detalhe
+    assert all(0.0 < d <= 0.05 for _, d in distancias_reais_contando(s, [real]))

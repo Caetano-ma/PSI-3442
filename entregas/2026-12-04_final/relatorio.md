@@ -19,8 +19,8 @@ O operador só envia `executar tarefa 1`, `executar tarefa 2` ou `interromper`.
 
 | Item | Testes sem voo | Simulação (Gazebo Harmonic) | Voo real |
 |---|---|---|---|
-| Tarefa 1 (P01–P06) | 105 testes pytest + 22 JVM, todos passando | concluída: 4 × 60 s no relógio do simulador (seção 7.1) | **pendente** |
-| Tarefa 2 (R01–R09) | malha fechada sintética: alvos, deriva, balão em movimento, falhas | concluída com distância **verdadeira** em 0 < d ≤ 5 cm (seção 7.2) | **pendente** |
+| Tarefa 1 (P01–P06) | 111 testes pytest + 7 do Gazebo + 22 JVM, todos passando | concluída: 4 × 60 s no relógio do simulador (seção 7.1) | **pendente** |
+| Tarefa 2 (R01–R09) | malha fechada sintética: alvos, deriva, balão em movimento, falhas | 3 salas: 1/1 (60 s), 4/4 e 4/6 alvos; toda contagem com d **verdadeira** em 0 < d ≤ 5 cm; 1 raspão lateral a corrigir (seção 7.2) | **pendente** |
 | Adaptador DJI | compila contra o MSDK 5.20.1 (APIs conferidas no jar) | — | APIs de voo, câmera, obstáculos e gimbal ainda **não exercitadas com a aeronave** |
 
 **O voo real ainda não foi feito.** Ele depende do controle RC-N2/RC-N3 do kit (hipótese H7) e da App Key da DJI
@@ -65,7 +65,9 @@ Hipóteses da Tarefa 2:
 
 Margens do R06, definidas antes dos testes:
 - **0,40 m** de paredes e móveis;
-- **0,50 m** de balões não alvo, entre superfícies;
+- **0,50 m** de balões de cor não alvo e **0,30 m** de outros balões de cor-alvo, entre a superfície do balão e o
+  envelope com hélices (meia-diagonal de 0,239 m);
+- **0,15 m** de candidatos ainda não confirmados no mapa;
 - distintas da faixa de aproximação do alvo (0 < d ≤ 5 cm, alvo de 2,5 cm).
 
 ## 4. Arquitetura e modelo SysML 2.0
@@ -301,9 +303,14 @@ vertical máx. de 0,069 m.
 |---|---|---|---|---|---|---|
 | Um único alvo, cores não alvo, **60 s** | semente 3 (1 alvo, 2 não alvo) | 1/1 (1 reinício aos 35,9 s; depois 60,0 s contínuos) | 1,4 – 3,3 cm | — (antes da gravação de d estimada) | 0,36 m ⚠ | 0 |
 | Múltiplos alvos e cores não alvo | semente 1 (4 alvos, 2 não alvo) | **4/4**, cada um uma vez | 2,6 – 4,3 cm | mediana 0,3 cm, máx. 0,8 cm | 0,79 m | 0 |
-| Múltiplos alvos, sala densa | semente 2 (6 alvos, 1 não alvo) | <!-- S2 --> | <!-- S2D --> | <!-- S2E --> | <!-- S2F --> | <!-- S2C --> |
+| Múltiplos alvos, sala densa | semente 2 (6 alvos, 1 não alvo) | **4/6**; 2 inalcançáveis (canto e vizinhança apertada) | 2,5 – 4,8 cm | mediana 0,3 cm, máx. 1,9 cm | 0,14 m ⚠ | 1 raspão de 0,7 mm num balão-alvo, fora da contagem ⚠ |
 
-O centro de cada balão destruído ficou a 1,2–7 cm do real. A identificação no evento e no painel corresponde
+Em todas as salas, **nenhum balão foi contado duas vezes e nenhuma destruição foi falsa**: o centro de cada balão
+destruído ficou a 1,2–7 cm do real. Nenhuma contagem correu com a distância real fora de 0 < d ≤ 5 cm.
+
+Na sala densa (semente 2), a missão deixou 2 alvos como inalcançáveis e terminou com segurança. Houve um raspão de
+0,7 mm entre a lateral do envelope e um balão-alvo durante uma manobra. Com hélices reais, isso é contato, e é a
+principal pendência da Tarefa 2 antes do voo (seção 9). A identificação no evento e no painel corresponde
 sempre à cor real.
 
 Na sala da semente 3, a folga de 0,36 m a um não alvo foi medida antes da correção da margem lateral (seção 9). A
@@ -318,7 +325,7 @@ regra passou a usar a meia-diagonal do envelope, e as salas 1 e 2, rodadas depoi
 
 ### 7.3 Testes sem voo (malha fechada sintética e unitários)
 
-São **110 testes pytest** (lógica das duas tarefas e serviços comuns), **7 testes** do pacote Gazebo e **22 testes
+São **111 testes pytest** (lógica das duas tarefas e serviços comuns), **7 testes** do pacote Gazebo e **22 testes
 JVM** do app ponte, todos passando. Com o ROS 2 do sistema, o `colcon test` deu 114 testes sem falha. Os cenários da
 seção 7 que não cabem no Gazebo ou não devem ser feitos em voo:
 
@@ -388,7 +395,7 @@ A atenção econômica e jurídica está no **ultralytics/YOLOv8**, licenciado s
 
 **Custo do desenvolvimento e da validação.** A escolha que mais reduziu custo e risco foi testar quase tudo **sem
 voo**, em três camadas:
-1. malha fechada sintética em Python: segundos por missão, 105 testes;
+1. malha fechada sintética em Python: segundos por missão, 111 testes;
 2. Gazebo com câmera e verdade de referência: minutos por missão;
 3. app no emulador ou no celular com drone falso.
 
@@ -445,6 +452,12 @@ campo de visão). A missão, a simulação e os testes não mudam.
   só é evitado se estiver no mapa pela câmera. Num ensaio da semente 2, o drone passou a 6,5 cm de um balão verde a
   caminho de um ponto de busca. Mitigação prevista: margem maior a candidatos e varredura com câmera antes de cada
   deslocamento.
+- **Contato lateral numa manobra (semente 2):** com margem de 0,30 m a outros balões de cor-alvo e o erro de
+  seguimento do controle, a lateral do envelope chegou a raspar um balão-alvo (0,7 mm no modelo de caixa), fora de
+  qualquer contagem. Antes do voo:
+  - voltar essa margem a 0,40 m;
+  - limitar a velocidade a 0,15 m/s a menos de 1 m de qualquer balão;
+  - repetir a sala densa.
 - **Sala densa:** em salas com muitos alvos a ~1 m uns dos outros e perto das paredes, alguns podem ficar
   inalcançáveis com essas margens. A missão termina com segurança e os registra; reduzir margens é decisão a tomar
   antes do ensaio, nunca depois.

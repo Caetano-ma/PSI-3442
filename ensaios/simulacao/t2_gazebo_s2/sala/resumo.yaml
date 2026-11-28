@@ -1,91 +1,55 @@
 permanencias:
 - alvo: vermelho#3
-  inicio_s: 28.8
-  d_min_m: 0.7575
-  d_max_m: 0.7773
-  amostras: 255
-  fim_s: 33.9
-  duracao_s: 5.1
-  resultado: concluida
-  dentro_da_faixa: false
-- alvo: vermelho#6
-  inicio_s: 57.52
-  d_min_m: 0.0264
-  d_max_m: 0.039
-  amostras: 254
-  fim_s: 62.6
-  duracao_s: 5.1
-  resultado: concluida
-  dentro_da_faixa: true
-- alvo: azul#8
-  inicio_s: 78.18
-  d_min_m: 0.0249
-  d_max_m: 0.0446
+  inicio_s: 36.3
+  d_min_m: 0.0401
+  d_max_m: 0.048
   amostras: 251
-  fim_s: 83.2
+  fim_s: 41.32
   duracao_s: 5.0
   resultado: concluida
   dentro_da_faixa: true
 - alvo: azul#1
-  inicio_s: 101.42
-  d_min_m: 0.0268
-  d_max_m: 0.0431
-  amostras: 249
-  fim_s: 106.4
-  duracao_s: 5.0
+  inicio_s: 73.4
+  d_min_m: 0.027
+  d_max_m: 0.042
+  amostras: 255
+  fim_s: 78.5
+  duracao_s: 5.1
   resultado: concluida
   dentro_da_faixa: true
-- alvo: vermelho#7
-  inicio_s: 135.92
-  d_min_m: 0.0283
-  d_max_m: 0.0488
-  amostras: 249
-  fim_s: 140.9
-  duracao_s: 5.0
-  resultado: concluida
-  dentro_da_faixa: true
-- alvo: vermelho#4
-  inicio_s: 168.0
-  d_min_m: 0.0281
-  d_max_m: 0.0473
+- alvo: azul#8
+  inicio_s: 162.6
+  d_min_m: 0.0252
+  d_max_m: 0.0418
   amostras: 250
-  fim_s: 173.0
+  fim_s: 167.6
   duracao_s: 5.0
   resultado: concluida
   dentro_da_faixa: true
-- alvo: vermelho#19
-  inicio_s: 229.22
+- alvo: vermelho#10
+  inicio_s: 184.02
   d_min_m: 0.0272
-  d_max_m: 0.0458
-  amostras: 249
-  fim_s: 234.2
-  duracao_s: 5.01
+  d_max_m: 0.0452
+  amostras: 254
+  fim_s: 189.1
+  duracao_s: 5.07
   resultado: concluida
   dentro_da_faixa: true
 destruidos:
 - rotulo: vermelho#3
   cor_real: vermelho
-  erro_centro_m: 0.727
-- rotulo: vermelho#6
-  cor_real: vermelho
-  erro_centro_m: 0.028
-- rotulo: azul#8
-  cor_real: azul
-  erro_centro_m: 0.031
+  erro_centro_m: 0.016
 - rotulo: azul#1
   cor_real: azul
-  erro_centro_m: 0.023
-- rotulo: vermelho#7
-  cor_real: vermelho
   erro_centro_m: 0.015
-- rotulo: vermelho#4
+- rotulo: azul#8
+  cor_real: azul
+  erro_centro_m: 0.025
+- rotulo: vermelho#10
   cor_real: vermelho
   erro_centro_m: 0.036
-- rotulo: vermelho#19
-  cor_real: vermelho
-  erro_centro_m: 0.029
 colisoes: 1
-folga_min_nao_alvo_m: 0.065
+folga_min_nao_alvo_m: 0.1418
 alvos_reais:
 - azul
 - vermelho

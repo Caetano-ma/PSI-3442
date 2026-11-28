@@ -2,10 +2,10 @@ rosbag2_bagfile_information:
   version: 9
   storage_identifier: mcap
   duration:
-    nanoseconds: 375836322663
+    nanoseconds: 401980449301
   starting_time:
-    nanoseconds_since_epoch: 1795831140620835039
-  message_count: 33473
+    nanoseconds_since_epoch: 1795831672644979914
+  message_count: 35286
   topics_with_message_count:
     - topic_metadata:
         name: /alvos
@@ -28,7 +28,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_0269aa937663c0dc7723da1953ccc82590ab0f8f776b5090e4cb863d6d613bf6
-      message_count: 803
+      message_count: 944
     - topic_metadata:
         name: /avaliador/distancia_m
         type: std_msgs/msg/Float64
@@ -50,7 +50,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_705ba9c3d1a09df43737eb67095534de36fd426c0587779bda2bc51fe790182a
-      message_count: 2365
+      message_count: 2469
     - topic_metadata:
         name: /dji/acao
         type: psi3442_interfaces/msg/ComandoDiscreto
@@ -94,7 +94,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_377cfb13c1c08f05e678d59816fb98604d72f184daedadf7542d737a277d5ee8
-      message_count: 2333
+      message_count: 2451
     - topic_metadata:
         name: /dji/obstaculos
         type: sensor_msgs/msg/LaserScan
@@ -102,7 +102,7 @@ rosbag2_bagfile_information:
         offered_qos_profiles:
           - history: unknown
             depth: 10
-            reliability: reliable
+            reliability: best_effort
             durability: volatile
             deadline:
               sec: 9223372036
@@ -116,7 +116,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_64c191398013af96509d518dac71d5164f9382553fce5c1f8cca5be7924bd828
-      message_count: 1310
+      message_count: 1367
     - topic_metadata:
         name: /dji/telemetria
         type: psi3442_interfaces/msg/Telemetria
@@ -138,7 +138,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_a50bfec43c18a65737e41965ad072b8bdf8d84b73dcf3480dff8119dd97126bd
-      message_count: 3722
+      message_count: 4001
     - topic_metadata:
         name: /estado
         type: psi3442_interfaces/msg/EstadoEstimado
@@ -160,7 +160,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_57fbcb7865974272a848b68009493ce0f79303ef228f97f9d59d8cbe6d63a91a
-      message_count: 3715
+      message_count: 3999
     - topic_metadata:
         name: /gazebo/mini4pro/odometria
         type: nav_msgs/msg/Odometry
@@ -182,7 +182,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
-      message_count: 13096
+      message_count: 13666
     - topic_metadata:
         name: /mapa
         type: psi3442_interfaces/msg/MapaLocal
@@ -204,7 +204,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_d3899ffeead694a8a76eaadeffefcfcc3812fe0057dae60b4c227d9ba0d36e79
-      message_count: 523
+      message_count: 546
     - topic_metadata:
         name: /operador/comando
         type: psi3442_interfaces/msg/ComandoOperador
@@ -248,7 +248,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_40dcc2f77fa505f403c0a0c81ffe9677511bdd96b52bc59d0fe2064d23283d99
-      message_count: 2371
+      message_count: 2475
     - topic_metadata:
         name: /tarefa/ativa
         type: psi3442_interfaces/msg/TarefaAtiva
@@ -292,7 +292,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_6361f24428fb42ce20df84685e3384ecb1a93f2040beaf967a5a037d128c6e80
-      message_count: 86
+      message_count: 103
     - topic_metadata:
         name: /tarefa/status
         type: psi3442_interfaces/msg/StatusTarefa
@@ -314,7 +314,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_b32910d51df52d41fcf983a67d5135196ba8b491b233f682d6dccd555799f883
-      message_count: 524
+      message_count: 545
     - topic_metadata:
         name: /tarefa2/distancia
         type: std_msgs/msg/Float64
@@ -336,11 +336,11 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_705ba9c3d1a09df43737eb67095534de36fd426c0587779bda2bc51fe790182a
-      message_count: 2617
+      message_count: 2712
   compression_format: ""
   compression_mode: ""
   relative_file_paths:
-    - execucao_20261127_225855_0.mcap
+    - execucao_20261127_230748_0.mcap
   files:
     []
   custom_data: ~

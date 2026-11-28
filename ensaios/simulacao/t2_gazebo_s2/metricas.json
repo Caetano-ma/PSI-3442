@@ -4,30 +4,6 @@
     "resultado": "TAREFA_CONCLUIDA",
     "baloes": {
       "vermelho#3": {
-        "continuo_s": 5.1,
-        "reinicios": 0,
-        "destruido": true,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": false
-      },
-      "vermelho#6": {
-        "continuo_s": 5.1,
-        "reinicios": 0,
-        "destruido": true,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": false
-      },
-      "azul#8": {
-        "continuo_s": 5.0,
-        "reinicios": 0,
-        "destruido": true,
-        "contato_estimado": 0,
-        "descartado": false,
-        "inalcancavel": false
-      },
-      "azul#1": {
         "continuo_s": 5.0,
         "reinicios": 0,
         "destruido": true,
@@ -40,10 +16,10 @@
         "reinicios": 0,
         "destruido": false,
         "contato_estimado": 0,
-        "descartado": false,
+        "descartado": true,
         "inalcancavel": true
       },
-      "vermelho#9": {
+      "azul#16": {
         "continuo_s": 0.0,
         "reinicios": 0,
         "destruido": false,
@@ -51,40 +27,88 @@
         "descartado": false,
         "inalcancavel": true
       },
-      "vermelho#7": {
+      "azul#8": {
         "continuo_s": 5.0,
         "reinicios": 0,
         "destruido": true,
         "contato_estimado": 0,
         "descartado": false,
-        "inalcancavel": false
+        "inalcancavel": true
       },
       "vermelho#4": {
-        "continuo_s": 5.0,
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": true,
+        "inalcancavel": true
+      },
+      "azul#1": {
+        "continuo_s": 5.1,
         "reinicios": 0,
         "destruido": true,
         "contato_estimado": 0,
         "descartado": false,
         "inalcancavel": false
       },
-      "vermelho#19": {
-        "continuo_s": 5.01,
+      "vermelho#7": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "vermelho#10": {
+        "continuo_s": 5.07,
         "reinicios": 0,
         "destruido": true,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "vermelho#13": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "vermelho#18": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "azul#30": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
+        "contato_estimado": 0,
+        "descartado": false,
+        "inalcancavel": true
+      },
+      "azul#35": {
+        "continuo_s": 0.0,
+        "reinicios": 0,
+        "destruido": false,
         "contato_estimado": 0,
         "descartado": false,
         "inalcancavel": true
       }
     },
     "falhas": [],
-    "erro_estimacao_mediana_m": 0.005800000000000027,
-    "erro_estimacao_p95_m": 0.7293,
-    "erro_estimacao_contando_mediana_m": 0.0030999999999999986,
-    "erro_estimacao_contando_max_m": 0.7393,
-    "amostras_estimacao": 1403,
-    "d_real_contando_min_m": 0.0249,
-    "d_real_contando_max_m": 0.7773,
-    "amostras_contando": 319,
-    "folga_min_nao_alvo_m": 0.065
+    "erro_estimacao_mediana_m": 0.008500000000000008,
+    "erro_estimacao_p95_m": 0.022799999999999987,
+    "erro_estimacao_contando_mediana_m": 0.0029,
+    "erro_estimacao_contando_max_m": 0.019299999999999998,
+    "amostras_estimacao": 842,
+    "d_real_contando_min_m": 0.0252,
+    "d_real_contando_max_m": 0.048,
+    "amostras_contando": 183,
+    "folga_min_nao_alvo_m": 0.142
   }
 }

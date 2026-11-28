@@ -163,6 +163,27 @@ Dependem do usuário:
 - Ensaios automatizados: `~/psi3442_ensaios/rodar_gazebo.sh <launch> <s> <pasta> [args]`, que limpa, roda, espera
   TAREFA_*, exporta o CSV, a verdade e as métricas. Fora do repositório; copiar resultados para `ensaios/simulacao/`.
 - Detector: 1 época de treino em CPU (dados sintéticos em `~/psi3442_dados`); métricas em `modelos/`.
+- Resultados de simulação (em `ensaios/simulacao/`):
+  - Tarefa 1 com 4 × 60 s;
+  - Tarefa 2:
+    - semente 1: 4/4 alvos;
+    - alvo único com 60 s e 1 reinício;
+    - semente 2: sala densa; ver a última execução.
+- Correções que vieram dos ensaios:
+  - contagem só com medida que concorda com o alvo;
+  - margens pelo envelope real;
+  - repescagem de alvos;
+  - fusão de duplicatas;
+  - `use_sim_time`.
+- Iteração rápida: reproduzir a sala de uma semente na malha sintética com `erro_tamanho=0.10–0.15`
+  (`test/sistema_simulado_t2.py`). O Gazebo leva ~30 min por sala.
+- Entrega final em `entregas/2026-12-04_final/`:
+  - `gerar_graficos.py` (Python do sistema);
+  - `gerar_entrega.py` (conda `sysml`): gera `relatorio.pdf` e o ZIP;
+  - slides: artefato https://claude.ai/artifact/4w2sCDrPCLtwUCYS7QwDbL. Exportar em PDF para
+    `apresentacao.pdf` antes de gerar o ZIP.
+- Pendências do usuário para o voo real: as mesmas abaixo, mais os ensaios S1–S4 da Tarefa 2 no roteiro e o vídeo
+  de 2min30s.
 
 ## Pendências (em 27/11/2026)
 

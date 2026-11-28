@@ -116,7 +116,7 @@ def tarefa2(pasta, sufixo=''):
             ax.plot([t[k] - p['inicio_s'] for k in cont], [d[k] for k in cont], color=LARANJA, lw=2.4)
             duracao = str(p.get('duracao_s', '')).replace('.', ',')
             rotulo = {'concluida': 'concluída', 'interrompida': 'interrompida'}.get(p.get('resultado', ''), '')
-            ax.set(title=f"{p['alvo']}: {rotulo} ({duracao} s)", ylim=(0, 25))
+            ax.set(title=f"{p['alvo']}\n{rotulo} ({duracao} s)", ylim=(0, 25))
         eixos[0][0].set_ylabel('d real (cm)')
         fig.supxlabel('tempo desde o início da contagem (s, relógio do simulador)', fontsize=8.5, color=TEXTO)
         fig.legend(handles=[matplotlib.lines.Line2D([], [], color=AZUL, label='aproximação e afastamento'),

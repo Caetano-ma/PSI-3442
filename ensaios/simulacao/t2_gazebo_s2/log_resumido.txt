@@ -1,90 +1,104 @@
-[ros2-14] [INFO] [1795831140.200725970] [rosbag2_recorder]: Subscribed to topic '/falhas'
-[tarefa2-7] [0m[INFO] [1795831160.699280964] [tarefa2]: TRANSICAO [preparando ] [0m
-[tarefa2-7] [0m[INFO] [1795831160.985996843] [tarefa2]: TRANSICAO [decolando ] PreparacaoConcluida[0m
-[tarefa2-7] [0m[INFO] [1795831164.273224700] [tarefa2]: TRANSICAO [subindo ] DecolagemConcluida[0m
-[tarefa2-7] [0m[INFO] [1795831164.381747817] [tarefa2]: TRANSICAO [girando ] altura de busca atingida[0m
-[tarefa2-7] [0m[INFO] [1795831164.553062361] [tarefa2]: ALVO_SELECIONADO [girando vermelho#3] centro estimado (1.26, 0.87, 1.51) m, incerteza 0.10 m[0m
-[tarefa2-7] [0m[INFO] [1795831164.565517229] [tarefa2]: TRANSICAO [aproximando vermelho#3] alvo confirmado no mapa[0m
-[tarefa2-7] [0m[INFO] [1795831168.002113872] [tarefa2]: TRANSICAO [confirmando vermelho#3] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831169.902911854] [tarefa2]: TRANSICAO [aproximacaoFinal vermelho#3] alvo confirmado de perto (0 medidas); centro (1.32, 0.94, 1.57) m[0m
-[tarefa2-7] [0m[INFO] [1795831181.802040325] [tarefa2]: TRANSICAO [permanecendo vermelho#3] faixa atingida: d = 5.0 cm[0m
-[tarefa2-7] [0m[INFO] [1795831181.909889157] [tarefa2]: PERMANENCIA_INICIADA [permanecendo vermelho#3] d = 4.6 cm[0m
-[tarefa2-7] [0m[INFO] [1795831188.254296991] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo vermelho#3] 0 reinícios da contagem[0m
-[tarefa2-7] [0m[INFO] [1795831188.264260581] [tarefa2]: BALAO_DESTRUIDO [permanecendo vermelho#3] vermelho #3: 5.1 s contínuos a 0 < d <= 5 cm[0m
-[tarefa2-7] [0m[INFO] [1795831188.275693565] [tarefa2]: TRANSICAO [afastando vermelho#3] BalaoDestruido[0m
-[avaliador_t2-2] [INFO] [1795831188.369061748] [avaliador_t2]: [AVALIADOR] vermelho#3: concluida após 5.1 s; d real 75.7..77.7 cm
-[tarefa2-7] [0m[INFO] [1795831191.375445738] [tarefa2]: ALVO_SELECIONADO [afastando vermelho#6] centro estimado (1.91, 1.34, 1.69) m, incerteza 0.04 m[0m
-[tarefa2-7] [0m[INFO] [1795831191.386653803] [tarefa2]: TRANSICAO [aproximando vermelho#6] alvo confirmado no mapa[0m
-[tarefa2-7] [0m[INFO] [1795831206.690747624] [tarefa2]: TRANSICAO [confirmando vermelho#6] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831208.321837154] [tarefa2]: TRANSICAO [aproximacaoFinal vermelho#6] alvo confirmado de perto (5 medidas); centro (1.90, 1.32, 1.69) m[0m
-[tarefa2-7] [0m[INFO] [1795831220.758507051] [tarefa2]: TRANSICAO [permanecendo vermelho#6] faixa atingida: d = 4.7 cm[0m
-[tarefa2-7] [0m[INFO] [1795831220.926260034] [tarefa2]: PERMANENCIA_INICIADA [permanecendo vermelho#6] d = 4.1 cm[0m
-[tarefa2-7] [0m[INFO] [1795831228.502852043] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo vermelho#6] 0 reinícios da contagem[0m
-[tarefa2-7] [0m[INFO] [1795831228.509768622] [tarefa2]: BALAO_DESTRUIDO [permanecendo vermelho#6] vermelho #6: 5.1 s contínuos a 0 < d <= 5 cm[0m
-[avaliador_t2-2] [INFO] [1795831228.516836846] [avaliador_t2]: [AVALIADOR] vermelho#6: concluida após 5.1 s; d real 2.6..3.9 cm
-[tarefa2-7] [0m[INFO] [1795831228.520280661] [tarefa2]: TRANSICAO [afastando vermelho#6] BalaoDestruido[0m
-[tarefa2-7] [0m[INFO] [1795831232.261886220] [tarefa2]: ALVO_SELECIONADO [afastando azul#8] centro estimado (2.75, 1.99, 1.07) m, incerteza 0.09 m[0m
-[tarefa2-7] [0m[INFO] [1795831232.275364963] [tarefa2]: TRANSICAO [aproximando azul#8] alvo confirmado no mapa[0m
-[tarefa2-7] [0m[INFO] [1795831236.244152546] [tarefa2]: TRANSICAO [confirmando azul#8] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831237.867098437] [tarefa2]: TRANSICAO [aproximacaoFinal azul#8] alvo confirmado de perto (5 medidas); centro (2.64, 1.94, 1.07) m[0m
-[tarefa2-7] [0m[INFO] [1795831251.024131324] [tarefa2]: TRANSICAO [permanecendo azul#8] faixa atingida: d = 4.7 cm[0m
-[tarefa2-7] [0m[INFO] [1795831251.152415961] [tarefa2]: PERMANENCIA_INICIADA [permanecendo azul#8] d = 4.4 cm[0m
-[avaliador_t2-2] [INFO] [1795831257.894915677] [avaliador_t2]: [AVALIADOR] azul#8: concluida após 5.0 s; d real 2.5..4.5 cm
-[tarefa2-7] [0m[INFO] [1795831257.896112494] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo azul#8] 0 reinícios da contagem[0m
-[tarefa2-7] [0m[INFO] [1795831257.926583290] [tarefa2]: BALAO_DESTRUIDO [permanecendo azul#8] azul #8: 5.0 s contínuos a 0 < d <= 5 cm[0m
-[tarefa2-7] [0m[INFO] [1795831257.954492473] [tarefa2]: TRANSICAO [afastando azul#8] BalaoDestruido[0m
-[tarefa2-7] [0m[INFO] [1795831261.421862353] [tarefa2]: ALVO_SELECIONADO [afastando azul#1] centro estimado (3.72, 1.59, 1.80) m, incerteza 0.17 m[0m
-[tarefa2-7] [0m[INFO] [1795831261.426501795] [tarefa2]: TRANSICAO [aproximando azul#1] alvo confirmado no mapa[0m
-[tarefa2-7] [0m[INFO] [1795831265.934180775] [tarefa2]: TRANSICAO [confirmando azul#1] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831267.338830417] [tarefa2]: TRANSICAO [aproximacaoFinal azul#1] alvo confirmado de perto (3 medidas); centro (4.00, 1.66, 1.81) m[0m
-[tarefa2-7] [0m[INFO] [1795831284.680290910] [tarefa2]: TRANSICAO [permanecendo azul#1] faixa atingida: d = 4.4 cm[0m
-[tarefa2-7] [0m[INFO] [1795831284.807719382] [tarefa2]: PERMANENCIA_INICIADA [permanecendo azul#1] d = 4.2 cm[0m
-[avaliador_t2-2] [INFO] [1795831291.889320295] [avaliador_t2]: [AVALIADOR] azul#1: concluida após 5.0 s; d real 2.7..4.3 cm
-[tarefa2-7] [0m[INFO] [1795831291.904800696] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo azul#1] 0 reinícios da contagem[0m
-[tarefa2-7] [0m[INFO] [1795831291.915956317] [tarefa2]: BALAO_DESTRUIDO [permanecendo azul#1] azul #1: 5.0 s contínuos a 0 < d <= 5 cm[0m
-[tarefa2-7] [0m[INFO] [1795831291.918066203] [tarefa2]: TRANSICAO [afastando azul#1] BalaoDestruido[0m
-[tarefa2-7] [0m[INFO] [1795831295.270659994] [tarefa2]: ALVO_INALCANCAVEL [afastando azul#2] sem ponto de aproximação livre no volume permitido[0m
-[tarefa2-7] [0m[INFO] [1795831295.273861596] [tarefa2]: TRANSICAO [girando ] retoma a varredura[0m
-[tarefa2-7] [0m[INFO] [1795831295.416709216] [tarefa2]: ALVO_INALCANCAVEL [girando vermelho#9] sem ponto de aproximação livre no volume permitido[0m
-[tarefa2-7] [0m[INFO] [1795831295.685936398] [tarefa2]: ALVO_SELECIONADO [girando vermelho#7] centro estimado (4.35, 3.01, 1.51) m, incerteza 0.31 m[0m
-[tarefa2-7] [0m[INFO] [1795831295.715725590] [tarefa2]: TRANSICAO [aproximando vermelho#7] alvo confirmado no mapa[0m
-[tarefa2-7] [0m[INFO] [1795831319.592227308] [tarefa2]: TRANSICAO [confirmando vermelho#7] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831321.183128746] [tarefa2]: TRANSICAO [aproximacaoFinal vermelho#7] alvo confirmado de perto (3 medidas); centro (4.28, 3.16, 1.50) m[0m
-[tarefa2-7] [0m[INFO] [1795831334.299807324] [tarefa2]: TRANSICAO [permanecendo vermelho#7] faixa atingida: d = 5.0 cm[0m
-[tarefa2-7] [0m[INFO] [1795831334.466635510] [tarefa2]: PERMANENCIA_INICIADA [permanecendo vermelho#7] d = 4.8 cm[0m
-[avaliador_t2-2] [INFO] [1795831341.937426731] [avaliador_t2]: [AVALIADOR] vermelho#7: concluida após 5.0 s; d real 2.8..4.9 cm
-[tarefa2-7] [0m[INFO] [1795831341.931172126] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo vermelho#7] 0 reinícios da contagem[0m
-[tarefa2-7] [0m[INFO] [1795831341.982500525] [tarefa2]: BALAO_DESTRUIDO [permanecendo vermelho#7] vermelho #7: 5.0 s contínuos a 0 < d <= 5 cm[0m
-[tarefa2-7] [0m[INFO] [1795831342.003530095] [tarefa2]: TRANSICAO [afastando vermelho#7] BalaoDestruido[0m
-[tarefa2-7] [0m[INFO] [1795831345.462359609] [tarefa2]: ALVO_SELECIONADO [afastando vermelho#4] centro estimado (2.21, 2.86, 1.51) m, incerteza 0.67 m[0m
-[tarefa2-7] [0m[INFO] [1795831345.482551316] [tarefa2]: TRANSICAO [aproximando vermelho#4] alvo confirmado no mapa[0m
-[tarefa2-7] [0m[INFO] [1795831352.405520176] [tarefa2]: TRANSICAO [confirmando vermelho#4] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831354.038612922] [tarefa2]: TRANSICAO [aproximando vermelho#4] centro corrigido de perto: nova posição de espera (1.70, 2.98, 1.48) m[0m
-[tarefa2-7] [0m[INFO] [1795831358.648782559] [tarefa2]: TRANSICAO [confirmando vermelho#4] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831360.428786407] [tarefa2]: TRANSICAO [aproximando vermelho#4] centro corrigido de perto: nova posição de espera (1.73, 3.03, 1.48) m[0m
-[tarefa2-7] [0m[INFO] [1795831366.884641447] [tarefa2]: TRANSICAO [confirmando vermelho#4] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831368.283434221] [tarefa2]: TRANSICAO [aproximacaoFinal vermelho#4] alvo confirmado de perto (4 medidas); centro (1.68, 3.04, 1.48) m[0m
-[tarefa2-7] [0m[INFO] [1795831380.795055106] [tarefa2]: TRANSICAO [permanecendo vermelho#4] faixa atingida: d = 4.8 cm[0m
-[tarefa2-7] [0m[INFO] [1795831380.946701581] [tarefa2]: PERMANENCIA_INICIADA [permanecendo vermelho#4] d = 4.8 cm[0m
-[tarefa2-7] [0m[INFO] [1795831388.337457720] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo vermelho#4] 0 reinícios da contagem[0m
-[avaliador_t2-2] [INFO] [1795831388.341512885] [avaliador_t2]: [AVALIADOR] vermelho#4: concluida após 5.0 s; d real 2.8..4.7 cm
-[tarefa2-7] [0m[INFO] [1795831388.352751264] [tarefa2]: BALAO_DESTRUIDO [permanecendo vermelho#4] vermelho #4: 5.0 s contínuos a 0 < d <= 5 cm[0m
-[tarefa2-7] [0m[INFO] [1795831388.354644835] [tarefa2]: TRANSICAO [afastando vermelho#4] BalaoDestruido[0m
-[tarefa2-7] [0m[INFO] [1795831392.246540271] [tarefa2]: ALVO_INALCANCAVEL [afastando vermelho#19] caminho bloqueado[0m
-[tarefa2-7] [0m[INFO] [1795831392.272481000] [tarefa2]: TRANSICAO [girando ] retoma a varredura[0m
-[tarefa2-7] [0m[INFO] [1795831447.552418720] [tarefa2]: TRANSICAO [deslocando ] ponto de busca 1[0m
-[tarefa2-7] [0m[INFO] [1795831447.976740018] [tarefa2]: ALVO_SELECIONADO [deslocando vermelho#19] centro estimado (0.17, 1.32, 1.27) m, incerteza 0.30 m[0m
-[tarefa2-7] [0m[INFO] [1795831447.981685385] [tarefa2]: TRANSICAO [aproximando vermelho#19] alvo confirmado no mapa[0m
-[tarefa2-7] [0m[INFO] [1795831458.722563567] [tarefa2]: TRANSICAO [confirmando vermelho#19] ponto de espera atingido[0m
-[tarefa2-7] [0m[INFO] [1795831460.509504978] [tarefa2]: TRANSICAO [aproximacaoFinal vermelho#19] alvo confirmado de perto (3 medidas); centro (0.13, 1.63, 1.25) m[0m
-[tarefa2-7] [0m[INFO] [1795831469.480848293] [tarefa2]: TRANSICAO [permanecendo vermelho#19] faixa atingida: d = 4.9 cm[0m
-[tarefa2-7] [0m[INFO] [1795831469.628711020] [tarefa2]: PERMANENCIA_INICIADA [permanecendo vermelho#19] d = 4.5 cm[0m
-[tarefa2-7] [0m[INFO] [1795831477.435050648] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo vermelho#19] 0 reinícios da contagem[0m
-[tarefa2-7] [0m[INFO] [1795831477.436637467] [tarefa2]: BALAO_DESTRUIDO [permanecendo vermelho#19] vermelho #19: 5.0 s contínuos a 0 < d <= 5 cm[0m
-[avaliador_t2-2] [INFO] [1795831477.436341142] [avaliador_t2]: [AVALIADOR] vermelho#19: concluida após 5.01 s; d real 2.7..4.6 cm
-[tarefa2-7] [0m[INFO] [1795831477.441757044] [tarefa2]: TRANSICAO [afastando vermelho#19] BalaoDestruido[0m
-[tarefa2-7] [0m[INFO] [1795831481.039327809] [tarefa2]: ALVO_INALCANCAVEL [afastando vermelho#9] sem ponto de aproximação livre no volume permitido[0m
-[tarefa2-7] [0m[INFO] [1795831481.059606894] [tarefa2]: TRANSICAO [retornando ] varredura completa[0m
-[tarefa2-7] [0m[INFO] [1795831492.503120958] [tarefa2]: TRANSICAO [pousando ] ponto de decolagem atingido[0m
-[tarefa2-7] [0m[INFO] [1795831500.379864009] [tarefa2]: TRANSICAO [concluida ] PousoConfirmado[0m
-[avaliador_t2-2] [INFO] [1795831500.451222437] [avaliador_t2]: [AVALIADOR] resumo: {'permanencias': [{'alvo': 'vermelho#3', 'inicio_s': 28.8, 'd_min_m': 0.7575, 'd_max_m': 0.7773, 'amostras': 255, 'fim_s': 33.9, 'duracao_s': 5.1, 'resultado': 'concluida', 'dentro_da_faixa': False}, {'alvo': 'vermelho#6', 'inicio_s': 57.52, 'd_min_m': 0.0264, 'd_max_m': 0.039, 'amostras': 254, 'fim_s': 62.6, 'duracao_s': 5.1, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'azul#8', 'inicio_s': 78.18, 'd_min_m': 0.0249, 'd_max_m': 0.0446, 'amostras': 251, 'fim_s': 83.2, 'duracao_s': 5.0, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'azul#1', 'inicio_s': 101.42, 'd_min_m': 0.0268, 'd_max_m': 0.0431, 'amostras': 249, 'fim_s': 106.4, 'duracao_s': 5.0, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'vermelho#7', 'inicio_s': 135.92, 'd_min_m': 0.0283, 'd_max_m': 0.0488, 'amostras': 249, 'fim_s': 140.9, 'duracao_s': 5.0, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'vermelho#4', 'inicio_s': 168.0, 'd_min_m': 0.0281, 'd_max_m': 0.0473, 'amostras': 250, 'fim_s': 173.0, 'duracao_s': 5.0, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'vermelho#19', 'inicio_s': 229.22, 'd_min_m': 0.0272, 'd_max_m': 0.0458, 'amostras': 249, 'fim_s': 234.2, 'duracao_s': 5.01, 'resultado': 'concluida', 'dentro_da_faixa': True}], 'destruidos': [{'rotulo': 'vermelho#3', 'cor_real': 'vermelho', 'erro_centro_m': 0.727}, {'rotulo': 'vermelho#6', 'cor_real': 'vermelho', 'erro_centro_m': 0.028}, {'rotulo': 'azul#8', 'cor_real': 'azul', 'erro_centro_m': 0.031}, {'rotulo': 'azul#1', 'cor_real': 'azul', 'erro_centro_m': 0.023}, {'rotulo': 'vermelho#7', 'cor_real': 'vermelho', 'erro_centro_m': 0.015}, {'rotulo': 'vermelho#4', 'cor_real': 'vermelho', 'erro_centro_m': 0.036}, {'rotulo': 'vermelho#19', 'cor_real': 'vermelho', 'erro_centro_m': 0.029}], 'colisoes': 1, 'folga_min_nao_alvo_m': 0.065, 'alvos_reais': ['azul', 'vermelho', 'vermelho', 'vermelho', 'vermelho', 'azul'], 'todos_os_alvos_destruidos': False, 'resultado': 'TAREFA_CONCLUIDA'}
+[ros2-14] [INFO] [1795831672.339889865] [rosbag2_recorder]: Subscribed to topic '/falhas'
+[tarefa2-7] [0m[INFO] [1795831691.995832651] [tarefa2]: TRANSICAO [preparando ] [0m
+[tarefa2-7] [0m[INFO] [1795831692.123759117] [tarefa2]: TRANSICAO [decolando ] PreparacaoConcluida[0m
+[tarefa2-7] [0m[INFO] [1795831695.222552945] [tarefa2]: TRANSICAO [subindo ] DecolagemConcluida[0m
+[tarefa2-7] [0m[INFO] [1795831695.357095811] [tarefa2]: TRANSICAO [girando ] altura de busca atingida[0m
+[tarefa2-7] [0m[INFO] [1795831695.477933538] [tarefa2]: ALVO_SELECIONADO [girando vermelho#3] centro estimado (1.25, 0.86, 1.51) m, incerteza 0.04 m[0m
+[tarefa2-7] [0m[INFO] [1795831695.486629949] [tarefa2]: TRANSICAO [aproximando vermelho#3] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831700.828593059] [tarefa2]: TRANSICAO [confirmando vermelho#3] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831702.303195613] [tarefa2]: TRANSICAO [aproximando vermelho#3] centro corrigido de perto: nova posição de espera (1.58, 1.06, 1.64) m[0m
+[tarefa2-7] [0m[INFO] [1795831704.573428223] [tarefa2]: TRANSICAO [confirmando vermelho#3] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831706.147479986] [tarefa2]: TRANSICAO [aproximando vermelho#3] centro corrigido de perto: nova posição de espera (1.91, 1.35, 1.70) m[0m
+[tarefa2-7] [0m[INFO] [1795831709.214154581] [tarefa2]: TRANSICAO [confirmando vermelho#3] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831710.737666014] [tarefa2]: TRANSICAO [aproximacaoFinal vermelho#3] alvo confirmado de perto (4 medidas); centro (1.91, 1.35, 1.70) m[0m
+[tarefa2-7] [0m[INFO] [1795831723.055046968] [tarefa2]: TRANSICAO [permanecendo vermelho#3] faixa atingida: d = 4.1 cm[0m
+[tarefa2-7] [0m[INFO] [1795831723.204112691] [tarefa2]: PERMANENCIA_INICIADA [permanecendo vermelho#3] d = 3.5 cm[0m
+[tarefa2-7] [0m[INFO] [1795831730.550878791] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo vermelho#3] 0 reinícios da contagem[0m
+[tarefa2-7] [0m[INFO] [1795831730.578180072] [tarefa2]: BALAO_DESTRUIDO [permanecendo vermelho#3] vermelho #3: 5.0 s contínuos a 0 < d <= 5 cm[0m
+[tarefa2-7] [0m[INFO] [1795831730.590682393] [tarefa2]: TRANSICAO [afastando vermelho#3] BalaoDestruido[0m
+[avaliador_t2-2] [INFO] [1795831730.733929932] [avaliador_t2]: [AVALIADOR] vermelho#3: concluida após 5.0 s; d real 4.0..4.8 cm
+[tarefa2-7] [0m[INFO] [1795831734.216190086] [tarefa2]: ALVO_SELECIONADO [afastando azul#2] centro estimado (2.18, 1.49, 1.14) m, incerteza 0.26 m[0m
+[tarefa2-7] [0m[INFO] [1795831734.231914279] [tarefa2]: TRANSICAO [aproximando azul#2] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831742.064566396] [tarefa2]: TRANSICAO [confirmando azul#2] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831748.416610140] [tarefa2]: ALVO_DESCARTADO [confirmando azul#2] não confirmado pela visão no ponto de espera[0m
+[tarefa2-7] [0m[INFO] [1795831748.431547591] [tarefa2]: ALVO_SELECIONADO [confirmando azul#16] centro estimado (3.22, 1.22, 1.78) m, incerteza 0.13 m[0m
+[tarefa2-7] [0m[INFO] [1795831748.451451326] [tarefa2]: TRANSICAO [aproximando azul#16] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831748.779226060] [tarefa2]: ALVO_INALCANCAVEL [aproximando azul#16] caminho bloqueado por balão mapeado no trajeto[0m
+[tarefa2-7] [0m[INFO] [1795831748.781242507] [tarefa2]: ALVO_SELECIONADO [aproximando azul#8] centro estimado (2.70, 1.78, 1.13) m, incerteza 0.14 m[0m
+[tarefa2-7] [0m[INFO] [1795831748.783170367] [tarefa2]: TRANSICAO [aproximando azul#8] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831749.609965113] [tarefa2]: ALVO_INALCANCAVEL [aproximando azul#8] caminho bloqueado por balão mapeado no trajeto[0m
+[tarefa2-7] [0m[INFO] [1795831749.613768363] [tarefa2]: ALVO_SELECIONADO [aproximando vermelho#4] centro estimado (3.37, 2.15, 1.49) m, incerteza 0.27 m[0m
+[tarefa2-7] [0m[INFO] [1795831749.616779208] [tarefa2]: TRANSICAO [aproximando vermelho#4] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831749.904224122] [tarefa2]: ALVO_INALCANCAVEL [aproximando vermelho#4] caminho bloqueado por balão mapeado no trajeto[0m
+[tarefa2-7] [0m[INFO] [1795831749.915279300] [tarefa2]: ALVO_SELECIONADO [aproximando azul#1] centro estimado (3.95, 1.54, 1.78) m, incerteza 0.27 m[0m
+[tarefa2-7] [0m[INFO] [1795831749.920807508] [tarefa2]: TRANSICAO [aproximando azul#1] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831761.714564230] [tarefa2]: TRANSICAO [confirmando azul#1] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831763.282481218] [tarefa2]: TRANSICAO [aproximacaoFinal azul#1] alvo confirmado de perto (4 medidas); centro (4.05, 1.67, 1.81) m[0m
+[tarefa2-7] [0m[INFO] [1795831777.958894205] [tarefa2]: TRANSICAO [permanecendo azul#1] faixa atingida: d = 4.9 cm[0m
+[tarefa2-7] [0m[INFO] [1795831778.114554666] [tarefa2]: PERMANENCIA_INICIADA [permanecendo azul#1] d = 4.4 cm[0m
+[tarefa2-7] [0m[INFO] [1795831786.202317173] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo azul#1] 0 reinícios da contagem[0m
+[tarefa2-7] [0m[INFO] [1795831786.209937103] [tarefa2]: BALAO_DESTRUIDO [permanecendo azul#1] azul #1: 5.1 s contínuos a 0 < d <= 5 cm[0m
+[tarefa2-7] [0m[INFO] [1795831786.211725140] [tarefa2]: TRANSICAO [afastando azul#1] BalaoDestruido[0m
+[avaliador_t2-2] [INFO] [1795831786.248424980] [avaliador_t2]: [AVALIADOR] azul#1: concluida após 5.1 s; d real 2.7..4.2 cm
+[tarefa2-7] [0m[INFO] [1795831790.141397656] [tarefa2]: ALVO_SELECIONADO [afastando vermelho#7] centro estimado (4.27, 3.07, 1.54) m, incerteza 0.26 m[0m
+[tarefa2-7] [0m[INFO] [1795831790.156079469] [tarefa2]: TRANSICAO [aproximando vermelho#7] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831793.254973213] [tarefa2]: ALVO_INALCANCAVEL [aproximando vermelho#7] caminho bloqueado por balão mapeado no trajeto[0m
+[tarefa2-7] [0m[INFO] [1795831793.257034356] [tarefa2]: ALVO_INALCANCAVEL [aproximando vermelho#10] caminho bloqueado[0m
+[tarefa2-7] [0m[INFO] [1795831793.258648247] [tarefa2]: TRANSICAO [girando ] retoma a varredura[0m
+[tarefa2-7] [0m[INFO] [1795831793.368976001] [tarefa2]: ALVO_INALCANCAVEL [girando vermelho#13] caminho bloqueado[0m
+[tarefa2-7] [0m[INFO] [1795831793.647368782] [tarefa2]: ALVO_INALCANCAVEL [girando vermelho#18] caminho bloqueado[0m
+[tarefa2-7] [0m[INFO] [1795831856.161699321] [tarefa2]: TRANSICAO [deslocando ] ponto de busca 1[0m
+[tarefa2-7] [0m[INFO] [1795831856.216290739] [tarefa2]: ALVO_INALCANCAVEL [deslocando vermelho#13] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795831856.505033873] [tarefa2]: ALVO_SELECIONADO [deslocando azul#2] centro estimado (1.87, 1.37, 1.15) m, incerteza 0.25 m[0m
+[tarefa2-7] [0m[INFO] [1795831856.517843693] [tarefa2]: TRANSICAO [aproximando azul#2] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831869.789200039] [tarefa2]: TRANSICAO [confirmando azul#2] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831876.373948404] [tarefa2]: ALVO_DESCARTADO [confirmando azul#2] não confirmado pela visão no ponto de espera[0m
+[tarefa2-7] [0m[INFO] [1795831876.381662183] [tarefa2]: ALVO_SELECIONADO [confirmando azul#8] centro estimado (2.71, 1.80, 1.10) m, incerteza 0.16 m[0m
+[tarefa2-7] [0m[INFO] [1795831876.407572488] [tarefa2]: TRANSICAO [aproximando azul#8] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831879.949094908] [tarefa2]: TRANSICAO [confirmando azul#8] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831881.947795444] [tarefa2]: TRANSICAO [aproximando azul#8] centro corrigido de perto: nova posição de espera (2.68, 1.94, 1.07) m[0m
+[tarefa2-7] [0m[INFO] [1795831896.797965245] [tarefa2]: TRANSICAO [confirmando azul#8] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831898.459595968] [tarefa2]: TRANSICAO [aproximacaoFinal azul#8] alvo confirmado de perto (5 medidas); centro (2.70, 1.95, 1.07) m[0m
+[tarefa2-7] [0m[INFO] [1795831911.216232598] [tarefa2]: TRANSICAO [permanecendo azul#8] faixa atingida: d = 5.0 cm[0m
+[tarefa2-7] [0m[INFO] [1795831911.347226911] [tarefa2]: PERMANENCIA_INICIADA [permanecendo azul#8] d = 4.8 cm[0m
+[tarefa2-7] [0m[INFO] [1795831918.784724568] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo azul#8] 0 reinícios da contagem[0m
+[avaliador_t2-2] [INFO] [1795831918.786160201] [avaliador_t2]: [AVALIADOR] azul#8: concluida após 5.0 s; d real 2.5..4.2 cm
+[tarefa2-7] [0m[INFO] [1795831918.795703932] [tarefa2]: BALAO_DESTRUIDO [permanecendo azul#8] azul #8: 5.0 s contínuos a 0 < d <= 5 cm[0m
+[tarefa2-7] [0m[INFO] [1795831918.815208297] [tarefa2]: TRANSICAO [afastando azul#8] BalaoDestruido[0m
+[tarefa2-7] [0m[INFO] [1795831922.745568704] [tarefa2]: ALVO_SELECIONADO [afastando vermelho#10] centro estimado (1.78, 2.87, 1.44) m, incerteza 0.32 m[0m
+[tarefa2-7] [0m[INFO] [1795831922.755866584] [tarefa2]: TRANSICAO [aproximando vermelho#10] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831927.630593390] [tarefa2]: TRANSICAO [confirmando vermelho#10] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831929.199031470] [tarefa2]: TRANSICAO [aproximacaoFinal vermelho#10] alvo confirmado de perto (4 medidas); centro (1.76, 3.01, 1.48) m[0m
+[tarefa2-7] [0m[INFO] [1795831943.824302067] [tarefa2]: TRANSICAO [permanecendo vermelho#10] faixa atingida: d = 5.0 cm[0m
+[tarefa2-7] [0m[INFO] [1795831944.012884559] [tarefa2]: PERMANENCIA_INICIADA [permanecendo vermelho#10] d = 4.6 cm[0m
+[avaliador_t2-2] [INFO] [1795831951.015071421] [avaliador_t2]: [AVALIADOR] vermelho#10: concluida após 5.07 s; d real 2.7..4.5 cm
+[tarefa2-7] [0m[INFO] [1795831951.021817924] [tarefa2]: PERMANENCIA_CONCLUIDA [permanecendo vermelho#10] 0 reinícios da contagem[0m
+[tarefa2-7] [0m[INFO] [1795831951.028961430] [tarefa2]: BALAO_DESTRUIDO [permanecendo vermelho#10] vermelho #10: 5.1 s contínuos a 0 < d <= 5 cm[0m
+[tarefa2-7] [0m[INFO] [1795831951.046113830] [tarefa2]: TRANSICAO [afastando vermelho#10] BalaoDestruido[0m
+[tarefa2-7] [0m[INFO] [1795831955.298239391] [tarefa2]: ALVO_INALCANCAVEL [afastando azul#16] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795831955.310561076] [tarefa2]: TRANSICAO [deslocando ] ponto de busca 4[0m
+[tarefa2-7] [0m[INFO] [1795831955.355022151] [tarefa2]: ALVO_INALCANCAVEL [deslocando azul#16] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795831955.776515451] [tarefa2]: ALVO_INALCANCAVEL [deslocando azul#2] caminho bloqueado[0m
+[tarefa2-7] [0m[INFO] [1795831955.874507865] [tarefa2]: ALVO_SELECIONADO [deslocando vermelho#4] centro estimado (3.47, 2.33, 1.47) m, incerteza 0.36 m[0m
+[tarefa2-7] [0m[INFO] [1795831955.892515252] [tarefa2]: TRANSICAO [aproximando vermelho#4] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831965.230856617] [tarefa2]: TRANSICAO [confirmando vermelho#4] ponto de espera atingido[0m
+[tarefa2-7] [0m[INFO] [1795831971.919352031] [tarefa2]: ALVO_DESCARTADO [confirmando vermelho#4] não confirmado pela visão no ponto de espera[0m
+[tarefa2-7] [0m[INFO] [1795831971.935199079] [tarefa2]: ALVO_SELECIONADO [confirmando vermelho#7] centro estimado (4.24, 3.11, 1.51) m, incerteza 0.29 m[0m
+[tarefa2-7] [0m[INFO] [1795831971.960790142] [tarefa2]: TRANSICAO [aproximando vermelho#7] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831972.639445147] [tarefa2]: ALVO_INALCANCAVEL [aproximando vermelho#7] caminho bloqueado por balão mapeado no trajeto[0m
+[tarefa2-7] [0m[INFO] [1795831972.643826105] [tarefa2]: ALVO_SELECIONADO [aproximando vermelho#13] centro estimado (0.65, 1.57, 1.28) m, incerteza 0.31 m[0m
+[tarefa2-7] [0m[INFO] [1795831972.647869196] [tarefa2]: TRANSICAO [aproximando vermelho#13] alvo confirmado no mapa[0m
+[tarefa2-7] [0m[INFO] [1795831983.977951749] [tarefa2]: ALVO_INALCANCAVEL [aproximando vermelho#13] caminho bloqueado por balão mapeado no trajeto[0m
+[tarefa2-7] [0m[INFO] [1795831983.979463349] [tarefa2]: ALVO_INALCANCAVEL [aproximando vermelho#18] caminho bloqueado[0m
+[tarefa2-7] [0m[INFO] [1795831983.980916341] [tarefa2]: TRANSICAO [deslocando ] ponto de busca 5[0m
+[tarefa2-7] [0m[INFO] [1795831983.988467359] [tarefa2]: ALVO_INALCANCAVEL [deslocando vermelho#4] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795831984.070653917] [tarefa2]: ALVO_INALCANCAVEL [deslocando vermelho#7] caminho bloqueado[0m
+[tarefa2-7] [0m[INFO] [1795831984.198551163] [tarefa2]: ALVO_INALCANCAVEL [deslocando vermelho#18] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795831985.163408395] [tarefa2]: ALVO_INALCANCAVEL [deslocando azul#30] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795831993.693569599] [tarefa2]: TRANSICAO [girando ] ponto de busca 5 atingido[0m
+[tarefa2-7] [0m[INFO] [1795832002.763631072] [tarefa2]: ALVO_INALCANCAVEL [girando azul#35] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795832032.393243402] [tarefa2]: ALVO_INALCANCAVEL [girando azul#30] sem ponto de aproximação livre no volume permitido[0m
+[tarefa2-7] [0m[INFO] [1795832032.396572689] [tarefa2]: TRANSICAO [retornando ] varredura completa[0m
+[tarefa2-7] [0m[INFO] [1795832051.615364929] [tarefa2]: TRANSICAO [pousando ] ponto de decolagem atingido[0m
+[tarefa2-7] [0m[INFO] [1795832059.363928837] [tarefa2]: TRANSICAO [concluida ] PousoConfirmado[0m
+[avaliador_t2-2] [INFO] [1795832059.436266499] [avaliador_t2]: [AVALIADOR] resumo: {'permanencias': [{'alvo': 'vermelho#3', 'inicio_s': 36.3, 'd_min_m': 0.0401, 'd_max_m': 0.048, 'amostras': 251, 'fim_s': 41.32, 'duracao_s': 5.0, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'azul#1', 'inicio_s': 73.4, 'd_min_m': 0.027, 'd_max_m': 0.042, 'amostras': 255, 'fim_s': 78.5, 'duracao_s': 5.1, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'azul#8', 'inicio_s': 162.6, 'd_min_m': 0.0252, 'd_max_m': 0.0418, 'amostras': 250, 'fim_s': 167.6, 'duracao_s': 5.0, 'resultado': 'concluida', 'dentro_da_faixa': True}, {'alvo': 'vermelho#10', 'inicio_s': 184.02, 'd_min_m': 0.0272, 'd_max_m': 0.0452, 'amostras': 254, 'fim_s': 189.1, 'duracao_s': 5.07, 'resultado': 'concluida', 'dentro_da_faixa': True}], 'destruidos': [{'rotulo': 'vermelho#3', 'cor_real': 'vermelho', 'erro_centro_m': 0.016}, {'rotulo': 'azul#1', 'cor_real': 'azul', 'erro_centro_m': 0.015}, {'rotulo': 'azul#8', 'cor_real': 'azul', 'erro_centro_m': 0.025}, {'rotulo': 'vermelho#10', 'cor_real': 'vermelho', 'erro_centro_m': 0.036}], 'colisoes': 1, 'folga_min_nao_alvo_m': 0.1418, 'alvos_reais': ['azul', 'vermelho', 'vermelho', 'vermelho', 'vermelho', 'azul'], 'todos_os_alvos_destruidos': False, 'resultado': 'TAREFA_CONCLUIDA'}
